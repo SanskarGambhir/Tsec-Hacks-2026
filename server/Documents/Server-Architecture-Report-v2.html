@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Management Server - Architecture Report v2.0</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 50px;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #1a1a2e;
+      border-bottom: 4px solid #e94560;
+      padding-bottom: 15px;
+      margin-bottom: 30px;
+      font-size: 2.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 {
+      color: #e94560;
+      margin: 35px 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+      font-size: 1.5rem;
+    }
+    h3 {
+      color: #16213e;
+      margin: 25px 0 15px;
+      font-size: 1.2rem;
+    }
+    h4 {
+      color: #0f3460;
+      margin: 20px 0 10px;
+      font-size: 1.1rem;
+    }
+    pre {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e94560;
+      padding: 25px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 20px 0;
+      border-left: 4px solid #e94560;
+    }
+    pre .comment { color: #6c757d; }
+    pre .keyword { color: #00d9ff; }
+    pre .string { color: #7cfc00; }
+    code {
+      background: #f8f9fa;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9em;
+      color: #e94560;
+      border: 1px solid #e0e0e0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #e0e0e0;
+      padding: 14px;
+      text-align: left;
+    }
+    th {
+      background: linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+      color: white;
+      font-weight: 600;
+    }
+    tr:nth-child(even) { background: #f8f9fa; }
+    tr:hover { background: #fff3f5; transition: 0.3s; }
+    .flow-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 18px 25px;
+      border-radius: 10px;
+      margin: 12px 0;
+      font-size: 14px;
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    .flow-arrow {
+      text-align: center;
+      font-size: 28px;
+      color: #e94560;
+      margin: 8px 0;
+    }
+    .highlight {
+      background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+      padding: 20px;
+      border-left: 5px solid #ffc107;
+      margin: 20px 0;
+      border-radius: 0 10px 10px 0;
+    }
+    .success-box {
+      background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+      padding: 20px;
+      border-left: 5px solid #28a745;
+      margin: 20px 0;
+      border-radius: 0 10px 10px 0;
+    }
+    .danger-box {
+      background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+      padding: 20px;
+      border-left: 5px solid #dc3545;
+      margin: 20px 0;
+      border-radius: 0 10px 10px 0;
+    }
+    .info-box {
+      background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+      padding: 20px;
+      border-left: 5px solid #17a2b8;
+      margin: 20px 0;
+      border-radius: 0 10px 10px 0;
+    }
+    .emoji { font-size: 1.2em; }
+    ul { margin-left: 25px; margin-bottom: 15px; }
+    li { margin: 10px 0; }
+    .section { page-break-inside: avoid; margin-bottom: 40px; }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 2px;
+    }
+    .badge-secure { background: #28a745; color: white; }
+    .badge-public { background: #17a2b8; color: white; }
+    .badge-get { background: #61affe; color: white; }
+    .badge-post { background: #49cc90; color: white; }
+    .badge-put { background: #fca130; color: white; }
+    .badge-delete { background: #f93e3e; color: white; }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin: 25px 0;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+    .stat-card h3 { color: white; margin: 0 0 10px 0; font-size: 2rem; }
+    .stat-card p { margin: 0; opacity: 0.9; }
+    .method-box {
+      background: #f8f9fa;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    .method-box h4 {
+      color: #e94560;
+      margin-top: 0;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+    .file-tree {
+      font-family: 'Consolas', monospace;
+      background: #1a1a2e;
+      color: #00d9ff;
+      padding: 25px;
+      border-radius: 10px;
+      line-height: 1.8;
+    }
+    .file-tree .folder { color: #ffd700; }
+    .file-tree .file { color: #7cfc00; }
+    .file-tree .desc { color: #6c757d; font-style: italic; }
+    .version-badge {
+      background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-left: 15px;
+    }
+    @media print {
+      body { background: white; }
+      .container { box-shadow: none; padding: 20px; }
+      pre { font-size: 10px; }
+    }
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .two-column { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      🏗️ Project Management Server - Architecture Report
+      <span class="version-badge">v2.0</span>
+    </h1>
+    <p><strong>📅 Generated:</strong> December 28, 2025 | <strong>👤 Author:</strong> Sanskar Gambhir</p>
+
+    <!-- Quick Stats Section -->
+    <div class="section">
+      <h2>📊 Quick Statistics</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>10</h3>
+          <p>API Endpoints</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+          <h3>10</h3>
+          <p>Controller Functions</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%);">
+          <h3>5</h3>
+          <p>Utility Modules</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
+          <h3>11</h3>
+          <p>NPM Packages</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Folder Structure Section -->
+    <div class="section">
+      <h2>📂 Complete Folder Structure</h2>
+      <div class="file-tree">
+<span class="folder">server/</span>
+├── <span class="file">.env</span>                    <span class="desc">← Environment variables (secrets)</span>
+├── <span class="file">dotenvExample.js</span>        <span class="desc">← Example of using dotenv</span>
+├── <span class="file">package.json</span>            <span class="desc">← Project dependencies & scripts</span>
+├── <span class="file">PRD.md</span>                  <span class="desc">← Product Requirements Document</span>
+│
+├── <span class="folder">Documents/</span>             <span class="desc">← Documentation files</span>
+│   ├── <span class="file">Folder-Purpose.txt</span>
+│   ├── <span class="file">Server-Architecture-Report.html</span>
+│   ├── <span class="file">Steps-1.txt</span>
+│   ├── <span class="file">Steps-2.txt</span>
+│   └── <span class="file">Tokens-Description.txt</span>
+│
+├── <span class="folder">public/</span>                <span class="desc">← Static files</span>
+│   └── <span class="folder">Images/</span>
+│
+└── <span class="folder">src/</span>                   <span class="desc">← Source code</span>
+    ├── <span class="file">index.js</span>           <span class="desc">← 🚀 Entry Point</span>
+    ├── <span class="file">app.js</span>             <span class="desc">← ⚙️ Express Configuration</span>
+    │
+    ├── <span class="folder">db/</span>
+    │   └── <span class="file">index.js</span>       <span class="desc">← 🗄️ MongoDB Connection</span>
+    │
+    ├── <span class="folder">models/</span>
+    │   └── <span class="file">user.models.js</span> <span class="desc">← 👤 User Schema & Methods</span>
+    │
+    ├── <span class="folder">routes/</span>
+    │   ├── <span class="file">auth.routes.js</span>       <span class="desc">← 🔐 Auth Routes (10 endpoints)</span>
+    │   └── <span class="file">healthcheck.routes.js</span> <span class="desc">← 💚 Health Check Route</span>
+    │
+    ├── <span class="folder">controllers/</span>
+    │   ├── <span class="file">auth.controllers.js</span>       <span class="desc">← 🎮 Auth Logic (390 lines)</span>
+    │   └── <span class="file">healthcheck.controllers.js</span> <span class="desc">← 💚 Health Check Logic</span>
+    │
+    ├── <span class="folder">middlewares/</span>
+    │   └── <span class="file">auth.middleware.js</span> <span class="desc">← 🛡️ JWT Verification</span>
+    │
+    ├── <span class="folder">utils/</span>
+    │   ├── <span class="file">api-error.js</span>      <span class="desc">← ❌ Custom Error Class</span>
+    │   ├── <span class="file">api-response.js</span>   <span class="desc">← ✅ Standard Response Class</span>
+    │   ├── <span class="file">asyncHandler.js</span>   <span class="desc">← 🔄 Async Error Wrapper</span>
+    │   ├── <span class="file">constants.js</span>      <span class="desc">← 📋 Enums & Constants</span>
+    │   └── <span class="file">mail.js</span>           <span class="desc">← 📧 Email Service</span>
+    │
+    └── <span class="folder">validators/</span>        <span class="desc">← 📝 Input Validation (Empty)</span>
+      </div>
+    </div>
+
+    <!-- Dependencies Section -->
+    <div class="section">
+      <h2>📦 NPM Dependencies</h2>
+      <table>
+        <tr>
+          <th>Package</th>
+          <th>Version</th>
+          <th>Purpose</th>
+        </tr>
+        <tr>
+          <td><strong>express</strong></td>
+          <td>^4.22.1</td>
+          <td>Web framework for Node.js - handles routing and middleware</td>
+        </tr>
+        <tr>
+          <td><strong>mongoose</strong></td>
+          <td>^9.0.2</td>
+          <td>MongoDB ODM - schema modeling and database operations</td>
+        </tr>
+        <tr>
+          <td><strong>jsonwebtoken</strong></td>
+          <td>^9.0.3</td>
+          <td>JWT creation and verification for authentication</td>
+        </tr>
+        <tr>
+          <td><strong>bcrypt</strong></td>
+          <td>^6.0.0</td>
+          <td>Password hashing with salt rounds</td>
+        </tr>
+        <tr>
+          <td><strong>cors</strong></td>
+          <td>^2.8.5</td>
+          <td>Cross-Origin Resource Sharing configuration</td>
+        </tr>
+        <tr>
+          <td><strong>cookie-parser</strong></td>
+          <td>^1.4.7</td>
+          <td>Parse cookies from HTTP requests</td>
+        </tr>
+        <tr>
+          <td><strong>dotenv</strong></td>
+          <td>^17.2.3</td>
+          <td>Load environment variables from .env file</td>
+        </tr>
+        <tr>
+          <td><strong>nodemailer</strong></td>
+          <td>^7.0.12</td>
+          <td>Send emails via SMTP (Mailtrap)</td>
+        </tr>
+        <tr>
+          <td><strong>mailgen</strong></td>
+          <td>^2.0.32</td>
+          <td>Generate beautiful HTML email templates</td>
+        </tr>
+        <tr>
+          <td><strong>axios</strong></td>
+          <td>^1.13.2</td>
+          <td>HTTP client for making API requests</td>
+        </tr>
+        <tr>
+          <td><strong>nodemon</strong></td>
+          <td>^3.1.11</td>
+          <td>Auto-restart server on file changes (dev)</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Complete Request Flow -->
+    <div class="section">
+      <h2>🔄 Complete Request Flow Diagram</h2>
+      
+      <div class="flow-box">
+        <strong>1. 🌐 CLIENT REQUEST</strong><br>
+        Browser/Postman/App sends HTTP request<br>
+        Example: POST /api/v1/auth/login with { email, password }
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+        <strong>2. 🚀 index.js - SERVER STARTUP</strong><br>
+        • Loads environment variables via <code style="color: #1a1a2e;">dotenv.config()</code><br>
+        • Connects to MongoDB via <code style="color: #1a1a2e;">connectDB()</code><br>
+        • Starts Express server on PORT (default: 3000)
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%);">
+        <strong>3. ⚙️ app.js - MIDDLEWARE PIPELINE</strong><br>
+        • <strong>CORS:</strong> Validates origin (localhost:5173), credentials, methods<br>
+        • <strong>express.json():</strong> Parses JSON body → req.body (16kb limit)<br>
+        • <strong>express.urlencoded():</strong> Parses URL params (extended: true)<br>
+        • <strong>express.static():</strong> Serves files from "public" folder<br>
+        • <strong>cookieParser():</strong> Parses cookies → req.cookies
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #5c258d 0%, #4389a2 100%);">
+        <strong>4. 🛤️ routes/auth.routes.js - ROUTE MATCHING</strong><br>
+        • Matches URL pattern: /api/v1/auth/login<br>
+        • For secure routes: Calls <code style="color: black;">verifyJWT</code> middleware first<br>
+        • Routes to appropriate controller function
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);">
+        <strong>5. 🛡️ middlewares/auth.middleware.js (For Secure Routes)</strong><br>
+        • Extracts token from cookies or Authorization header<br>
+        • Verifies JWT using ACCESS_TOKEN_SECRET<br>
+        • Fetches user from database (excluding sensitive fields)<br>
+        • Attaches user to req.user for controller access
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
+        <strong>6. 🔄 utils/asyncHandler.js - ERROR WRAPPER</strong><br>
+        • Wraps controller in Promise.resolve()<br>
+        • Catches any thrown errors automatically<br>
+        • Passes errors to Express error handler via next(error)
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #373b44 0%, #4286f4 100%);">
+        <strong>7. 🎮 controllers/auth.controllers.js - BUSINESS LOGIC</strong><br>
+        • Extracts data from req.body, req.params, req.user<br>
+        • Validates required fields (throws ApiError if missing)<br>
+        • Performs database operations via User model<br>
+        • Generates tokens, sends emails as needed<br>
+        • Returns standardized ApiResponse
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);">
+        <strong>8. 👤 models/user.models.js - DATABASE LAYER</strong><br>
+        • Schema validation (required fields, unique constraints)<br>
+        • Pre-save hook: Auto-hashes password with bcrypt<br>
+        • Instance methods: generateAccessToken, generateRefreshToken<br>
+        • Query methods: findOne, findById, create, save
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);">
+        <strong>9. ✅ CLIENT RECEIVES RESPONSE</strong><br>
+        <code style="color: white;">{ statusCode: 200, data: {...}, message: "...", success: true }</code><br>
+        Plus cookies: accessToken, refreshToken (httpOnly, secure)
+      </div>
+    </div>
+
+    <!-- API Endpoints Section -->
+    <div class="section">
+      <h2>🎯 Complete API Endpoints</h2>
+      
+      <h3>🔓 Public Routes (No Authentication Required)</h3>
+      <table>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Controller</th>
+          <th>Description</th>
+        </tr>
+        <tr>
+          <td><span class="badge badge-get">GET</span></td>
+          <td><code>/</code></td>
+          <td>Inline</td>
+          <td>Welcome message - "Welcome to my Project"</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-get">GET</span></td>
+          <td><code>/api/v1/healthcheck</code></td>
+          <td>healthcheck</td>
+          <td>Server health status check</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-post">POST</span></td>
+          <td><code>/api/v1/auth/register</code></td>
+          <td>registerUser</td>
+          <td>Create new user account + send verification email</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-post">POST</span></td>
+          <td><code>/api/v1/auth/login</code></td>
+          <td>loginUser</td>
+          <td>Authenticate user, return tokens in cookies</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-get">GET</span></td>
+          <td><code>/api/v1/auth/verify-email/:verificationToken</code></td>
+          <td>verifyEmail</td>
+          <td>Verify user's email with token from email link</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-get">GET</span></td>
+          <td><code>/api/v1/auth/refresh-token</code></td>
+          <td>refreshAccessToken</td>
+          <td>Get new access token using refresh token</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-post">POST</span></td>
+          <td><code>/api/v1/auth/forgot-password</code></td>
+          <td>forgotPasswordRequest</td>
+          <td>Send password reset email</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-post">POST</span></td>
+          <td><code>/api/v1/auth/reset-password/:resetToken</code></td>
+          <td>resetForgotPassword</td>
+          <td>Reset password using token from email</td>
+        </tr>
+      </table>
+
+      <h3>🔒 Secure Routes (Authentication Required - verifyJWT middleware)</h3>
+      <table>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Controller</th>
+          <th>Description</th>
+        </tr>
+        <tr>
+          <td><span class="badge badge-post">POST</span></td>
+          <td><code>/api/v1/auth/logout</code></td>
+          <td>logoutUser</td>
+          <td>Clear tokens from cookies and database</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-get">GET</span></td>
+          <td><code>/api/v1/auth/current-user</code></td>
+          <td>getCurrentUser</td>
+          <td>Get logged-in user's profile</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-post">POST</span></td>
+          <td><code>/api/v1/auth/resend-verification-email</code></td>
+          <td>resendVerificationEmail</td>
+          <td>Send new verification email</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-post">POST</span></td>
+          <td><code>/api/v1/auth/change-password</code></td>
+          <td>changeCurrentPassword</td>
+          <td>Change password while logged in</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Controller Functions Detail -->
+    <div class="section">
+      <h2>🎮 Controller Functions Detailed</h2>
+      
+      <div class="method-box">
+        <h4>1. generateAccessAndRefreshToken(userId) - Helper Function</h4>
+        <p><strong>Purpose:</strong> Internal helper to generate both tokens and save refresh token to DB</p>
+        <pre>
+Input: userId (MongoDB ObjectId)
+Process:
+  1. Find user by ID
+  2. Call user.generateAccessToken()
+  3. Call user.generateRefreshToken()
+  4. Save refreshToken to user document
+Output: { accessToken, refreshToken }
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>2. registerUser - POST /api/v1/auth/register</h4>
+        <p><strong>Purpose:</strong> Create new user account with email verification</p>
+        <pre>
+Input: { email, username, password } from req.body
+Process:
+  1. Validate required fields (throw 400 if missing)
+  2. Check if user exists with same email/username (throw 409 if exists)
+  3. Create user with isEmailVerified: false
+  4. Generate email verification token using generateTemporaryForgotPasswordToken()
+  5. Save token and expiry to user document
+  6. Send verification email via sendEmail()
+  7. Return user data (excluding sensitive fields)
+Output: { statusCode: 201, data: { user }, message: "User registered successfully..." }
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>3. loginUser - POST /api/v1/auth/login</h4>
+        <p><strong>Purpose:</strong> Authenticate user and issue tokens</p>
+        <pre>
+Input: { email, password } from req.body
+Process:
+  1. Validate required fields (throw 400 if missing)
+  2. Find user by email (throw 401 if not found)
+  3. Verify password using user.isPasswordCorrect() (throw 401 if invalid)
+  4. Generate access and refresh tokens
+  5. Set cookies (httpOnly: true, secure: true)
+Output: { statusCode: 200, data: { user }, message: "User logged in successfully" }
+Cookies: accessToken, refreshToken
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>4. logoutUser - POST /api/v1/auth/logout (Protected)</h4>
+        <p><strong>Purpose:</strong> Clear user session and tokens</p>
+        <pre>
+Input: req.user (from verifyJWT middleware)
+Process:
+  1. Update user document: set refreshToken to null
+  2. Clear accessToken and refreshToken cookies
+Output: { statusCode: 200, data: {}, message: "User logged out successfully" }
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>5. getCurrentUser - GET /api/v1/auth/current-user (Protected)</h4>
+        <p><strong>Purpose:</strong> Return current authenticated user's data</p>
+        <pre>
+Input: req.user (from verifyJWT middleware)
+Process: Simply return the user object attached by middleware
+Output: { statusCode: 200, data: { user }, message: "Current user fetched successfully" }
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>6. verifyEmail - GET /api/v1/auth/verify-email/:verificationToken</h4>
+        <p><strong>Purpose:</strong> Verify user's email address</p>
+        <pre>
+Input: verificationToken from URL params
+Process:
+  1. Hash the incoming token using SHA-256
+  2. Find user with matching hashed token AND non-expired expiry
+  3. Clear token fields, set isEmailVerified: true
+  4. Save user document
+Output: { statusCode: 200, data: { isEmailVerified: true }, message: "Email verified successfully" }
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>7. resendVerificationEmail - POST /api/v1/auth/resend-verification-email (Protected)</h4>
+        <p><strong>Purpose:</strong> Send new verification email to logged-in user</p>
+        <pre>
+Input: req.user (from verifyJWT middleware)
+Process:
+  1. Check if user exists (throw 404 if not)
+  2. Check if already verified (throw 409 if yes)
+  3. Generate new verification token
+  4. Update user with new token and expiry
+  5. Send verification email
+Output: { statusCode: 200, data: {}, message: "Verification email resent successfully..." }
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>8. refreshAccessToken - GET /api/v1/auth/refresh-token</h4>
+        <p><strong>Purpose:</strong> Get new access token using valid refresh token</p>
+        <pre>
+Input: refreshToken from cookies or req.body
+Process:
+  1. Verify refresh token is present (throw 401 if missing)
+  2. Decode token using REFRESH_TOKEN_SECRET
+  3. Find user by decoded _id
+  4. Validate token matches user's stored refreshToken
+  5. Generate new token pair
+  6. Update cookies and user document
+Output: { statusCode: 200, data: { accessToken, newRefreshToken }, message: "Access token refreshed" }
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>9. forgotPasswordRequest - POST /api/v1/auth/forgot-password</h4>
+        <p><strong>Purpose:</strong> Send password reset email</p>
+        <pre>
+Input: { email } from req.body
+Process:
+  1. Find user by email (throw 404 if not found)
+  2. Generate reset token using generateTemporaryForgotPasswordToken()
+  3. Save hashed token and expiry to user document
+  4. Send reset email with link containing unhashed token
+Output: { statusCode: 200, data: {}, message: "Password reset email sent successfully" }
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>10. resetForgotPassword - POST /api/v1/auth/reset-password/:resetToken</h4>
+        <p><strong>Purpose:</strong> Reset password using token from email</p>
+        <pre>
+Input: resetToken from URL params, { newPassword } from req.body
+Process:
+  1. Hash incoming token using SHA-256
+  2. Find user with matching token AND non-expired expiry
+  3. Clear token fields
+  4. Set new password (pre-save hook will hash it)
+  5. Save user document
+Output: { statusCode: 200, data: {}, message: "Password has been reset successfully" }
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>11. changeCurrentPassword - POST /api/v1/auth/change-password (Protected)</h4>
+        <p><strong>Purpose:</strong> Change password for logged-in user</p>
+        <pre>
+Input: { oldPassword, newPassword } from req.body, req.user from middleware
+Process:
+  1. Find full user by ID (throw 404 if not found)
+  2. Verify old password using isPasswordCorrect() (throw 401 if wrong)
+  3. Set new password (pre-save hook will hash it)
+  4. Save user document
+Output: { statusCode: 200, data: {}, message: "Password has been changed successfully" }
+        </pre>
+      </div>
+    </div>
+
+    <!-- User Model Section -->
+    <div class="section">
+      <h2>👤 User Model Schema</h2>
+      
+      <h3>Schema Fields</h3>
+      <table>
+        <tr>
+          <th>Field</th>
+          <th>Type</th>
+          <th>Constraints</th>
+          <th>Purpose</th>
+        </tr>
+        <tr>
+          <td><code>avatar</code></td>
+          <td>Object { url, localPath }</td>
+          <td>Default: placehold.co URL</td>
+          <td>User's profile picture</td>
+        </tr>
+        <tr>
+          <td><code>username</code></td>
+          <td>String</td>
+          <td>required, unique, lowercase, trim, indexed</td>
+          <td>Unique identifier for login</td>
+        </tr>
+        <tr>
+          <td><code>email</code></td>
+          <td>String</td>
+          <td>required, unique, lowercase, trim</td>
+          <td>Contact & verification</td>
+        </tr>
+        <tr>
+          <td><code>password</code></td>
+          <td>String</td>
+          <td>required</td>
+          <td>Authentication (auto-hashed)</td>
+        </tr>
+        <tr>
+          <td><code>isEmailVerified</code></td>
+          <td>Boolean</td>
+          <td>default: false</td>
+          <td>Email confirmation status</td>
+        </tr>
+        <tr>
+          <td><code>refreshToken</code></td>
+          <td>String</td>
+          <td>optional</td>
+          <td>Current session's refresh token</td>
+        </tr>
+        <tr>
+          <td><code>forgotPasswordToken</code></td>
+          <td>String</td>
+          <td>optional</td>
+          <td>Hashed password reset token</td>
+        </tr>
+        <tr>
+          <td><code>forgotPasswordExpiry</code></td>
+          <td>Date</td>
+          <td>optional</td>
+          <td>Password reset token expiry time</td>
+        </tr>
+        <tr>
+          <td><code>emailVerificationToken</code></td>
+          <td>String</td>
+          <td>optional</td>
+          <td>Hashed email verification token</td>
+        </tr>
+        <tr>
+          <td><code>emailVerificationExpiry</code></td>
+          <td>Date</td>
+          <td>optional</td>
+          <td>Email verification token expiry</td>
+        </tr>
+        <tr>
+          <td><code>createdAt</code></td>
+          <td>Date</td>
+          <td>auto (timestamps)</td>
+          <td>Account creation time</td>
+        </tr>
+        <tr>
+          <td><code>updatedAt</code></td>
+          <td>Date</td>
+          <td>auto (timestamps)</td>
+          <td>Last update time</td>
+        </tr>
+      </table>
+
+      <h3>Model Methods</h3>
+      <div class="two-column">
+        <div class="method-box">
+          <h4>Pre-save Hook</h4>
+          <pre>
+// Auto-hashes password before saving
+if(!this.isModified("password")) return
+this.password = await bcrypt.hash(
+  this.password, 10
+)
+          </pre>
+        </div>
+        <div class="method-box">
+          <h4>isPasswordCorrect(password)</h4>
+          <pre>
+// Compare plain password with hash
+return await bcrypt.compare(
+  password, 
+  this.password
+)
+          </pre>
+        </div>
+      </div>
+
+      <div class="two-column">
+        <div class="method-box">
+          <h4>generateAccessToken()</h4>
+          <pre>
+// JWT with user info, short-lived
+jwt.sign(
+  { _id, email, username },
+  ACCESS_TOKEN_SECRET,
+  { expiresIn: ACCESS_TOKEN_EXPIRY }
+)
+          </pre>
+        </div>
+        <div class="method-box">
+          <h4>generateRefreshToken()</h4>
+          <pre>
+// JWT with only _id, long-lived
+jwt.sign(
+  { _id },
+  REFRESH_TOKEN_SECRET,
+  { expiresIn: REFRESH_TOKEN_EXPIRY }
+)
+          </pre>
+        </div>
+      </div>
+
+      <div class="method-box">
+        <h4>generateTemporaryForgotPasswordToken()</h4>
+        <pre>
+// Used for both email verification and password reset
+const forgotToken = crypto.randomBytes(20).toString("hex")  // Plain token (sent in email)
+const forgotPasswordToken = crypto.createHash("sha256")
+  .update(forgotToken).digest("hex")                        // Hashed token (stored in DB)
+const forgotPasswordExpiry = Date.now() + (20*60*1000)      // 20 minutes expiry
+
+return { forgotToken, forgotPasswordToken, forgotPasswordExpiry }
+        </pre>
+      </div>
+    </div>
+
+    <!-- Middleware Section -->
+    <div class="section">
+      <h2>🛡️ Authentication Middleware</h2>
+      
+      <div class="method-box">
+        <h4>verifyJWT Middleware</h4>
+        <p><strong>Location:</strong> <code>src/middlewares/auth.middleware.js</code></p>
+        <pre>
+Flow:
+1. Extract token from:
+   - req.cookies.accessToken (Primary)
+   - req.header('Authorization').replace('Bearer ', '') (Fallback)
+
+2. If no token → throw ApiError(401, 'Unauthorized request')
+
+3. Verify token:
+   jwt.verify(token, ACCESS_TOKEN_SECRET)
+
+4. Find user by decoded._id:
+   User.findById(decodedToken._id)
+   .select('-password -refreshToken -emailVerificationToken -emailVerificationExpiry')
+
+5. If user not found → throw ApiError(401, 'Invalid access token')
+
+6. Attach user to request:
+   req.user = user
+
+7. Call next() → Continue to controller
+        </pre>
+      </div>
+    </div>
+
+    <!-- Utility Classes Section -->
+    <div class="section">
+      <h2>🛠️ Utility Classes & Functions</h2>
+      
+      <div class="two-column">
+        <div class="method-box">
+          <h4>ApiError Class</h4>
+          <p><strong>Location:</strong> <code>src/utils/api-error.js</code></p>
+          <pre>
+class ApiError extends Error {
+  constructor(
+    statusCode,
+    message = 'Something went wrong',
+    errors = [],
+    stack = ""
+  ) {
+    super(message)
+    this.statusCode = statusCode
+    this.data = null
+    this.message = message
+    this.success = false
+    this.errors = errors
+  }
+}
+
+// Usage:
+throw new ApiError(400, 'Email required')
+          </pre>
+        </div>
+        <div class="method-box">
+          <h4>ApiResponse Class</h4>
+          <p><strong>Location:</strong> <code>src/utils/api-response.js</code></p>
+          <pre>
+class ApiResponse {
+  constructor(
+    statusCode,
+    data,
+    message = "Success"
+  ) {
+    this.statusCode = statusCode
+    this.data = data
+    this.message = message
+    this.success = statusCode < 400
+  }
+}
+
+// Usage:
+new ApiResponse(200, user, 'Success')
+          </pre>
+        </div>
+      </div>
+
+      <div class="method-box">
+        <h4>asyncHandler Function</h4>
+        <p><strong>Location:</strong> <code>src/utils/asyncHandler.js</code></p>
+        <pre>
+const asyncHandler = (requestHandler) => {
+  return async (req, res, next) => {
+    Promise
+      .resolve(requestHandler(req, res, next))
+      .catch((error) => next(error))
+  }
+}
+
+// Purpose: Eliminates try-catch blocks in controllers
+// Any thrown error automatically goes to Express error handler
+
+// Usage:
+const myController = asyncHandler(async (req, res) => {
+  // No try-catch needed!
+  throw new ApiError(400, 'Bad request')  // Auto-caught
+})
+        </pre>
+      </div>
+
+      <div class="method-box">
+        <h4>Email Service Functions</h4>
+        <p><strong>Location:</strong> <code>src/utils/mail.js</code></p>
+        <pre>
+sendEmail(options):
+  - Creates Mailgen instance with theme and product info
+  - Generates HTML and plaintext versions
+  - Uses Nodemailer transporter with Mailtrap SMTP
+  - Sends email with from, to, subject, text, html
+
+emailVerificationMailgenContent(username, verificationUrl):
+  - Returns Mailgen-formatted email body
+  - Green "Verify Email" button
+  - Welcome message
+
+forgotPasswordMailgenContent(username, passwordResetUrl):
+  - Returns Mailgen-formatted email body
+  - Red "Reset Password" button
+  - Password reset instructions
+        </pre>
+      </div>
+    </div>
+
+    <!-- Constants Section -->
+    <div class="section">
+      <h2>📋 Constants & Enumerations</h2>
+      <p><strong>Location:</strong> <code>src/utils/constants.js</code></p>
+      
+      <table>
+        <tr>
+          <th>Constant</th>
+          <th>Values</th>
+          <th>Purpose</th>
+        </tr>
+        <tr>
+          <td><code>UserRolesEnum</code></td>
+          <td>ADMIN, PROJECT_ADMIN, MEMBER</td>
+          <td>User role types for access control</td>
+        </tr>
+        <tr>
+          <td><code>AvailableUserRoles</code></td>
+          <td>['admin', 'project_admin', 'member']</td>
+          <td>Array of valid role values</td>
+        </tr>
+        <tr>
+          <td><code>TaskStatusEnum</code></td>
+          <td>TODO, IN_PROGRESS, DONE</td>
+          <td>Task status types</td>
+        </tr>
+        <tr>
+          <td><code>AvailableTaskStatuses</code></td>
+          <td>['todo', 'in_progress', 'done']</td>
+          <td>Array of valid status values</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Security Section -->
+    <div class="section">
+      <h2>🔐 Security Mechanisms</h2>
+      
+      <table>
+        <tr>
+          <th>Security Layer</th>
+          <th>Implementation</th>
+          <th>Details</th>
+        </tr>
+        <tr>
+          <td><strong>Password Hashing</strong></td>
+          <td>bcrypt with salt round 10</td>
+          <td>Pre-save hook automatically hashes on create/modify</td>
+        </tr>
+        <tr>
+          <td><strong>JWT Access Token</strong></td>
+          <td>Short-lived (configurable)</td>
+          <td>Contains _id, email, username. Used for API access.</td>
+        </tr>
+        <tr>
+          <td><strong>JWT Refresh Token</strong></td>
+          <td>Long-lived (configurable)</td>
+          <td>Contains only _id. Stored in DB for revocation.</td>
+        </tr>
+        <tr>
+          <td><strong>Token Storage</strong></td>
+          <td>HttpOnly Secure Cookies</td>
+          <td>Prevents XSS attacks. Cannot be read by JavaScript.</td>
+        </tr>
+        <tr>
+          <td><strong>Verification Tokens</strong></td>
+          <td>crypto.randomBytes + SHA-256</td>
+          <td>Plain token in email, hashed in DB. 20-min expiry.</td>
+        </tr>
+        <tr>
+          <td><strong>CORS</strong></td>
+          <td>Whitelist-based</td>
+          <td>Only localhost:5173 allowed. Credentials enabled.</td>
+        </tr>
+        <tr>
+          <td><strong>Input Limits</strong></td>
+          <td>16kb JSON/URL limit</td>
+          <td>Prevents large payload attacks.</td>
+        </tr>
+      </table>
+
+      <div class="info-box">
+        <strong>🔑 Token Flow Diagram:</strong>
+        <pre style="background: transparent; color: inherit; padding: 10px 0; border: none;">
+Registration → Email Verification Token (20 min expiry)
+     ↓
+Login → Access Token (short) + Refresh Token (long) in cookies
+     ↓
+API Access → Verify Access Token → Grant access
+     ↓
+Token Expired → Use Refresh Token → Get new Access Token
+     ↓
+Logout → Clear tokens from cookies + DB
+        </pre>
+      </div>
+    </div>
+
+    <!-- Email Flow Section -->
+    <div class="section">
+      <h2>📧 Email System Flow</h2>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <strong>Email Verification Flow</strong>
+      </div>
+      <pre>
+1. User registers with email
+         ↓
+2. Server generates token: crypto.randomBytes(20).toString("hex")
+         ↓
+3. Server hashes token: SHA-256 hash stored in DB
+         ↓
+4. Mailgen creates beautiful HTML email
+         ↓
+5. Nodemailer sends via Mailtrap SMTP
+         ↓
+6. User clicks link: /api/v1/users/verify-email/{unhashed-token}
+         ↓
+7. Server hashes received token, matches with DB
+         ↓
+8. If match + not expired → isEmailVerified = true
+      </pre>
+
+      <div class="flow-box" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
+        <strong>Password Reset Flow</strong>
+      </div>
+      <pre>
+1. User requests reset with email
+         ↓
+2. Server finds user, generates reset token
+         ↓
+3. Hashed token + expiry saved to user document
+         ↓
+4. Email sent with link: FORGOT_PASSWORD_REDIRECT_URL/{unhashed-token}
+         ↓
+5. User clicks link → Frontend shows reset form
+         ↓
+6. Frontend submits: POST /reset-password/{token} with newPassword
+         ↓
+7. Server validates token, updates password (pre-save hashes it)
+      </pre>
+    </div>
+
+    <!-- App Configuration -->
+    <div class="section">
+      <h2>⚙️ Express App Configuration</h2>
+      <p><strong>Location:</strong> <code>src/app.js</code></p>
+      
+      <pre>
+// CORS Configuration
+app.use(cors({
+  origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:5173",
+  credentials: true,                                    // Allow cookies
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Authorization", "Content-Type"],
+}))
+
+// Middleware Stack
+app.use(express.json({ limit: "16kb" }))          // Parse JSON body
+app.use(express.urlencoded({ extended: true, limit: "16kb" }))  // Parse URL params
+app.use(express.static("public"))                  // Serve static files
+app.use(cookieParser())                            // Parse cookies
+
+// Route Registration
+app.use("/api/v1/healthcheck", healthCheckRouter)
+app.use("/api/v1/auth", authRouter)
+      </pre>
+    </div>
+
+    <!-- Environment Variables -->
+    <div class="section">
+      <h2>🔧 Required Environment Variables</h2>
+      
+      <table>
+        <tr>
+          <th>Variable</th>
+          <th>Purpose</th>
+          <th>Example</th>
+        </tr>
+        <tr>
+          <td><code>PORT</code></td>
+          <td>Server port</td>
+          <td>8000 or 3000</td>
+        </tr>
+        <tr>
+          <td><code>MONGODB_URI</code></td>
+          <td>MongoDB connection string</td>
+          <td>mongodb+srv://user:pass@cluster.mongodb.net/dbname</td>
+        </tr>
+        <tr>
+          <td><code>CORS_ORIGIN</code></td>
+          <td>Allowed origins (comma-separated)</td>
+          <td>http://localhost:5173,https://myapp.com</td>
+        </tr>
+        <tr>
+          <td><code>ACCESS_TOKEN_SECRET</code></td>
+          <td>JWT access token signing key</td>
+          <td>your-super-secret-key</td>
+        </tr>
+        <tr>
+          <td><code>ACCESS_TOKEN_EXPIRY</code></td>
+          <td>Access token lifetime</td>
+          <td>15m, 1h, 1d</td>
+        </tr>
+        <tr>
+          <td><code>REFRESH_TOKEN_SECRET</code></td>
+          <td>JWT refresh token signing key</td>
+          <td>your-refresh-secret-key</td>
+        </tr>
+        <tr>
+          <td><code>REFRESH_TOKEN_EXPIRY</code></td>
+          <td>Refresh token lifetime</td>
+          <td>7d, 30d</td>
+        </tr>
+        <tr>
+          <td><code>MAILTRAP_SMTP_HOST</code></td>
+          <td>Mailtrap SMTP host</td>
+          <td>sandbox.smtp.mailtrap.io</td>
+        </tr>
+        <tr>
+          <td><code>MAILTRAP_SMTP_PORT</code></td>
+          <td>Mailtrap SMTP port</td>
+          <td>2525</td>
+        </tr>
+        <tr>
+          <td><code>MAILTRAP_SMTP_USER</code></td>
+          <td>Mailtrap username</td>
+          <td>your-mailtrap-user</td>
+        </tr>
+        <tr>
+          <td><code>MAILTRAP_SMTP_PASSWORD</code></td>
+          <td>Mailtrap password</td>
+          <td>your-mailtrap-password</td>
+        </tr>
+        <tr>
+          <td><code>FORGOT_PASSWORD_REDIRECT_URL</code></td>
+          <td>Frontend reset page URL</td>
+          <td>http://localhost:5173/reset-password</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- NPM Scripts -->
+    <div class="section">
+      <h2>📜 NPM Scripts</h2>
+      
+      <table>
+        <tr>
+          <th>Command</th>
+          <th>Script</th>
+          <th>Purpose</th>
+        </tr>
+        <tr>
+          <td><code>npm run dev</code></td>
+          <td>nodemon src/index.js</td>
+          <td>Start server with auto-reload on file changes</td>
+        </tr>
+        <tr>
+          <td><code>npm start</code></td>
+          <td>node src/index.js</td>
+          <td>Start server for production</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Real-Life Analogy -->
+    <div class="section">
+      <h2>🏨 Real-Life Analogy: Hotel Management System</h2>
+      
+      <table>
+        <tr>
+          <th>Server Component</th>
+          <th>Hotel Equivalent</th>
+          <th>What It Does</th>
+        </tr>
+        <tr>
+          <td><strong>index.js</strong></td>
+          <td>🏨 Hotel Opening</td>
+          <td>Opens doors, powers on systems, ready for guests</td>
+        </tr>
+        <tr>
+          <td><strong>app.js</strong></td>
+          <td>🚪 Reception Lobby</td>
+          <td>First contact point, directs guests appropriately</td>
+        </tr>
+        <tr>
+          <td><strong>routes/</strong></td>
+          <td>📍 Directory Signs</td>
+          <td>"Rooms→1F", "Restaurant→2F", "Spa→3F"</td>
+        </tr>
+        <tr>
+          <td><strong>middlewares/</strong></td>
+          <td>👮 Security Guards</td>
+          <td>Check IDs, verify room keys before entry</td>
+        </tr>
+        <tr>
+          <td><strong>controllers/</strong></td>
+          <td>👨‍💼 Department Staff</td>
+          <td>Actually perform work (book room, serve food)</td>
+        </tr>
+        <tr>
+          <td><strong>models/</strong></td>
+          <td>📚 Guest Records</td>
+          <td>Store guest info, room assignments, history</td>
+        </tr>
+        <tr>
+          <td><strong>utils/</strong></td>
+          <td>🔧 Hotel Utilities</td>
+          <td>Key makers, phone system, email system</td>
+        </tr>
+        <tr>
+          <td><strong>Access Token</strong></td>
+          <td>🔑 Room Key Card</td>
+          <td>Short-term access, expires each day</td>
+        </tr>
+        <tr>
+          <td><strong>Refresh Token</strong></td>
+          <td>💳 Membership Card</td>
+          <td>Long-term, used to get new room keys</td>
+        </tr>
+        <tr>
+          <td><strong>Email Verification</strong></td>
+          <td>✉️ Booking Confirmation</td>
+          <td>Proves you really made the reservation</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- What's Next Section -->
+    <div class="section">
+      <h2>🚀 What's Coming Next (Based on Constants)</h2>
+      
+      <div class="highlight">
+        <strong>📋 Defined but not yet implemented:</strong>
+        <ul>
+          <li><strong>User Roles:</strong> ADMIN, PROJECT_ADMIN, MEMBER - Role-based access control</li>
+          <li><strong>Task Status:</strong> TODO, IN_PROGRESS, DONE - Task management system</li>
+          <li><strong>Validators folder:</strong> Empty - Input validation schemas</li>
+        </ul>
+      </div>
+
+      <div class="success-box">
+        <strong>✅ Completed Features:</strong>
+        <ul>
+          <li>User Registration with Email Verification</li>
+          <li>User Login with JWT Authentication</li>
+          <li>User Logout (Token Revocation)</li>
+          <li>Get Current User Profile</li>
+          <li>Email Verification System</li>
+          <li>Resend Verification Email</li>
+          <li>Forgot Password Flow</li>
+          <li>Reset Password Flow</li>
+          <li>Change Password (Authenticated)</li>
+          <li>Token Refresh Mechanism</li>
+          <li>Health Check Endpoint</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <strong>💡 Suggested Next Steps:</strong>
+        <ul>
+          <li>Implement Project model and CRUD operations</li>
+          <li>Implement Task model with status management</li>
+          <li>Add role-based middleware using UserRolesEnum</li>
+          <li>Create input validators using Joi or express-validator</li>
+          <li>Add file upload for user avatars</li>
+          <li>Implement team/member management</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr style="margin: 40px 0; border: none; border-top: 2px solid #e0e0e0;">
+    
+    <div style="text-align: center; color: #7f8c8d;">
+      <p><strong>📊 Total Lines of Code:</strong> ~700+ lines</p>
+      <p><strong>📁 Total Files:</strong> 15+ source files</p>
+      <p><strong>🔗 API Endpoints:</strong> 10 routes (6 public + 4 protected)</p>
+      <br>
+      <em>Generated by GitHub Copilot • Project Management Server Documentation v2.0</em>
+      <br>
+      <em>December 28, 2025</em>
+    </div>
+  </div>
+</body>
+</html>

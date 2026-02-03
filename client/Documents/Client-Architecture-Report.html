@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Management Client - Architecture Report</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 50px;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #0f0c29;
+      border-bottom: 4px solid #6366f1;
+      padding-bottom: 15px;
+      margin-bottom: 30px;
+      font-size: 2.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 {
+      color: #6366f1;
+      margin: 35px 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+      font-size: 1.5rem;
+    }
+    h3 {
+      color: #302b63;
+      margin: 25px 0 15px;
+      font-size: 1.2rem;
+    }
+    h4 {
+      color: #4f46e5;
+      margin: 20px 0 10px;
+      font-size: 1.1rem;
+    }
+    pre {
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 100%);
+      color: #a5b4fc;
+      padding: 25px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 20px 0;
+      border-left: 4px solid #6366f1;
+    }
+    code {
+      background: #f1f5f9;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9em;
+      color: #6366f1;
+      border: 1px solid #e2e8f0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 14px;
+      text-align: left;
+    }
+    th {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      font-weight: 600;
+    }
+    tr:nth-child(even) { background: #f8fafc; }
+    tr:hover { background: #f1f5f9; transition: 0.3s; }
+    .flow-box {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      padding: 18px 25px;
+      border-radius: 10px;
+      margin: 12px 0;
+      font-size: 14px;
+      box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    }
+    .flow-arrow {
+      text-align: center;
+      font-size: 28px;
+      color: #6366f1;
+      margin: 8px 0;
+    }
+    .highlight {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      padding: 20px;
+      border-left: 5px solid #f59e0b;
+      margin: 20px 0;
+      border-radius: 0 10px 10px 0;
+    }
+    .success-box {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      padding: 20px;
+      border-left: 5px solid #10b981;
+      margin: 20px 0;
+      border-radius: 0 10px 10px 0;
+    }
+    .info-box {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      padding: 20px;
+      border-left: 5px solid #3b82f6;
+      margin: 20px 0;
+      border-radius: 0 10px 10px 0;
+    }
+    .purple-box {
+      background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+      padding: 20px;
+      border-left: 5px solid #8b5cf6;
+      margin: 20px 0;
+      border-radius: 0 10px 10px 0;
+    }
+    ul { margin-left: 25px; margin-bottom: 15px; }
+    li { margin: 10px 0; }
+    .section { page-break-inside: avoid; margin-bottom: 40px; }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 2px;
+    }
+    .badge-react { background: #61dafb; color: #282c34; }
+    .badge-vite { background: #646cff; color: white; }
+    .badge-tailwind { background: #06b6d4; color: white; }
+    .badge-shadcn { background: #000; color: white; }
+    .badge-router { background: #ca4245; color: white; }
+    .badge-axios { background: #5a29e4; color: white; }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin: 25px 0;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+    }
+    .stat-card h3 { color: white; margin: 0 0 10px 0; font-size: 2rem; }
+    .stat-card p { margin: 0; opacity: 0.9; }
+    .component-box {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    .component-box h4 {
+      color: #6366f1;
+      margin-top: 0;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 10px;
+    }
+    .file-tree {
+      font-family: 'Consolas', monospace;
+      background: #0f0c29;
+      color: #a5b4fc;
+      padding: 25px;
+      border-radius: 10px;
+      line-height: 1.8;
+    }
+    .file-tree .folder { color: #fbbf24; }
+    .file-tree .file { color: #34d399; }
+    .file-tree .desc { color: #6b7280; font-style: italic; }
+    .version-badge {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-left: 15px;
+    }
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .two-column { grid-template-columns: 1fr; }
+    }
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .tech-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 2px solid #e2e8f0;
+      padding: 10px 18px;
+      border-radius: 25px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .tech-badge:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .route-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+      border-left: 4px solid #6366f1;
+    }
+    @media print {
+      body { background: white; }
+      .container { box-shadow: none; padding: 20px; }
+      pre { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      ⚛️ Project Management Client - Architecture Report
+      <span class="version-badge">v1.0</span>
+    </h1>
+    <p><strong>📅 Generated:</strong> December 28, 2025 | <strong>👤 Author:</strong> Sanskar Gambhir</p>
+
+    <!-- Tech Stack Banner -->
+    <div class="section">
+      <h2>🛠️ Technology Stack</h2>
+      <div class="tech-stack">
+        <div class="tech-badge">
+          <span style="color: #61dafb;">⚛️</span> React 19.2.0
+        </div>
+        <div class="tech-badge">
+          <span style="color: #646cff;">⚡</span> Vite 7.2.4
+        </div>
+        <div class="tech-badge">
+          <span style="color: #06b6d4;">🎨</span> Tailwind CSS 4.1.18
+        </div>
+        <div class="tech-badge">
+          <span style="color: #000;">🧩</span> shadcn/ui
+        </div>
+        <div class="tech-badge">
+          <span style="color: #ca4245;">🔀</span> React Router 7.11.0
+        </div>
+        <div class="tech-badge">
+          <span style="color: #5a29e4;">📡</span> Axios 1.13.2
+        </div>
+        <div class="tech-badge">
+          <span style="color: #f472b6;">✨</span> Lucide Icons
+        </div>
+        <div class="tech-badge">
+          <span style="color: #8b5cf6;">🎭</span> Radix UI Primitives
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="section">
+      <h2>📊 Quick Statistics</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>3</h3>
+          <p>Page Components</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+          <h3>16</h3>
+          <p>UI Components</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+          <h3>4</h3>
+          <p>Routes Defined</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);">
+          <h3>13</h3>
+          <p>NPM Dependencies</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Folder Structure Section -->
+    <div class="section">
+      <h2>📂 Complete Folder Structure</h2>
+      <div class="file-tree">
+<span class="folder">client/</span>
+├── <span class="file">.gitignore</span>               <span class="desc">← Git ignore patterns</span>
+├── <span class="file">components.json</span>          <span class="desc">← shadcn/ui configuration</span>
+├── <span class="file">eslint.config.js</span>         <span class="desc">← ESLint rules (ES2020)</span>
+├── <span class="file">index.html</span>               <span class="desc">← Entry HTML (Vite serves this)</span>
+├── <span class="file">package.json</span>             <span class="desc">← Dependencies & scripts</span>
+├── <span class="file">tsconfig.json</span>            <span class="desc">← TypeScript/Path aliases</span>
+├── <span class="file">vite.config.js</span>           <span class="desc">← Vite bundler config</span>
+│
+├── <span class="folder">Documents/</span>
+│   └── <span class="file">Steps-1.txt</span>          <span class="desc">← Development notes</span>
+│
+├── <span class="folder">public/</span>                 <span class="desc">← Static assets</span>
+│
+└── <span class="folder">src/</span>                    <span class="desc">← Source code</span>
+    ├── <span class="file">main.jsx</span>             <span class="desc">← 🚀 React Entry Point</span>
+    ├── <span class="file">App.jsx</span>              <span class="desc">← 🔀 Router Configuration</span>
+    ├── <span class="file">App.css</span>              <span class="desc">← App-specific styles (empty)</span>
+    ├── <span class="file">index.css</span>            <span class="desc">← 🎨 Global CSS + Tailwind + Theme</span>
+    │
+    ├── <span class="folder">api/</span>                <span class="desc">← API Layer</span>
+    │   ├── <span class="file">axios.js</span>         <span class="desc">← 📡 Axios instance config</span>
+    │   └── <span class="file">auth.js</span>          <span class="desc">← 🔐 Auth API functions</span>
+    │
+    ├── <span class="folder">components/</span>
+    │   └── <span class="folder">ui/</span>             <span class="desc">← 🧩 shadcn/ui Components (16)</span>
+    │       ├── <span class="file">avatar.jsx</span>
+    │       ├── <span class="file">badge.jsx</span>
+    │       ├── <span class="file">button.jsx</span>
+    │       ├── <span class="file">calendar.jsx</span>
+    │       ├── <span class="file">card.jsx</span>
+    │       ├── <span class="file">chart.jsx</span>
+    │       ├── <span class="file">dialog.jsx</span>
+    │       ├── <span class="file">Glow.jsx</span>      <span class="desc">← Custom component</span>
+    │       ├── <span class="file">input.jsx</span>
+    │       ├── <span class="file">label.jsx</span>
+    │       ├── <span class="file">progress.jsx</span>
+    │       ├── <span class="file">select.jsx</span>
+    │       ├── <span class="file">switch.jsx</span>
+    │       ├── <span class="file">table.jsx</span>
+    │       ├── <span class="file">tabs.jsx</span>
+    │       └── <span class="file">textarea.jsx</span>
+    │
+    ├── <span class="folder">context/</span>            <span class="desc">← React Context (empty)</span>
+    │
+    ├── <span class="folder">lib/</span>
+    │   └── <span class="file">utils.ts</span>         <span class="desc">← 🛠️ cn() utility function</span>
+    │
+    └── <span class="folder">pages/</span>              <span class="desc">← 📄 Page Components</span>
+        ├── <span class="file">Homepage.jsx</span>     <span class="desc">← Dashboard (placeholder)</span>
+        ├── <span class="file">Login.jsx</span>        <span class="desc">← 🔑 Login form</span>
+        └── <span class="file">SignUp.jsx</span>       <span class="desc">← 📝 Registration form</span>
+      </div>
+    </div>
+
+    <!-- NPM Dependencies Section -->
+    <div class="section">
+      <h2>📦 NPM Dependencies</h2>
+      
+      <h3>Production Dependencies</h3>
+      <table>
+        <tr>
+          <th>Package</th>
+          <th>Version</th>
+          <th>Purpose</th>
+        </tr>
+        <tr>
+          <td><strong>react</strong></td>
+          <td>^19.2.0</td>
+          <td>Core React library for building UI</td>
+        </tr>
+        <tr>
+          <td><strong>react-dom</strong></td>
+          <td>^19.2.0</td>
+          <td>React DOM bindings for web</td>
+        </tr>
+        <tr>
+          <td><strong>react-router-dom</strong></td>
+          <td>^7.11.0</td>
+          <td>Client-side routing and navigation</td>
+        </tr>
+        <tr>
+          <td><strong>axios</strong></td>
+          <td>^1.13.2</td>
+          <td>HTTP client for API requests</td>
+        </tr>
+        <tr>
+          <td><strong>tailwindcss</strong></td>
+          <td>^4.1.18</td>
+          <td>Utility-first CSS framework</td>
+        </tr>
+        <tr>
+          <td><strong>@tailwindcss/vite</strong></td>
+          <td>^4.1.18</td>
+          <td>Tailwind CSS Vite plugin</td>
+        </tr>
+        <tr>
+          <td><strong>lucide-react</strong></td>
+          <td>^0.562.0</td>
+          <td>Beautiful & consistent icon library</td>
+        </tr>
+        <tr>
+          <td><strong>class-variance-authority</strong></td>
+          <td>^0.7.1</td>
+          <td>Create component variants (used by shadcn)</td>
+        </tr>
+        <tr>
+          <td><strong>clsx</strong></td>
+          <td>^2.1.1</td>
+          <td>Conditionally join classNames</td>
+        </tr>
+        <tr>
+          <td><strong>tailwind-merge</strong></td>
+          <td>^3.4.0</td>
+          <td>Merge Tailwind classes without conflicts</td>
+        </tr>
+      </table>
+
+      <h3>Development Dependencies</h3>
+      <table>
+        <tr>
+          <th>Package</th>
+          <th>Version</th>
+          <th>Purpose</th>
+        </tr>
+        <tr>
+          <td><strong>vite</strong></td>
+          <td>^7.2.4</td>
+          <td>Next-gen frontend build tool</td>
+        </tr>
+        <tr>
+          <td><strong>@vitejs/plugin-react</strong></td>
+          <td>^5.1.1</td>
+          <td>React support for Vite (Fast Refresh)</td>
+        </tr>
+        <tr>
+          <td><strong>eslint</strong></td>
+          <td>^9.39.1</td>
+          <td>JavaScript linter for code quality</td>
+        </tr>
+        <tr>
+          <td><strong>eslint-plugin-react-hooks</strong></td>
+          <td>^7.0.1</td>
+          <td>ESLint rules for React Hooks</td>
+        </tr>
+        <tr>
+          <td><strong>eslint-plugin-react-refresh</strong></td>
+          <td>^0.4.24</td>
+          <td>Validate React Refresh boundaries</td>
+        </tr>
+        <tr>
+          <td><strong>tw-animate-css</strong></td>
+          <td>^1.4.0</td>
+          <td>Tailwind CSS animation utilities</td>
+        </tr>
+        <tr>
+          <td><strong>@types/react</strong></td>
+          <td>^19.2.5</td>
+          <td>TypeScript types for React</td>
+        </tr>
+        <tr>
+          <td><strong>@types/react-dom</strong></td>
+          <td>^19.2.3</td>
+          <td>TypeScript types for React DOM</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Application Flow -->
+    <div class="section">
+      <h2>🔄 Application Flow</h2>
+      
+      <div class="flow-box">
+        <strong>1. 📄 index.html</strong><br>
+        Entry HTML file served by Vite<br>
+        Contains: <code style="color: #0f0c29;">&lt;div id="root"&gt;&lt;/div&gt;</code> + script to main.jsx
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+        <strong>2. 🚀 main.jsx - React Entry Point</strong><br>
+        • Imports React and ReactDOM<br>
+        • Imports global styles (index.css)<br>
+        • Renders App inside StrictMode<br>
+        • Mounts to #root element
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+        <strong>3. 🔀 App.jsx - Router Configuration</strong><br>
+        • Sets up BrowserRouter<br>
+        • Defines Routes for all pages<br>
+        • Maps URLs to page components
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);">
+        <strong>4. 📄 Page Components (Login, SignUp, Homepage)</strong><br>
+        • Render UI with Tailwind CSS<br>
+        • Manage local state with useState<br>
+        • Call API functions from /api folder<br>
+        • Navigate using useNavigate hook
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);">
+        <strong>5. 📡 API Layer (api/axios.js + api/auth.js)</strong><br>
+        • Axios instance with baseURL: localhost:8000<br>
+        • withCredentials: true (sends cookies)<br>
+        • Auth functions: registerUser, loginUser
+      </div>
+      <div class="flow-arrow">⬇️</div>
+      
+      <div class="flow-box" style="background: linear-gradient(135deg, #0f0c29 0%, #302b63 100%);">
+        <strong>6. 🖥️ Backend Server</strong><br>
+        • Receives request at /api/v1/auth/*<br>
+        • Processes and returns JSON response<br>
+        • Sets cookies (accessToken, refreshToken)
+      </div>
+    </div>
+
+    <!-- Routing Section -->
+    <div class="section">
+      <h2>🔀 Routing Configuration</h2>
+      <p><strong>Location:</strong> <code>src/App.jsx</code></p>
+      
+      <pre>
+&lt;Router&gt;
+  &lt;Routes&gt;
+    &lt;Route path="/" element={&lt;Login /&gt;} /&gt;
+    &lt;Route path="/login" element={&lt;Login /&gt;} /&gt;
+    &lt;Route path="/signup" element={&lt;SignUp /&gt;} /&gt;
+    &lt;Route path="/homepage" element={&lt;Homepage /&gt;} /&gt;
+  &lt;/Routes&gt;
+&lt;/Router&gt;
+      </pre>
+
+      <table>
+        <tr>
+          <th>Path</th>
+          <th>Component</th>
+          <th>Description</th>
+        </tr>
+        <tr>
+          <td><code>/</code></td>
+          <td>Login</td>
+          <td>Default route - redirects to login</td>
+        </tr>
+        <tr>
+          <td><code>/login</code></td>
+          <td>Login</td>
+          <td>User authentication page</td>
+        </tr>
+        <tr>
+          <td><code>/signup</code></td>
+          <td>SignUp</td>
+          <td>New user registration page</td>
+        </tr>
+        <tr>
+          <td><code>/homepage</code></td>
+          <td>Homepage</td>
+          <td>Dashboard after login (placeholder)</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- API Layer Section -->
+    <div class="section">
+      <h2>📡 API Layer</h2>
+      
+      <div class="component-box">
+        <h4>Axios Configuration (api/axios.js)</h4>
+        <pre>
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: "http://localhost:8000",  // Backend server URL
+  withCredentials: true,              // Send cookies with requests
+});
+
+export default api;
+        </pre>
+        <p><strong>Key Settings:</strong></p>
+        <ul>
+          <li><strong>baseURL:</strong> Points to Express server on port 8000</li>
+          <li><strong>withCredentials:</strong> Essential for sending/receiving cookies (JWT tokens)</li>
+        </ul>
+      </div>
+
+      <div class="component-box">
+        <h4>Auth API Functions (api/auth.js)</h4>
+        <pre>
+import api from "./axios.js";
+
+export const registerUser = (userData) => {
+  return api.post("/api/v1/auth/register", userData);
+};
+// userData: { email, username, password }
+
+export const loginUser = (credentials) => {
+  return api.post("/api/v1/auth/login", credentials);
+};
+// credentials: { email, password }
+
+// Coming soon:
+// export const logoutUser = () => {
+//   return api.post("/api/v1/auth/logout");
+// };
+        </pre>
+      </div>
+
+      <h3>📋 API Functions Reference</h3>
+      <table>
+        <tr>
+          <th>Function</th>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Payload</th>
+        </tr>
+        <tr>
+          <td><code>registerUser()</code></td>
+          <td><span class="badge badge-axios">POST</span></td>
+          <td>/api/v1/auth/register</td>
+          <td>{ email, username, password }</td>
+        </tr>
+        <tr>
+          <td><code>loginUser()</code></td>
+          <td><span class="badge badge-axios">POST</span></td>
+          <td>/api/v1/auth/login</td>
+          <td>{ email, password }</td>
+        </tr>
+        <tr>
+          <td><code>logoutUser()</code></td>
+          <td><span class="badge" style="background: #6b7280; color: white;">TODO</span></td>
+          <td>/api/v1/auth/logout</td>
+          <td>None (uses cookies)</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Page Components Section -->
+    <div class="section">
+      <h2>📄 Page Components</h2>
+      
+      <div class="component-box">
+        <h4>🔑 Login.jsx - Authentication Page</h4>
+        <p><strong>Location:</strong> <code>src/pages/Login.jsx</code> | <strong>Lines:</strong> ~115</p>
+        
+        <h5>State Management:</h5>
+        <pre>
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+const [loading, setLoading] = useState(false);
+        </pre>
+
+        <h5>Key Features:</h5>
+        <ul>
+          <li>📧 Email input with validation</li>
+          <li>🔒 Password input</li>
+          <li>⏳ Loading state during API call</li>
+          <li>🚀 Navigation to /homepage on success</li>
+          <li>⚠️ Alert for error messages</li>
+          <li>🔗 Link to Sign Up page</li>
+        </ul>
+
+        <h5>Login Flow:</h5>
+        <pre>
+handleLogin():
+  1. Validate fields (email, password required)
+  2. Set loading = true
+  3. Call loginUser({ email, password })
+  4. On success: alert + navigate('/homepage')
+  5. On error: show error.response.data.message
+  6. Set loading = false (finally)
+        </pre>
+
+        <h5>Styling:</h5>
+        <ul>
+          <li>Gradient background: blue → indigo → purple</li>
+          <li>White card with shadow and rounded corners</li>
+          <li>Shield icon in gradient circle</li>
+          <li>Form inputs with focus states</li>
+          <li>Gradient submit button</li>
+        </ul>
+      </div>
+
+      <div class="component-box">
+        <h4>📝 SignUp.jsx - Registration Page</h4>
+        <p><strong>Location:</strong> <code>src/pages/SignUp.jsx</code> | <strong>Lines:</strong> ~105</p>
+        
+        <h5>State Management:</h5>
+        <pre>
+const [username, setUsername] = useState("");
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+const [loading, setLoading] = useState(false);
+        </pre>
+
+        <h5>Key Features:</h5>
+        <ul>
+          <li>👤 Username input</li>
+          <li>📧 Email input (auto-trimmed)</li>
+          <li>🔒 Password input</li>
+          <li>⏳ Loading state</li>
+          <li>📧 Email verification reminder</li>
+          <li>🔗 Link to Login page</li>
+        </ul>
+
+        <h5>SignUp Flow:</h5>
+        <pre>
+handleSignup():
+  1. Validate fields (all 3 required)
+  2. Set loading = true
+  3. Call registerUser({ email, username, password })
+  4. On success: alert("Check your email!") + navigate('/homepage')
+  5. On error: show error.response.data.message
+  6. Set loading = false (finally)
+        </pre>
+      </div>
+
+      <div class="component-box">
+        <h4>🏠 Homepage.jsx - Dashboard (Placeholder)</h4>
+        <p><strong>Location:</strong> <code>src/pages/Homepage.jsx</code> | <strong>Lines:</strong> 9</p>
+        
+        <pre>
+function Homepage() {
+  return (
+    &lt;div&gt;Homepage&lt;/div&gt;
+  )
+}
+        </pre>
+        
+        <div class="highlight">
+          <strong>📝 Note:</strong> This is a placeholder component. Future features to implement:
+          <ul>
+            <li>Project dashboard</li>
+            <li>Task management</li>
+            <li>User profile</li>
+            <li>Team overview</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- UI Components Section -->
+    <div class="section">
+      <h2>🧩 shadcn/ui Components</h2>
+      <p>All components are from <a href="https://ui.shadcn.com" target="_blank">shadcn/ui</a> - a collection of reusable components built with Radix UI and Tailwind CSS.</p>
+      
+      <div class="purple-box">
+        <strong>📋 shadcn/ui Configuration (components.json):</strong>
+        <ul>
+          <li><strong>Style:</strong> new-york</li>
+          <li><strong>Base Color:</strong> neutral</li>
+          <li><strong>CSS Variables:</strong> enabled</li>
+          <li><strong>Icon Library:</strong> lucide</li>
+          <li><strong>Alias:</strong> @/components, @/lib, @/ui</li>
+        </ul>
+      </div>
+
+      <h3>Available Components (16 total)</h3>
+      <table>
+        <tr>
+          <th>Component</th>
+          <th>File</th>
+          <th>Exports</th>
+          <th>Description</th>
+        </tr>
+        <tr>
+          <td>🔘 <strong>Button</strong></td>
+          <td>button.jsx</td>
+          <td>Button, buttonVariants</td>
+          <td>6 variants: default, destructive, outline, secondary, ghost, link</td>
+        </tr>
+        <tr>
+          <td>📝 <strong>Input</strong></td>
+          <td>input.jsx</td>
+          <td>Input</td>
+          <td>Styled input with focus ring and file upload support</td>
+        </tr>
+        <tr>
+          <td>🏷️ <strong>Label</strong></td>
+          <td>label.jsx</td>
+          <td>Label</td>
+          <td>Accessible form label with disabled state</td>
+        </tr>
+        <tr>
+          <td>📋 <strong>Card</strong></td>
+          <td>card.jsx</td>
+          <td>Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardAction</td>
+          <td>Container component with header, content, footer</td>
+        </tr>
+        <tr>
+          <td>💬 <strong>Dialog</strong></td>
+          <td>dialog.jsx</td>
+          <td>Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose</td>
+          <td>Modal dialog with overlay and animations</td>
+        </tr>
+        <tr>
+          <td>📑 <strong>Tabs</strong></td>
+          <td>tabs.jsx</td>
+          <td>Tabs, TabsList, TabsTrigger, TabsContent</td>
+          <td>Tabbed interface with keyboard navigation</td>
+        </tr>
+        <tr>
+          <td>📋 <strong>Select</strong></td>
+          <td>select.jsx</td>
+          <td>Select, SelectTrigger, SelectContent, SelectItem, SelectValue, SelectGroup, SelectLabel</td>
+          <td>Dropdown select with search and groups</td>
+        </tr>
+        <tr>
+          <td>🗓️ <strong>Calendar</strong></td>
+          <td>calendar.jsx</td>
+          <td>Calendar, CalendarDayButton</td>
+          <td>Date picker with range selection support</td>
+        </tr>
+        <tr>
+          <td>📊 <strong>Chart</strong></td>
+          <td>chart.jsx</td>
+          <td>ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent</td>
+          <td>Recharts wrapper with theme support</td>
+        </tr>
+        <tr>
+          <td>👤 <strong>Avatar</strong></td>
+          <td>avatar.jsx</td>
+          <td>Avatar, AvatarImage, AvatarFallback</td>
+          <td>User avatar with fallback initials</td>
+        </tr>
+        <tr>
+          <td>🏷️ <strong>Badge</strong></td>
+          <td>badge.jsx</td>
+          <td>Badge, badgeVariants</td>
+          <td>4 variants: default, secondary, destructive, outline</td>
+        </tr>
+        <tr>
+          <td>📊 <strong>Progress</strong></td>
+          <td>progress.jsx</td>
+          <td>Progress</td>
+          <td>Progress bar with percentage</td>
+        </tr>
+        <tr>
+          <td>🔄 <strong>Switch</strong></td>
+          <td>switch.jsx</td>
+          <td>Switch</td>
+          <td>Toggle switch for boolean values</td>
+        </tr>
+        <tr>
+          <td>📝 <strong>Textarea</strong></td>
+          <td>textarea.jsx</td>
+          <td>Textarea</td>
+          <td>Multi-line text input</td>
+        </tr>
+        <tr>
+          <td>📋 <strong>Table</strong></td>
+          <td>table.jsx</td>
+          <td>Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption</td>
+          <td>Data table with hover states</td>
+        </tr>
+        <tr>
+          <td>✨ <strong>Glow</strong></td>
+          <td>Glow.jsx</td>
+          <td>Glow (default)</td>
+          <td><strong>Custom:</strong> Gradient blur effect for backgrounds</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Utility Functions Section -->
+    <div class="section">
+      <h2>🛠️ Utility Functions</h2>
+      
+      <div class="component-box">
+        <h4>cn() - Class Name Utility (lib/utils.ts)</h4>
+        <pre>
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+// Usage:
+cn("px-4 py-2", isActive && "bg-primary", className)
+// Merges classes and resolves Tailwind conflicts
+        </pre>
+        
+        <p><strong>How it works:</strong></p>
+        <ul>
+          <li><strong>clsx:</strong> Conditionally joins classNames (handles falsy values)</li>
+          <li><strong>twMerge:</strong> Merges Tailwind classes without conflicts (e.g., "px-2 px-4" → "px-4")</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Styling Section -->
+    <div class="section">
+      <h2>🎨 Styling System</h2>
+      
+      <div class="component-box">
+        <h4>CSS Architecture</h4>
+        <pre>
+src/
+├── index.css    ← Global styles + Tailwind + Theme variables
+└── App.css      ← App-specific styles (currently empty)
+        </pre>
+      </div>
+
+      <h3>Theme Variables (index.css)</h3>
+      <p>Uses CSS custom properties with OKLCH color space for better color manipulation.</p>
+      
+      <div class="two-column">
+        <div class="component-box">
+          <h4>☀️ Light Mode</h4>
+          <pre style="font-size: 11px;">
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --muted: oklch(0.97 0 0);
+  --accent: oklch(0.97 0 0);
+  --destructive: oklch(0.577 0.245 27);
+  --border: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+}
+          </pre>
+        </div>
+        <div class="component-box">
+          <h4>🌙 Dark Mode</h4>
+          <pre style="font-size: 11px;">
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --muted: oklch(0.269 0 0);
+  --accent: oklch(0.269 0 0);
+  --destructive: oklch(0.704 0.191 22);
+  --border: oklch(1 0 0 / 10%);
+  --ring: oklch(0.556 0 0);
+}
+          </pre>
+        </div>
+      </div>
+
+      <h3>Color Tokens</h3>
+      <table>
+        <tr>
+          <th>Token</th>
+          <th>Usage</th>
+        </tr>
+        <tr><td><code>--background</code></td><td>Page background</td></tr>
+        <tr><td><code>--foreground</code></td><td>Default text color</td></tr>
+        <tr><td><code>--primary</code></td><td>Primary buttons, links</td></tr>
+        <tr><td><code>--secondary</code></td><td>Secondary buttons</td></tr>
+        <tr><td><code>--muted</code></td><td>Muted backgrounds</td></tr>
+        <tr><td><code>--accent</code></td><td>Accent highlights</td></tr>
+        <tr><td><code>--destructive</code></td><td>Error states, delete buttons</td></tr>
+        <tr><td><code>--border</code></td><td>Border colors</td></tr>
+        <tr><td><code>--ring</code></td><td>Focus ring color</td></tr>
+        <tr><td><code>--chart-1 to 5</code></td><td>Chart color palette</td></tr>
+        <tr><td><code>--sidebar-*</code></td><td>Sidebar-specific colors</td></tr>
+      </table>
+    </div>
+
+    <!-- Configuration Files Section -->
+    <div class="section">
+      <h2>⚙️ Configuration Files</h2>
+      
+      <div class="component-box">
+        <h4>vite.config.js - Vite Configuration</h4>
+        <pre>
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import path from 'node:path'
+
+export default defineConfig({
+  plugins: [
+    react(),        // React Fast Refresh
+    tailwindcss(),  // Tailwind CSS processing
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(process.cwd(), 'src'),  // @ → src/
+    },
+  },
+})
+        </pre>
+      </div>
+
+      <div class="component-box">
+        <h4>tsconfig.json - TypeScript/Path Configuration</h4>
+        <pre>
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]  // Enable @/components, @/lib, etc.
+    }
+  }
+}
+        </pre>
+      </div>
+
+      <div class="component-box">
+        <h4>eslint.config.js - ESLint Configuration</h4>
+        <pre>
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])
+        </pre>
+      </div>
+
+      <div class="component-box">
+        <h4>components.json - shadcn/ui Configuration</h4>
+        <pre>
+{
+  "style": "new-york",
+  "rsc": false,              // Not using React Server Components
+  "tsx": true,               // Using TypeScript/JSX
+  "tailwind": {
+    "config": "",
+    "css": "src/index.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+  }
+}
+        </pre>
+      </div>
+    </div>
+
+    <!-- NPM Scripts Section -->
+    <div class="section">
+      <h2>📜 NPM Scripts</h2>
+      
+      <table>
+        <tr>
+          <th>Command</th>
+          <th>Script</th>
+          <th>Purpose</th>
+        </tr>
+        <tr>
+          <td><code>npm run dev</code></td>
+          <td>vite</td>
+          <td>Start development server with HMR (port 5173)</td>
+        </tr>
+        <tr>
+          <td><code>npm run build</code></td>
+          <td>vite build</td>
+          <td>Build production bundle to /dist</td>
+        </tr>
+        <tr>
+          <td><code>npm run preview</code></td>
+          <td>vite preview</td>
+          <td>Preview production build locally</td>
+        </tr>
+        <tr>
+          <td><code>npm run lint</code></td>
+          <td>eslint .</td>
+          <td>Run ESLint on all files</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Data Flow Section -->
+    <div class="section">
+      <h2>🔄 Data Flow Diagram</h2>
+      
+      <pre>
+┌─────────────────────────────────────────────────────────────────┐
+│                        USER INTERFACE                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Login.jsx   │  │  SignUp.jsx  │  │ Homepage.jsx │          │
+│  │              │  │              │  │              │          │
+│  │ • useState   │  │ • useState   │  │ • (future)   │          │
+│  │ • useNavigate│  │ • useNavigate│  │              │          │
+│  └──────┬───────┘  └──────┬───────┘  └──────────────┘          │
+│         │                 │                                      │
+│         ▼                 ▼                                      │
+│  ┌─────────────────────────────────┐                            │
+│  │         API LAYER               │                            │
+│  │  ┌─────────────────────────┐   │                            │
+│  │  │      api/auth.js         │   │                            │
+│  │  │  • registerUser()        │   │                            │
+│  │  │  • loginUser()           │   │                            │
+│  │  └───────────┬─────────────┘   │                            │
+│  │              │                  │                            │
+│  │  ┌───────────▼─────────────┐   │                            │
+│  │  │      api/axios.js        │   │                            │
+│  │  │  baseURL: localhost:8000 │   │                            │
+│  │  │  withCredentials: true   │   │                            │
+│  │  └───────────┬─────────────┘   │                            │
+│  └──────────────┼──────────────────┘                            │
+└─────────────────┼───────────────────────────────────────────────┘
+                  │
+                  │ HTTP Requests (POST)
+                  │ Cookies (accessToken, refreshToken)
+                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     BACKEND SERVER (port 8000)                   │
+│                                                                  │
+│  /api/v1/auth/register  →  Creates user, sends verification     │
+│  /api/v1/auth/login     →  Authenticates, returns tokens        │
+│  /api/v1/auth/logout    →  Clears tokens                        │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+      </pre>
+    </div>
+
+    <!-- What's Coming Next -->
+    <div class="section">
+      <h2>🚀 What's Coming Next</h2>
+      
+      <div class="success-box">
+        <strong>✅ Completed Features:</strong>
+        <ul>
+          <li>Project scaffolding with Vite + React 19</li>
+          <li>Tailwind CSS 4 with theme system</li>
+          <li>16 shadcn/ui components installed</li>
+          <li>React Router setup with 4 routes</li>
+          <li>API layer with Axios (auth functions)</li>
+          <li>Login page with form handling</li>
+          <li>SignUp page with form handling</li>
+          <li>ESLint configuration</li>
+        </ul>
+      </div>
+
+      <div class="highlight">
+        <strong>📋 Ready to Use (UI Components):</strong>
+        <ul>
+          <li>Button, Input, Label, Textarea</li>
+          <li>Card, Dialog, Tabs</li>
+          <li>Select, Calendar, Chart</li>
+          <li>Avatar, Badge, Progress, Switch</li>
+          <li>Table components</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <strong>💡 Suggested Next Steps:</strong>
+        <ul>
+          <li><strong>Context Setup:</strong> Create AuthContext for user state management</li>
+          <li><strong>Protected Routes:</strong> Add route guards for authenticated pages</li>
+          <li><strong>Homepage Dashboard:</strong> Build project overview with Cards</li>
+          <li><strong>Task Management:</strong> Use Table + Dialog for CRUD operations</li>
+          <li><strong>User Profile:</strong> Use Avatar + Form components</li>
+          <li><strong>API Expansion:</strong> Add more auth functions (logout, refresh token)</li>
+          <li><strong>Error Handling:</strong> Create toast notifications for API responses</li>
+          <li><strong>Loading States:</strong> Add skeleton loaders</li>
+        </ul>
+      </div>
+
+      <div class="purple-box">
+        <strong>🔗 Frontend ↔ Backend Connection:</strong>
+        <table style="margin-top: 10px;">
+          <tr>
+            <th>Frontend Function</th>
+            <th>Backend Endpoint</th>
+            <th>Status</th>
+          </tr>
+          <tr>
+            <td>registerUser()</td>
+            <td>POST /api/v1/auth/register</td>
+            <td>✅ Connected</td>
+          </tr>
+          <tr>
+            <td>loginUser()</td>
+            <td>POST /api/v1/auth/login</td>
+            <td>✅ Connected</td>
+          </tr>
+          <tr>
+            <td>logoutUser()</td>
+            <td>POST /api/v1/auth/logout</td>
+            <td>📝 Commented</td>
+          </tr>
+          <tr>
+            <td>getCurrentUser()</td>
+            <td>GET /api/v1/auth/current-user</td>
+            <td>⏳ Not added</td>
+          </tr>
+          <tr>
+            <td>verifyEmail()</td>
+            <td>GET /api/v1/auth/verify-email/:token</td>
+            <td>⏳ Not added</td>
+          </tr>
+          <tr>
+            <td>forgotPassword()</td>
+            <td>POST /api/v1/auth/forgot-password</td>
+            <td>⏳ Not added</td>
+          </tr>
+          <tr>
+            <td>resetPassword()</td>
+            <td>POST /api/v1/auth/reset-password/:token</td>
+            <td>⏳ Not added</td>
+          </tr>
+          <tr>
+            <td>changePassword()</td>
+            <td>POST /api/v1/auth/change-password</td>
+            <td>⏳ Not added</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Browser Compatibility -->
+    <div class="section">
+      <h2>🌐 Browser Compatibility</h2>
+      <p>Using modern ES2020+ features. Vite handles transpilation for production builds.</p>
+      
+      <table>
+        <tr>
+          <th>Browser</th>
+          <th>Minimum Version</th>
+          <th>Support</th>
+        </tr>
+        <tr>
+          <td>Chrome</td>
+          <td>88+</td>
+          <td>✅ Full</td>
+        </tr>
+        <tr>
+          <td>Firefox</td>
+          <td>85+</td>
+          <td>✅ Full</td>
+        </tr>
+        <tr>
+          <td>Safari</td>
+          <td>14+</td>
+          <td>✅ Full</td>
+        </tr>
+        <tr>
+          <td>Edge</td>
+          <td>88+</td>
+          <td>✅ Full</td>
+        </tr>
+      </table>
+    </div>
+
+    <hr style="margin: 40px 0; border: none; border-top: 2px solid #e2e8f0;">
+    
+    <div style="text-align: center; color: #64748b;">
+      <p><strong>📊 Total Lines of Code:</strong> ~800+ lines (excluding node_modules)</p>
+      <p><strong>📁 Total Files:</strong> 25+ source files</p>
+      <p><strong>🧩 UI Components:</strong> 16 shadcn/ui components ready to use</p>
+      <p><strong>📄 Pages:</strong> 3 (Login, SignUp, Homepage)</p>
+      <br>
+      <em>Generated by GitHub Copilot • Project Management Client Documentation v1.0</em>
+      <br>
+      <em>December 28, 2025</em>
+    </div>
+  </div>
+</body>
+</html>

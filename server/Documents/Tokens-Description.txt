@@ -1,0 +1,21 @@
+1. Tokens:-
+    - Tokens are of two type :-
+        1. With Data
+        2. Without Data
+
+    - Without Data Tokens are used for Authentication purpose only.
+      Example:- Password Reset Token, Email Verification Token, etc.
+
+      - How this tokens work is that when user requests for password reset or email verification, a unique token is generated and sent to the user's email also a copy is stored in the database. 
+      - It is then used to verify the user's identity when they attempt to reset their password or verify their email by matching the token sent with the token stored in the database.
+
+    - With Data Tokens are used for both Authentication and Authorization purpose.
+      Example:- JWT Token
+
+      - These are of two types :- 
+          1. Access Token
+          2. Refresh Token
+
+      - How these tokens work is that when user logs in, an access token and refresh token are generated.
+      - The access token contains user information and permissions, allowing the user to access protected resources. It has a short lifespan for security reasons.
+      - The refresh token has a longer lifespan and is used to obtain a new access token when the current one expires, without requiring the user to log in again.

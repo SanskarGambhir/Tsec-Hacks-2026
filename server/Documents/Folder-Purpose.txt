@@ -1,0 +1,13 @@
+1. controllers :- This is where all the Logic is written
+
+2. db :- All the database operations. Whether its a connection to the connection to the database or disconnection from the database, etc.
+
+3. middlewares :- When a request comes and wants to go to the server in between that if we want to do certain tasks then middleware is used. Its simply do something in-between.
+
+4. models:- Schemas/Structure of the data that needs to be stored in the database
+
+5. routes:- All the routing information
+
+6. utils
+
+7. validators:- Used for validating data (Can be done in controller itself)

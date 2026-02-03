@@ -1,0 +1,43 @@
+1. Setup "index.js" and "app.js" files to initialize the server and express. (see code from zip file "Basic Backend Setup.zip")
+
+2. Create "api-response.js" and "api-error.js" files inside utils folder to handle API responses and errors in a structured way.
+
+3. Create an "index.js" file inside ""db" folder to setup mongoose connection with MongoDB database. 
+
+4. Import databse connection in "index.js" file to ensure database is connected when server starts.
+
+5. Write the healthchecks in "controllers and routes"
+
+6. Create different models in "models" folder as per your requirement.
+
+7. Use "bcrypt" in your user model to hash passwords before saving them to the database.
+
+8. Create methods to compare hashed passwords during login.
+
+9. Use "jsonwebtoken" and write methods to create access and refresh tokens upon user login inside your user model.
+
+10. Create method to generate temporary tokens for password reset functionality or email verification inside your user model.
+
+11. Create a "mail.js" file inside "utils" folder to setup creation of mails(not sending).
+
+12. Go to Mailtrap website and create a free account to get SMTP settings for sending emails.
+
+13. In .env file setup these:-
+    MAILTRAP_SMTP_HOST=smtp.mailtrap.io
+    MAILTRAP_SMTP_PORT=2525
+    MAILTRAP_SMTP_USER=your_mailtrap_username
+    MAILTRAP_SMTP_PASSWORD=your_mailtrap_password
+
+14. Now in ""mail.js" file use "nodemailer" to setup transporter(for sending emails) using above SMTP settings from .env file.
+
+15. Now create a "sendEMail" function inside "mail.js" file to send emails using nodemailer transporter and "mailgen" to generate nice looking email templates.
+
+16. Create "auth.controllers.js" file inside "controllers" folder to handle user registration, login, password reset, etc.
+
+17. Create "auth.routes.js" file inside "routes" folder to define routes for authentication related operations.
+
+18. Now we need to create "auth.middleware.js" file inside "middlewares" for verifying JWT tokens and protecting routes. It is necessary to logging out the users.
+
+19. While logging out the user, we need to invalidate the refresh token and also delete the cookie from the browser because the cookie contains the access token and refresh token.
+
+20. Create other controllers, routes, and middlewares as per your project requirements.

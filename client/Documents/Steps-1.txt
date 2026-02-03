@@ -1,0 +1,20 @@
+// Connect Backend with Frontend
+
+1. Install Axios for making HTTP requests:
+    npm install axios
+
+2. Create "axios.js" file in "api" folder to set up Axios instance:
+    import axios from 'axios';
+
+    const api = axios.create({
+        baseURL: 'http://localhost:8000', // Backend server URL
+    });
+
+    export default api;
+
+3. Create "auth.js" file in "api" folder for authentication-related API calls.
+
+4. Now implement them in your respective Frontend files as per required
+
+5. We can create different different js files inside api folder for different functionalities like project.js, task.js etc.
+     

@@ -1,0 +1,63 @@
+1. npm init :- Initialise package.json
+
+2. Create index.js file
+
+3. Edit scripts in package.json to:-
+    "scripts": {
+      "dev": "node index.js"
+    }
+    // Now you can use "npm run dev" to run the index.js file
+
+4. In package.json create a new entity:- 
+    "type": "module"
+
+5. Install "nodemon" because it restarts your server automatically:-
+    npm i nodemon
+
+6. Update "scripts" tag in package.json to use nodemon:-
+    "scripts": {
+      "dev": "nodemon index.js",
+      "start": "node index.js"
+    }
+
+7. Install "dot-env" module:-
+    npm i dotenv
+
+8. To check how to use variables from .env file check "dotenvExample.js" file
+
+9. Create a "src" folder and inside it create other folders like controllers, db, middlewares, models, routes, utils, etc.
+
+10. Move "index.js" file to "src" folder and update path of index.js in "scripts" tag in package.json
+    "scripts": {
+        "dev": "nodemon src/index.js",
+        "start": "node src/index.js"
+    }
+
+11. Install "Express" :-
+    npm i express
+
+12. Create an "app.js" file and import it in index.js (Reason:- Check the app.js file you will get it)
+
+13. Install "Cors" (Cors is used to handle Cross-Origin Resource Sharing i.e. to allow or restrict requested resources on a web server depending on where the HTTP request was initiated from(to control and manage access of requests from Frontend or any other url)):-
+    npm i cors
+
+14. Install "Mongoose" (It is used to communicate with MongoDB):- 
+    npm i mongoose
+
+15. Install "bcrypt" to hash passwords or protect sensitive data:-
+    npm i bcrypt
+
+16. Install "jsonwebtoken" to create and verify JSON Web Tokens:-
+    npm i jsonwebtoken
+
+17 Install "mailgen" to send emails from your application:-
+    npm i mailgen
+
+18. Install "nodemailer" to send emails from your application:-
+    npm i nodemailer
+
+19. Install "cookie-parser" to parse cookies attached to the client request object:-
+    npm i cookie-parser
+
+20. Install "axios" to make HTTP reuquests from frontend to backend or backend to backend:-
+    npm i axios // Install it in server as well as client side
