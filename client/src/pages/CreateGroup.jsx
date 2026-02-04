@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, Plus, X, UserPlus, Phone, Check, Loader2, MessageCircle } from "lucide-react";
+import { Users, Plus, X, UserPlus, Coins, Divide } from "lucide-react";
 import api from "@/api/axios";
 import { getFriends, sendPhoneInvite } from "@/api/friends";
 import { sendGroupInviteToFriend, sendGroupInviteViaWhatsApp } from "@/api/groups";
@@ -22,6 +23,7 @@ import { sendGroupInviteToFriend, sendGroupInviteViaWhatsApp } from "@/api/group
 export default function CreateGroup() {
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
+  const [groupType, setGroupType] = useState("pool"); // Default to pool
   const [groupMembers, setGroupMembers] = useState([]);
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -179,11 +181,13 @@ export default function CreateGroup() {
     setLoading(true);
 
     try {
-      // Prepare rules array - for now we'll create a default rule
+      // Prepare rules array based on group type
       const rules = [{
-        ruleType: "default",
-        ruleValue: "General group rule",
-        description: "Default group rule"
+        ruleType: groupType,
+        ruleValue: groupType === "pool" ? "Pool-based group" : "Regular split group",
+        description: groupType === "pool"
+          ? "Money is collected in a shared pool"
+          : "Expenses are split evenly among members"
       }];
 
       // Create group payload
@@ -191,6 +195,7 @@ export default function CreateGroup() {
         name: groupName.trim(),
         description: groupDescription.trim(),
         rules: rules,
+        ruleType: groupType,
         pool: 0
       };
 
@@ -260,6 +265,33 @@ export default function CreateGroup() {
                 placeholder="Enter group name"
                 required
               />
+            </div>
+
+            {/* Group Type Selection */}
+            <div className="space-y-2">
+              <Label>Select Group Type *</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  type="button"
+                  variant={groupType === "pool" ? "default" : "outline"}
+                  className="flex flex-col items-center justify-center p-4 h-auto"
+                  onClick={() => setGroupType("pool")}
+                >
+                  <Coins className="w-6 h-6 mb-2" />
+                  <span className="font-medium">Pool</span>
+                  <span className="text-xs opacity-80">Collect money in a shared pool</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={groupType === "regular_split" ? "default" : "outline"}
+                  className="flex flex-col items-center justify-center p-4 h-auto"
+                  onClick={() => setGroupType("regular_split")}
+                >
+                  <Divide className="w-6 h-6 mb-2" />
+                  <span className="font-medium">Regular Split</span>
+                  <span className="text-xs opacity-80">Split expenses evenly</span>
+                </Button>
+              </div>
             </div>
 
             {/* Group Description */}
