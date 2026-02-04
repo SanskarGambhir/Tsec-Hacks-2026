@@ -8,9 +8,9 @@ const client = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-console.log(process.env.TWILIO_VERIFY_SERVICE_SID);
-console.log(process.env.TWILIO_ACCOUNT_SID);
-console.log(process.env.TWILIO_AUTH_TOKEN);
+// console.log(process.env.TWILIO_VERIFY_SERVICE_SID);
+// console.log(process.env.TWILIO_ACCOUNT_SID);
+// console.log(process.env.TWILIO_AUTH_TOKEN);
 
 export const sendOTP = async (phone) => {
   return await client.verify.v2
@@ -28,4 +28,25 @@ export const verifyOTP = async (phone, code) => {
       to: phone,
       code,
     });
+};
+
+// Send SMS message
+export const sendSMS = async (to, message) => {
+  return await client.messages.create({
+    body: message,
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: to,
+  });
+};
+
+// Send WhatsApp message
+export const sendWhatsApp = async (to, message) => {
+  console.log("✅ sendWhatsApp function called!");
+  console.log("Sending WhatsApp message to:", to);
+  console.log("Message content:", message);
+  return await client.messages.create({
+    body: message,
+    from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER}`,
+    to: `whatsapp:${to}`,
+  });
 };

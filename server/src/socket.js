@@ -48,12 +48,20 @@ export const initializeSocket = (httpServer) => {
       socket.to(groupId).emit("memberLeft", { userId, timestamp: new Date() });
     });
 
-    // Handle message sending
+    // Handle message sending via API
     socket.on("sendMessage", (data) => {
       const { groupId, message, sender } = data;
       console.log(`Message sent in group ${groupId} by ${sender.name || sender.username || sender.email}:`, message);
       // Broadcast message to all members in the group except sender
       socket.to(groupId).emit("receiveMessage", { message, sender, timestamp: new Date() });
+    });
+
+    // Handle new message event from API
+    socket.on("newMessage", (data) => {
+      const { groupId, message } = data;
+      console.log(`New message in group ${groupId} by ${message.sender.username || message.sender.email}:`, message.content);
+      // Broadcast message to all members in the group
+      socket.to(groupId).emit("newMessage", { message });
     });
 
     socket.on("disconnect", () => {
