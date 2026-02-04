@@ -16,7 +16,6 @@ export default function Login() {
 
   const navigate = useNavigate();
 
-  /* ================= LOGIN ================= */
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -32,7 +31,6 @@ export default function Login() {
       alert("Logged in successfully");
       localStorage.setItem("user", JSON.stringify(res.data));
       const res1=await api.post("api/v1/wallet/add_new",{}, { withCredentials: true });
-      console.log("Hello")
       console.log(res1)
       navigate("/homepage");
 
