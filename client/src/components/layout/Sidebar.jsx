@@ -9,11 +9,13 @@ import {
   LogOut,
   Zap,
   X,
+  UserPlus,
 } from "lucide-react";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Home", path: "/dashboard" },
   { icon: Users, label: "My Groups", path: "/groups" },
+  { icon: UserPlus, label: "Friends", path: "/friends" },
   { icon: Wallet, label: "Wallet", path: "/wallet" },
   { icon: Activity, label: "Activity", path: "/activity" },
   { icon: User, label: "Profile", path: "/profile" },

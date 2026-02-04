@@ -19,7 +19,7 @@ function Wallet() {
       setMessage("");
 
       const res = await api.post(
-       "api/v1/wallet/add",
+       "/wallet/add",
         { amount: Number(amount) },
         { withCredentials: true } // for auth cookies
       );

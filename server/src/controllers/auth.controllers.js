@@ -1,4 +1,6 @@
 import { User } from '../models/user.models.js';
+import { PhoneInvite } from '../models/phoneInvite.models.js';
+import { Friend } from '../models/friend.models.js';
 import { ApiResponse } from '../utils/api-response.js';
 import { ApiError } from '../utils/api-error.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -28,7 +30,7 @@ const generateAccessAndRefreshToken = async (userId) => {
 }
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { email, username, password, phone, panCard } = req.body;
+  const { email, username, password, phone, panCard, inviteToken } = req.body;
 
   if (!email || !username || !password || !phone || !panCard) {
     throw new ApiError(400, "All fields are required");
@@ -77,6 +79,39 @@ const registerUser = asyncHandler(async (req, res) => {
   // 🔥 SEND PHONE OTP
   await sendOTP(phone);
 
+  // Handle invite token if provided
+  if (inviteToken) {
+    try {
+      const invite = await PhoneInvite.findValidInvite(inviteToken);
+      if (invite && invite.phoneNumber === phone) {
+        // Check if already friends
+        const existingFriendship = await Friend.findOne({
+          status: "accepted",
+          $or: [
+            { requester: invite.sender, recipient: user._id },
+            { requester: user._id, recipient: invite.sender },
+          ],
+        });
+
+        if (!existingFriendship) {
+          // Create friendship
+          await Friend.create({
+            requester: invite.sender,
+            recipient: user._id,
+            status: "accepted",
+          });
+        }
+
+        // Mark invite as accepted
+        invite.status = "accepted";
+        await invite.save();
+      }
+    } catch (error) {
+      console.error("Error processing invite:", error);
+      // Don't fail registration if invite processing fails
+    }
+  }
+
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
   );
@@ -93,7 +128,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   // 1. Get email and password from req.body
-  const { email, password } = req.body;
+  const { email, password, inviteToken } = req.body;
   if (!email || !password) {
     throw new ApiError(400, 'Email and password are required fields', []);
   }
@@ -110,11 +145,42 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(401, 'Invalid email or password', []);
   }
 
+  if (!user.isPhoneVerified) {
+    throw new ApiError(403, "Please verify your phone before login");
+  }
 
+  // Handle invite token if provided
+  if (inviteToken) {
+    try {
+      const invite = await PhoneInvite.findValidInvite(inviteToken);
+      if (invite && invite.phoneNumber === user.phone) {
+        // Check if already friends
+        const existingFriendship = await Friend.findOne({
+          status: "accepted",
+          $or: [
+            { requester: invite.sender, recipient: user._id },
+            { requester: user._id, recipient: invite.sender },
+          ],
+        });
 
-if (!user.isPhoneVerified) {
-  throw new ApiError(403, "Please verify your phone before login");
-}
+        if (!existingFriendship) {
+          // Create friendship
+          await Friend.create({
+            requester: invite.sender,
+            recipient: user._id,
+            status: "accepted",
+          });
+        }
+
+        // Mark invite as accepted
+        invite.status = "accepted";
+        await invite.save();
+      }
+    } catch (error) {
+      console.error("Error processing invite:", error);
+      // Don't fail login if invite processing fails
+    }
+  }
 
   // 4. Generate access and refresh tokens
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
@@ -124,7 +190,7 @@ if (!user.isPhoneVerified) {
   // 5. Send response with tokens in cookies
   const option = {
     httpOnly: true,
-    secure: true
+    secure: process.env.NODE_ENV === 'production' // Only secure in production
   };
   return res
     .status(200)
@@ -154,7 +220,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
   }
   return res
     .status(200)
@@ -269,7 +335,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     const options = {
       httpOnly: true,
-      secure: true
+      secure: process.env.NODE_ENV === 'production'
     };
 
     const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshToken(user._id);

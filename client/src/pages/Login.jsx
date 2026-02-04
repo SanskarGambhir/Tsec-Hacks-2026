@@ -31,7 +31,7 @@ export default function Login() {
 
       alert("Logged in successfully");
       localStorage.setItem("user", JSON.stringify(res.data));
-      const res1=await api.post("api/v1/wallet/add_new",{}, { withCredentials: true });
+      const res1=await api.post("/wallet/add_new",{}, { withCredentials: true });
       console.log("Hello")
       console.log(res1)
       navigate("/homepage");
@@ -61,7 +61,7 @@ export default function Login() {
     }
 
     try {
-      await axios.post("/api/v1/users/verify-phone", {
+      await api.post("/auth/verify-phone", {
         email,
         otp,
       });
@@ -79,7 +79,7 @@ export default function Login() {
 
   const handleResendOTP = async () => {
     try {
-      await axios.post("/api/v1/users/resend-phone-otp", {
+      await api.post("/auth/resend-phone-otp", {
         email,
       });
 
@@ -112,7 +112,7 @@ export default function Login() {
   /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, #eff6ff, #e0e7ff, #f3e8ff)" }}>
       <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 border border-gray-200">
 
         <div className="text-center mb-6">
@@ -203,7 +203,8 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3 rounded-lg font-semibold shadow-lg"
+            className="w-full text-white py-3 rounded-lg font-semibold shadow-lg"
+            style={{ background: "linear-gradient(90deg, #4f46e5, #2563eb)" }}
           >
             {loading ? "Logging In..." : "Login"}
           </button>

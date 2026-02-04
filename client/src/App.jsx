@@ -9,6 +9,8 @@ import GroupDetails from "./pages/GroupDetails";
 import Wallet from "./pages/Wallet";
 import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
+import FriendsPage from "./pages/FriendsPage";
+import InviteHandler from "./pages/InviteHandler";
 import "./App.css";
 
 function App() {
@@ -19,6 +21,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/invite/:token" element={<InviteHandler />} />
 
         {/* App Routes with Layout */}
         <Route element={<MainLayout />}>
@@ -26,6 +29,7 @@ function App() {
           <Route path="/groups" element={<Groups />} />
           <Route path="/groups/create" element={<CreateGroup />} />
           <Route path="/groups/:id" element={<GroupDetails />} />
+          <Route path="/friends" element={<FriendsPage />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/profile" element={<Profile />} />

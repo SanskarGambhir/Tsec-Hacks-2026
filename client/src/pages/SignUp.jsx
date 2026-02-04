@@ -1,9 +1,13 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { registerUser } from "../api/auth.js";
 import axios from "axios";
+import api from "../api/axios.js";
 import { useState, useEffect } from "react";
 
 export default function SignUp() {
+  const [searchParams] = useSearchParams();
+  const isInvited = searchParams.get("invited") === "true";
+  
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -63,10 +67,9 @@ const [panPreview, setPanPreview] = useState(null);
     }
 
     try {
-      await axios.post(
-        "http://localhost:8000/api/v1/auth/verify-phone",
-        { email, otp },
-        { withCredentials: true }
+      await api.post(
+        "/auth/verify-phone",
+        { email, otp }
       );
 
       alert("Phone verified successfully! Please verify email and login.");
@@ -81,10 +84,9 @@ const [panPreview, setPanPreview] = useState(null);
 
   const handleResendOTP = async () => {
     try {
-      await axios.post(
-        "http://localhost:8000/api/v1/auth/resend-phone-otp",
-        { email },
-        { withCredentials: true }
+      await api.post(
+        "/auth/resend-phone-otp",
+        { email }
       );
 
       alert("OTP resent successfully");
@@ -143,7 +145,7 @@ const [panPreview, setPanPreview] = useState(null);
   /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, #e0e7ff, #dbeafe, #f3e8ff)" }}>
       <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 border border-gray-200">
 
         <div className="text-center mb-8">
@@ -151,9 +153,17 @@ const [panPreview, setPanPreview] = useState(null);
             Create Account
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Sign up to get started
+            {isInvited ? "Complete signup to join your friend" : "Sign up to get started"}
           </p>
         </div>
+
+        {isInvited && (
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <p className="text-sm text-emerald-700 text-center">
+              🎉 You've been invited! Complete signup to connect with your friend.
+            </p>
+          </div>
+        )}
 
         <form
           className="space-y-5"
@@ -249,7 +259,8 @@ const [panPreview, setPanPreview] = useState(null);
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3 rounded-lg font-semibold"
+              className="w-full text-white py-3 rounded-lg font-semibold"
+              style={{ background: "linear-gradient(90deg, #4f46e5, #2563eb)" }}
             >
               {loading ? "Creating account..." : "Create Account"}
             </button>

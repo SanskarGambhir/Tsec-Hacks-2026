@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -11,6 +11,7 @@ import {
   DollarSign,
   Mail,
   Check,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { getFriends } from "@/api/friends";
 
 const groupIcons = ["🏖️", "🏠", "🍕", "👨‍👩‍👧‍👦", "💪", "📚", "🎮", "✈️", "🎉", "💼", "🏋️", "🎬"];
 
@@ -36,6 +45,9 @@ export default function CreateGroup() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [showFriendDialog, setShowFriendDialog] = useState(false);
+  const [selectedFriends, setSelectedFriends] = useState([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -48,11 +60,24 @@ export default function CreateGroup() {
     newMemberEmail: "",
   });
 
+  useEffect(() => {
+    fetchFriends();
+  }, []);
+
+  const fetchFriends = async () => {
+    try {
+      const response = await getFriends();
+      setFriends(response.data || []);
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+    }
+  };
+
   const handleAddMember = () => {
-    if (formData.newMemberEmail && !formData.members.includes(formData.newMemberEmail)) {
+    if (formData.newMemberEmail && !formData.members.some(m => m.email === formData.newMemberEmail)) {
       setFormData({
         ...formData,
-        members: [...formData.members, formData.newMemberEmail],
+        members: [...formData.members, { email: formData.newMemberEmail, source: 'email' }],
         newMemberEmail: "",
       });
     }
@@ -61,7 +86,37 @@ export default function CreateGroup() {
   const handleRemoveMember = (email) => {
     setFormData({
       ...formData,
-      members: formData.members.filter((m) => m !== email),
+      members: formData.members.filter((m) => m.email !== email),
+    });
+  };
+
+  const handleAddFromFriends = () => {
+    const newMembers = selectedFriends
+      .filter(friend => !formData.members.some(m => m.email === friend.email))
+      .map(friend => ({
+        email: friend.email,
+        username: friend.username,
+        avatar: friend.avatar,
+        source: 'friend',
+        _id: friend._id
+      }));
+    
+    setFormData({
+      ...formData,
+      members: [...formData.members, ...newMembers],
+    });
+    setSelectedFriends([]);
+    setShowFriendDialog(false);
+  };
+
+  const toggleFriendSelection = (friend) => {
+    setSelectedFriends(prev => {
+      const isSelected = prev.some(f => f._id === friend._id);
+      if (isSelected) {
+        return prev.filter(f => f._id !== friend._id);
+      } else {
+        return [...prev, friend];
+      }
     });
   };
 
@@ -341,6 +396,134 @@ export default function CreateGroup() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Add Member Options */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Add from Friend List */}
+                <Dialog open={showFriendDialog} onOpenChange={setShowFriendDialog}>
+                  <DialogTrigger asChild>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="p-4 rounded-xl border-2 border-dashed border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-emerald-500/20">
+                          <Users className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Add from Friends</p>
+                          <p className="text-xs text-gray-400">
+                            {friends.length} friends available
+                          </p>
+                        </div>
+                      </div>
+                    </motion.button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md glass-card border-white/10">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-emerald-400" />
+                        Select Friends
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {friends.length > 0 ? (
+                        friends.map((friend) => {
+                          const isSelected = selectedFriends.some(f => f._id === friend._id);
+                          const isAlreadyMember = formData.members.some(m => m.email === friend.email);
+                          
+                          return (
+                            <motion.div
+                              key={friend._id}
+                              whileHover={{ scale: 1.02 }}
+                              className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                                isAlreadyMember
+                                  ? "bg-white/5 border-white/5 opacity-50 cursor-not-allowed"
+                                  : isSelected
+                                  ? "bg-emerald-500/20 border-emerald-500/50"
+                                  : "bg-white/5 border-white/10 hover:bg-white/10"
+                              }`}
+                              onClick={() => !isAlreadyMember && toggleFriendSelection(friend)}
+                            >
+                              <Avatar className="w-10 h-10">
+                                <AvatarImage src={friend.avatar?.url} />
+                                <AvatarFallback
+                                  className="text-white"
+                                  style={{
+                                    background: "linear-gradient(135deg, #4ade80, #22c55e)",
+                                  }}
+                                >
+                                  {friend.username?.[0]?.toUpperCase() || "F"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate text-sm">
+                                  {friend.username}
+                                </p>
+                                <p className="text-xs text-gray-400 truncate">
+                                  {friend.email}
+                                </p>
+                              </div>
+                              {isAlreadyMember ? (
+                                <Check className="w-5 h-5 text-gray-400" />
+                              ) : isSelected ? (
+                                <div className="p-1 rounded-lg bg-emerald-500">
+                                  <Check className="w-4 h-4 text-white" />
+                                </div>
+                              ) : null}
+                            </motion.div>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center py-8 text-gray-400">
+                          <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No friends yet</p>
+                          <p className="text-xs mt-1">
+                            Add friends from the Friends page first
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {selectedFriends.length > 0 && (
+                      <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                        <p className="text-sm text-gray-400">
+                          {selectedFriends.length} selected
+                        </p>
+                        <Button
+                          onClick={handleAddFromFriends}
+                          className="text-black font-semibold"
+                          style={{
+                            background: "linear-gradient(90deg, #4ade80, #22c55e)",
+                          }}
+                        >
+                          Add Selected
+                        </Button>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+
+                {/* Add from Contacts (Placeholder) */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="p-4 rounded-xl border-2 border-dashed border-white/20 hover:border-white/30 hover:bg-white/5 transition-all text-left"
+                  onClick={() => alert("Phone contacts feature coming soon!")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-white/10">
+                      <UserPlus className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Add from Contacts</p>
+                      <p className="text-xs text-gray-400">
+                        Access phone contacts
+                      </p>
+                    </div>
+                  </div>
+                </motion.button>
+              </div>
+
               {/* Add Member Input */}
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -391,35 +574,46 @@ export default function CreateGroup() {
               {/* Added Members */}
               {formData.members.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-400">Invited Members</p>
-                  {formData.members.map((email, index) => (
+                  <p className="text-sm text-gray-400">Added Members</p>
+                  {formData.members.map((member, index) => (
                     <motion.div
-                      key={email}
+                      key={member.email || index}
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
                     >
                       <Avatar className="w-10 h-10">
                         <AvatarImage
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`}
+                          src={member.avatar?.url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
                         />
                         <AvatarFallback 
                           className="text-white text-sm"
                           style={{ background: "linear-gradient(135deg, #a855f7, #ec4899)" }}
                         >
-                          {email[0].toUpperCase()}
+                          {(member.username?.[0] || member.email[0]).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{email}</p>
-                        <p className="text-xs text-gray-500">Pending invite</p>
+                        {member.username && (
+                          <p className="text-sm font-medium truncate">{member.username}</p>
+                        )}
+                        <p className={`text-xs text-gray-400 truncate ${!member.username ? 'text-sm font-medium' : ''}`}>
+                          {member.email}
+                        </p>
                       </div>
-                      <button
-                        onClick={() => handleRemoveMember(email)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {member.source === 'friend' && (
+                          <span className="px-2 py-1 text-xs rounded-lg bg-emerald-500/20 text-emerald-400">
+                            Friend
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleRemoveMember(member.email)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
