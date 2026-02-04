@@ -9,7 +9,7 @@ const app = express();
 
 // CORS Configuration
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:5173",
+  origin:"http://localhost:5173"|| process.env.CORS_ORIGIN,
   credentials:true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // Methods that we are supporting
   allowedHeaders: ["Authorization", "Content-Type"],

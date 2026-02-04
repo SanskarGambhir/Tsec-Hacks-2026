@@ -1,66 +1,128 @@
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../api/auth.js";
-import { useState } from "react";
-
+import axios from "axios";
+import { useState, useEffect } from "react";
 
 export default function Login() {
-  const[email, setEmail] = useState("");
-  const[password, setPassword] = useState("");
-  const[loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [otp, setOtp] = useState("");
+  const [showOTP, setShowOTP] = useState(false);
+
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   const navigate = useNavigate();
 
+  /* ================= LOGIN ================= */
+
   const handleLogin = async () => {
-    if(!email || !password){
-      alert("All fields are required")
+    if (!email || !password) {
+      alert("All fields are required");
       return;
     }
 
-    setLoading(true)
+    setLoading(true);
+
     try {
-      const res = await loginUser({
-        email,
-        password,
-      });
+      await loginUser({ email, password });
 
-      console.log(res.data);
       alert("Logged in successfully");
+      navigate("/homepage");
 
-      navigate('/homepage');
     } catch (error) {
-      alert(error.response?.data?.message);
+      const message = error.response?.data?.message;
+
+      if (message?.includes("phone")) {
+        alert("Phone not verified. OTP sent.");
+        setShowOTP(true);
+        startCountdown();
+      } else {
+        alert(message);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  /* ================= VERIFY OTP ================= */
+
+  const handleVerifyOTP = async () => {
+    if (!otp) {
+      alert("Enter OTP");
+      return;
+    }
+
+    try {
+      await axios.post("/api/v1/users/verify-phone", {
+        email,
+        otp,
+      });
+
+      alert("Phone verified successfully. Please login again.");
+      setShowOTP(false);
+      setOtp("");
+
+    } catch (error) {
+      alert(error.response?.data?.message);
+    }
+  };
+
+  /* ================= RESEND OTP ================= */
+
+  const handleResendOTP = async () => {
+    try {
+      await axios.post("/api/v1/users/resend-phone-otp", {
+        email,
+      });
+
+      alert("OTP resent successfully");
+      startCountdown();
+
+    } catch (error) {
+      alert(error.response?.data?.message);
+    }
+  };
+
+  /* ================= COUNTDOWN LOGIC ================= */
+
+  const startCountdown = () => {
+    setCountdown(60);
+  };
+
+  useEffect(() => {
+    let timer;
+
+    if (countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+    }
+
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  /* ================= UI ================= */
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
       <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 border border-gray-200">
 
-        {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-block bg-gradient-to-r from-indigo-600 to-blue-600 p-3 rounded-full mb-4">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622"
-              />
-            </svg>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Login
+          </h2>
         </div>
 
-        {/* Form */}
-        <form 
+        <form
           className="space-y-6"
-          onSubmit={(e) =>{
+          onSubmit={(e) => {
             e.preventDefault();
             handleLogin();
           }}
         >
-          {/* Email */}
+          {/* EMAIL */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Email ID
@@ -70,11 +132,11 @@ export default function Login() {
               placeholder="your.name@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500"
             />
           </div>
 
-          {/* Password */}
+          {/* PASSWORD */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Password
@@ -84,11 +146,54 @@ export default function Login() {
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500"
             />
           </div>
 
-          {/* Button */}
+          {/* OTP SECTION */}
+          {showOTP && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Enter OTP
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleVerifyOTP}
+                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold"
+              >
+                Verify OTP
+              </button>
+
+              {/* RESEND + TIMER */}
+              <div className="text-center text-sm">
+                {countdown > 0 ? (
+                  <p className="text-gray-500">
+                    Resend OTP in {countdown}s
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    className="text-indigo-600 font-semibold hover:underline"
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* LOGIN BUTTON */}
           <button
             type="submit"
             disabled={loading}
@@ -98,7 +203,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Footer */}
         <div className="mt-6 pt-6 border-t border-gray-200 text-center">
           <p className="text-sm text-gray-600">
             Don’t have an account?
@@ -114,7 +218,6 @@ export default function Login() {
             © 2025 Project Management App. All rights reserved.
           </p>
         </div>
-
       </div>
     </div>
   );
