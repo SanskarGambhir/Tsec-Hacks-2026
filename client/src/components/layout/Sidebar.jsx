@@ -10,7 +10,7 @@ import {
   Zap,
   X,
   UserPlus,
-  Share2,
+  Divide,
 } from "lucide-react";
 
 const navItems = [
@@ -18,7 +18,7 @@ const navItems = [
   { icon: Users, label: "My Groups", path: "/groups" },
   { icon: UserPlus, label: "Friends", path: "/friends" },
   { icon: Wallet, label: "Wallet", path: "/wallet" },
-  { icon: Share2, label: "Splitwise", path: "/split-bills" },
+  { icon: Divide, label: "Split Bills", path: "/split-bills" },
   { icon: Activity, label: "Activity", path: "/activity" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
