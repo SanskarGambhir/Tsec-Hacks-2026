@@ -2,16 +2,21 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { MainLayout } from "./components/layout";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
-import Dashboard from "./pages/Dashboard";
+import Homepage from "./pages/Homepage";
+import Wallet from "./pages/Walllet";
+import GroupChat from "./pages/GroupChat";
+import SocketTestComponent from "./components/SocketTestComponent";
+import JoinGroup from "./components/JoinGroup";
+import GroupDetailPage from "./components/GroupDetailPage";
 import Groups from "./pages/Groups";
 import CreateGroup from "./pages/CreateGroup";
 import GroupDetails from "./pages/GroupDetails";
-import Wallet from "./pages/Wallet";
 import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
 import FriendsPage from "./pages/FriendsPage";
 import InviteHandler from "./pages/InviteHandler";
 import BillScanner from "./pages/BillScanner";
+import Dashboard from "./pages/Dashboard";
 import "./App.css";
 
 function App() {
@@ -23,6 +28,12 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/invite/:token" element={<InviteHandler />} />
+        <Route path="/homepage" element={<Homepage />} />
+        <Route path="/wallet" element={<Wallet />} />
+        <Route path="/chat/:groupId" element={<GroupChat />} />
+        <Route path="/socket-test" element={<SocketTestComponent />} />
+        <Route path="/join-group" element={<JoinGroup />} />
+        <Route path="/group/:groupId" element={<GroupDetailPage />} />
 
         {/* App Routes with Layout */}
         <Route element={<MainLayout />}>

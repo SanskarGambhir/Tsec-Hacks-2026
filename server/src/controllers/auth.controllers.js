@@ -1,6 +1,7 @@
 import { User } from '../models/user.models.js';
 import { PhoneInvite } from '../models/phoneInvite.models.js';
 import { Friend } from '../models/friend.models.js';
+import { UserWallet } from '../models/wallet.models.js';
 import { ApiResponse } from '../utils/api-response.js';
 import { ApiError } from '../utils/api-error.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -13,7 +14,7 @@ import { sendOTP, verifyOTP } from "../utils/twilio.js";
 
 
 const generateAccessAndRefreshToken = async (userId) => {
-  try{
+  try {
     // Find user by ID
     const user = await User.findById(userId);
     // Generate tokens
@@ -24,7 +25,7 @@ const generateAccessAndRefreshToken = async (userId) => {
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
     return { accessToken, refreshToken };
-  } catch(error) {
+  } catch (error) {
     throw new ApiError(500, 'Error generating tokens');
   }
 }
@@ -56,7 +57,13 @@ const registerUser = asyncHandler(async (req, res) => {
     phone,
     panCard,
     isEmailVerified: false,
-    isPhoneVerified: false,
+    isPhoneVerified: true, // Skipping OTP verification for now
+  });
+
+  // Create User Wallet
+  await UserWallet.create({
+    user: user._id,
+    balance: 0
   });
 
   const { forgotToken, forgotPasswordToken, forgotPasswordExpiry } =
@@ -76,7 +83,8 @@ const registerUser = asyncHandler(async (req, res) => {
     ),
   });
 
-  // 🔥 SEND PHONE OTP
+  // 🔥 SEND PHONE OTP - SKIPPED
+  await sendOTP(phone);
   await sendOTP(phone);
 
   // Handle invite token if provided
@@ -120,7 +128,7 @@ const registerUser = asyncHandler(async (req, res) => {
     new ApiResponse(
       201,
       { user: createdUser },
-      "User registered. Verify email and phone."
+      "User registered successfully."
     )
   );
 });
@@ -179,7 +187,9 @@ const loginUser = asyncHandler(async (req, res) => {
     } catch (error) {
       console.error("Error processing invite:", error);
       // Don't fail login if invite processing fails
-    }
+    }}
+  if (!user.isPhoneVerified) {
+    throw new ApiError(403, "Please verify your phone before login");
   }
 
   // 4. Generate access and refresh tokens
@@ -199,7 +209,7 @@ const loginUser = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        {user: loggedInUser},
+        { user: loggedInUser },
         'User logged in successfully'
       )
     );
@@ -207,16 +217,16 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
   // Clear refresh token from database
-  await User.findByIdAndUpdate(req.user._id, 
-    { 
-      $set: { 
-        refreshToken: null 
-      } 
+  await User.findByIdAndUpdate(req.user._id,
+    {
+      $set: {
+        refreshToken: null
+      }
     },
     {
       new: true
     }
-  ); 
+  );
 
   const options = {
     httpOnly: true,
@@ -268,10 +278,10 @@ const verifyEmail = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(200, 
+      new ApiResponse(200,
         {
           isEmailVerified: true
-        }, 
+        },
         'Email verified successfully')
     );
 });
@@ -279,26 +289,26 @@ const verifyEmail = asyncHandler(async (req, res) => {
 const resendVerificationEmail = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
-  if(!user) {
+  if (!user) {
     throw new ApiError(404, 'User not found');
   }
 
-  if(user.isEmailVerified) {
+  if (user.isEmailVerified) {
     throw new ApiError(409, 'Email is already verified');
   }
 
-  const {forgotToken, forgotPasswordToken, forgotPasswordExpiry} = user.generateTemporaryForgotPasswordToken();
+  const { forgotToken, forgotPasswordToken, forgotPasswordExpiry } = user.generateTemporaryForgotPasswordToken();
 
   user.emailVerificationToken = forgotPasswordToken;
   user.emailVerificationExpiry = forgotPasswordExpiry;
 
-  await user.save({validateBeforeSave: false});
+  await user.save({ validateBeforeSave: false });
 
   await sendEmail({
     email: user?.email,
     subject: 'Email Verification',
     mailgenContent: emailVerificationMailgenContent(
-      user.username, 
+      user.username,
       `${req.protocol}://${req.get('host')}/api/v1/users/verify-email/${forgotToken}`)
   });
 
@@ -320,16 +330,16 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, 'Unauthorized access');
   }
 
-  try{
+  try {
     const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
 
     const user = await User.findById(decodedToken?._id);
 
-    if(!user) {
+    if (!user) {
       throw new ApiError(401, 'Invalid refresh token');
     }
 
-    if(user.refreshToken !== incomingRefreshToken) {
+    if (user.refreshToken !== incomingRefreshToken) {
       throw new ApiError(401, 'Refresh token is expired. Please login again.');
     }
 
@@ -350,11 +360,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          { accessToken , newRefreshToken},
+          { accessToken, newRefreshToken },
           'Access token refreshed successfully'
         )
       );
-    } catch(error) {
+  } catch (error) {
     throw new ApiError(401, 'Invalid refresh token');
   }
 });
@@ -367,7 +377,7 @@ const forgotPasswordRequest = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, 'User with this email does not exist');
   }
-  
+
   const { forgotToken, forgotPasswordToken, forgotPasswordExpiry } = user.generateTemporaryForgotPasswordToken();
 
   user.forgotPasswordToken = forgotPasswordToken;
@@ -502,7 +512,24 @@ const resendPhoneOTP = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "OTP resent successfully"));
 });
 
+const addMoneyToUserWallet = asyncHandler(async (req, res) => {
+  const { amount } = req.body;
+  if (!amount || amount <= 0) {
+    throw new ApiError(400, "Valid amount is required");
+  }
 
+  const userWallet = await UserWallet.findOne({ user: req.user._id });
+  if (!userWallet) {
+    throw new ApiError(404, "User wallet not found");
+  }
+
+  userWallet.balance += amount;
+  await userWallet.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { balance: userWallet.balance }, "Money added to wallet successfully"));
+});
 
 export {
   registerUser,
@@ -516,5 +543,6 @@ export {
   resetForgotPassword,
   changeCurrentPassword,
   verifyPhoneOTP,
-  resendPhoneOTP   // 👈 MUST be here
+  resendPhoneOTP,
+  addMoneyToUserWallet
 };
