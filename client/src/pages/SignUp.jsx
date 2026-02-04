@@ -15,6 +15,9 @@ export default function SignUp() {
   const [countdown, setCountdown] = useState(0);
 
   const [loading, setLoading] = useState(false);
+const [panFile, setPanFile] = useState(null);
+const [panPreview, setPanPreview] = useState(null);
+
 
   const navigate = useNavigate();
 
@@ -110,6 +113,33 @@ export default function SignUp() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
+
+  const handlePanFileChange = (e) => {
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+
+  if (!allowedTypes.includes(file.type)) {
+    alert("Only PDF, JPG, and PNG files are allowed");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert("File size must be less than 5MB");
+    return;
+  }
+
+  setPanFile(file);
+
+  // Create preview URL
+  const previewURL = URL.createObjectURL(file);
+  setPanPreview(previewURL);
+};
+
+
+
   /* ================= UI ================= */
 
   return (
@@ -165,6 +195,47 @@ export default function SignUp() {
             }
             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
           />
+
+          <div>
+  <label className="block text-sm font-semibold text-gray-700 mb-2">
+    Upload PAN Card Document
+  </label>
+
+  <input
+    type="file"
+    accept=".pdf,.jpg,.jpeg,.png"
+    onChange={handlePanFileChange}
+    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white"
+  />
+
+  {panFile && (
+    <div className="mt-4 border rounded-lg p-3 bg-gray-50">
+      <p className="text-sm text-gray-600 mb-2">
+        Selected: {panFile.name}
+      </p>
+
+      {/* Image Preview */}
+      {(panFile.type === "image/jpeg" ||
+        panFile.type === "image/png") && (
+        <img
+          src={panPreview}
+          alt="PAN Preview"
+          className="w-full max-h-60 object-contain rounded-lg border"
+        />
+      )}
+
+      {/* PDF Preview */}
+      {panFile.type === "application/pdf" && (
+        <iframe
+          src={panPreview}
+          title="PDF Preview"
+          className="w-full h-60 border rounded-lg"
+        />
+      )}
+    </div>
+  )}
+</div>
+
 
           <input
             type="password"
