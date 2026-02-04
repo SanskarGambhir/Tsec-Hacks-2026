@@ -139,8 +139,8 @@ export default function Groups() {
             <button
               onClick={() => setViewMode("grid")}
               className={`p-2 rounded-lg transition-colors ${viewMode === "grid"
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : "text-gray-400 hover:text-white"
+                ? "bg-emerald-500/20 text-emerald-400"
+                : "text-gray-400 hover:text-white"
                 }`}
             >
               <Grid3X3 className="w-5 h-5" />
@@ -148,8 +148,8 @@ export default function Groups() {
             <button
               onClick={() => setViewMode("list")}
               className={`p-2 rounded-lg transition-colors ${viewMode === "list"
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : "text-gray-400 hover:text-white"
+                ? "bg-emerald-500/20 text-emerald-400"
+                : "text-gray-400 hover:text-white"
                 }`}
             >
               <List className="w-5 h-5" />
@@ -178,8 +178,8 @@ export default function Groups() {
               >
                 <CardContent
                   className={`${viewMode === "list"
-                      ? "flex items-center gap-4 p-4 w-full"
-                      : "p-5"
+                    ? "flex items-center gap-4 p-4 w-full"
+                    : "p-5"
                     }`}
                 >
                   {/* Avatar */}
@@ -235,8 +235,8 @@ export default function Groups() {
                   {/* Balance */}
                   <div
                     className={`${viewMode === "list"
-                        ? "text-right ml-4"
-                        : "mt-4 pt-4 border-t border-white/10 flex items-center justify-between"
+                      ? "text-right ml-4"
+                      : "mt-4 pt-4 border-t border-white/10 flex items-center justify-between"
                       }`}
                   >
                     <div className={viewMode === "list" ? "" : ""}>
@@ -252,8 +252,8 @@ export default function Groups() {
                         <p className="text-sm text-gray-400">Your Share</p>
                         <p
                           className={`font-semibold ${group.yourShare >= 0
-                              ? "text-emerald-400"
-                              : "text-red-400"
+                            ? "text-emerald-400"
+                            : "text-red-400"
                             }`}
                         >
                           {group.yourShare >= 0 ? "+" : ""}₹
