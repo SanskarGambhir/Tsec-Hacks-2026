@@ -242,10 +242,12 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
+  const userWallet = await UserWallet.findOne({ user: req.user._id });
+
   return res
     .status(200)
     .json(
-      new ApiResponse(200, { user: req.user }, 'Current user fetched successfully')
+      new ApiResponse(200, { user: req.user, wallet: userWallet }, 'Current user fetched successfully')
     );
 });
 

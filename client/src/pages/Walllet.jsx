@@ -31,7 +31,7 @@ function Wallet() {
   }, []);
   const fetchTransactions = async () => {
     try {
-      const res = await api.get("/api/v1/wallet/get_trans", {
+      const res = await api.get("/wallet/get_trans", {
         withCredentials: true,
       });
       console.log(res.data.transactions)
@@ -46,7 +46,7 @@ function Wallet() {
       setMessage("Submitting proof...");
 
       const res = await api.post(
-        `/api/v1/wallet/complete_deposit/${intentId}`,
+        `/wallet/complete_deposit/${intentId}`,
         {},
         { withCredentials: true }
       );
@@ -57,6 +57,16 @@ function Wallet() {
         fetchBalance();       // update wallet balance
       }
 
+      console.log(res.data);
+
+      const response = await api.post(
+        `/groups/69834a82acec46c0717df61b/add-funds`,
+        { amount: 100 },
+        { withCredentials: true }
+      );
+
+      console.log(response.data);
+
     } catch (err) {
       console.error(err);
       setMessage("Proof submission failed");
@@ -66,7 +76,7 @@ function Wallet() {
 
   const fetchBalance = async () => {
     try {
-      const res = await api.get("/api/v1/wallet/balance", { withCredentials: true });
+      const res = await api.get("/wallet/balance", { withCredentials: true });
       console.log(res)
       setBalance(res.data.balance);
     } catch (err) {
@@ -76,7 +86,7 @@ function Wallet() {
 
   const checkPayments = async () => {
     try {
-      const res = await api.get("api/v1/wallet/check_payments", {
+      const res = await api.get("/wallet/check_payments", {
         withCredentials: true,
       });
 
@@ -94,13 +104,13 @@ function Wallet() {
 
 
   const verifyPayment = async (intentId) => {
-    const res = await api.post(`/api/v1/wallet/pay_verify`, {
+    const res = await api.post(`/wallet/pay_verify`, {
       intentId: intentId,
     });
     console.log(res.data)
     const interval = setInterval(async () => {
       try {
-        const res = await api.get(`/api/v1/pay_verify`, {
+        const res = await api.get(`/pay_verify`, {
           body: {
             intentId: intentId,
           },
@@ -114,7 +124,7 @@ function Wallet() {
 
           // 🔥 NOW safe to credit wallet
           const walletRes = await api.post(
-            "api/v1/wallet/add",
+            "/wallet/add",
             { amount: Number(amount) },
             { withCredentials: true }
           );
@@ -143,12 +153,11 @@ function Wallet() {
     try {
       setLoading(true);
       setMessage("");
+      const res3 = await api.post(
+        "/wallet/pay",
+        {},)
+      console.log(res3.data.paymentUrl);
 
-      const res = await api.post(
-        "/wallet/add",
-        { amount: Number(amount) },
-        { withCredentials: true } // for auth cookies
-      );
 
       const intentId = res3.data.intentId;
       console.log(intentId)
