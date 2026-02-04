@@ -82,7 +82,23 @@ const addFundsToGroup = asyncHandler(async (req, res) => {
 
   // 4. Perform Transaction
   userWallet.balance -= amount;
+  
+  // Update Group Wallet Total Balance
   groupWallet.balance += amount;
+
+  // Update Specific User's Mini-Pool in Group Wallet
+  const memberBalanceIndex = groupWallet.memberBalances.findIndex(
+    (mb) => mb.user.toString() === req.user._id.toString()
+  );
+
+  if (memberBalanceIndex > -1) {
+    groupWallet.memberBalances[memberBalanceIndex].balance += amount;
+  } else {
+    groupWallet.memberBalances.push({
+      user: req.user._id,
+      balance: amount
+    });
+  }
 
   groupWallet.transactions.push({
     fromUser: req.user._id,
@@ -91,7 +107,7 @@ const addFundsToGroup = asyncHandler(async (req, res) => {
   });
 
   // Sync group pool for display/legacy purposes
-  // group.pool += amount;
+  group.pool += amount;
 
   await userWallet.save();
   await groupWallet.save();
@@ -149,8 +165,36 @@ const logExpense = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Group wallet not found");
   }
 
-  if (groupWallet.balance < amount) {
-    throw new ApiError(400, "Insufficient funds in group wallet");
+  // Calculate split amount
+  const numberOfMembers = group.members.length;
+  if (numberOfMembers === 0) {
+    throw new ApiError(400, "Group has no members to split the expense");
+  }
+  const splitAmount = amount / numberOfMembers;
+
+  // Verify if ALL members have enough balance in their mini-pools
+  // Note: We need to handle cases where a member might not have an entry in memberBalances yet (effectively 0 balance)
+  for (const memberId of group.members) {
+    const memberBalanceEntry = groupWallet.memberBalances.find(
+      (mb) => mb.user.toString() === memberId.toString()
+    );
+    const currentBalance = memberBalanceEntry ? memberBalanceEntry.balance : 0;
+
+    if (currentBalance < splitAmount) {
+      throw new ApiError(400, `Insufficient funds for user ${memberId}. Each member needs ${splitAmount}`);
+    }
+  }
+
+  // Deduct from each member's mini-pool
+  for (const memberId of group.members) {
+    const memberBalanceEntry = groupWallet.memberBalances.find(
+      (mb) => mb.user.toString() === memberId.toString()
+    );
+    // We already verified existence and balance above, so strictly speaking it should be there, 
+    // but safe to check if we created it (though we expect it to exist if balance > 0)
+    if (memberBalanceEntry) {
+        memberBalanceEntry.balance -= splitAmount;
+    }
   }
 
   // Deduct from pool and add to expenses
@@ -164,7 +208,7 @@ const logExpense = asyncHandler(async (req, res) => {
   group.pool -= amount;
   group.expenses.push(expense);
 
-  // Update Wallet
+  // Update Wallet Total Balance
   groupWallet.balance -= amount;
   groupWallet.transactions.push({
     fromUser: req.user._id, // Recording who spent it essentially

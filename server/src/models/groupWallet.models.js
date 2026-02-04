@@ -21,6 +21,18 @@ const transactionSchema = new Schema({
   }
 });
 
+const memberBalanceSchema = new Schema({
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  },
+  balance: {
+    type: Number,
+    default: 0
+  }
+});
+
 const groupWalletSchema = new Schema(
   {
     group: {
@@ -34,6 +46,7 @@ const groupWalletSchema = new Schema(
       type: Number,
       default: 0
     },
+    memberBalances: [memberBalanceSchema],
     currency: {
       type: String,
       default: "INR"

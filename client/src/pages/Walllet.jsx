@@ -60,8 +60,8 @@ function Wallet() {
       console.log(res.data);
 
       const response = await api.post(
-        `/groups/69834a82acec46c0717df61b/add-funds`,
-        { amount: 100 },
+        `/auth/add-money`,
+        { amount: Number(amount) },
         { withCredentials: true }
       );
 
