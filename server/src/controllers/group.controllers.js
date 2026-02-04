@@ -443,4 +443,58 @@ const sendMessage = asyncHandler(async (req, res) => {
     );
 });
 
-export { createGroup, logExpense, addRule, addFundsToGroup, joinGroup, getGroupDetails, sendMessage };
+const getUserGroups = asyncHandler(async (req, res) => {
+  // Find all groups where the user is either owner or member
+  const groups = await Group.find({
+    $or: [
+      { owner: req.user._id },
+      { members: { $in: [req.user._id] } }
+    ]
+  })
+  .populate('owner', 'username email')
+  .populate('members', 'username email')
+  .populate('wallet')
+  .sort({ updatedAt: -1 }); // Sort by most recently updated
+
+  if (!groups) {
+    throw new ApiError(500, "Error fetching user groups");
+  }
+
+  // Format the response to match the frontend expectations
+  const formattedGroups = groups.map(group => {
+    // Calculate user's share or balance if needed
+    const userIsOwner = group.owner._id.toString() === req.user._id.toString();
+    const userIsMember = group.members.some(member =>
+      member._id.toString() === req.user._id.toString()
+    );
+
+    return {
+      _id: group._id,
+      id: group._id, // For frontend compatibility
+      name: group.name,
+      description: group.description,
+      members: group.members.length,
+      balance: group.wallet?.balance || 0,
+      yourShare: 0, // Placeholder - could calculate actual share if needed
+      avatar: group.name.charAt(0).toUpperCase(), // Generate avatar from first letter
+      color: "from-blue-500 to-cyan-500", // Default gradient
+      isPinned: false, // Default value
+      lastActivity: group.updatedAt, // Use updatedAt as last activity
+      hasPool: group.wallet?.balance > 0,
+      owner: group.owner,
+      createdAt: group.createdAt
+    };
+  });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        formattedGroups,
+        "User groups retrieved successfully"
+      )
+    );
+});
+
+export { createGroup, logExpense, addRule, addFundsToGroup, joinGroup, getGroupDetails, sendMessage, getUserGroups };

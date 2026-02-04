@@ -25,7 +25,7 @@ export default function BillScanner() {
 
       // Step 2: Send text to backend (Gemini)
       const response = await axios.post(
-        "http://localhost:8000/api/v1/bill/analyze",
+        `${import.meta.env.VITE_SERVER_URL}bill/analyze`,
         { text: data.text }
       );
 
