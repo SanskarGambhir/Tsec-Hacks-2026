@@ -2,6 +2,7 @@ import { Group } from "../models/group.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { getIO } from "../socket.js";
 
 const createGroup = asyncHandler(async (req, res) => {
   const { name, description, rules, pool } = req.body;
@@ -58,14 +59,30 @@ const logExpense = asyncHandler(async (req, res) => {
   }
 
   // Deduct from pool and add to expenses
-  group.pool -= amount;
-  group.expenses.push({
+  const expense = {
     amount,
     description,
-    spentBy: req.user._id
-  });
+    spentBy: req.user._id,
+    date: new Date()
+  };
+
+  group.pool -= amount;
+  group.expenses.push(expense);
 
   await group.save();
+
+  // Emit real-time update
+  try {
+    const io = getIO();
+    io.to(groupId).emit("expenseLogged", {
+      groupId,
+      pool: group.pool,
+      expense
+    });
+  } catch (error) {
+    console.error("Socket emit failed:", error);
+    // Continue execution, don't fail the request
+  }
 
   return res
     .status(200)
@@ -105,6 +122,17 @@ const addRule = asyncHandler(async (req, res) => {
 
   group.rules.push(newRule);
   await group.save();
+
+  // Emit real-time update
+  try {
+    const io = getIO();
+    io.to(groupId).emit("ruleAdded", {
+        groupId,
+        rule: newRule
+    });
+  } catch (error) {
+      console.error("Socket emit failed:", error);
+  }
 
   return res
     .status(200)
