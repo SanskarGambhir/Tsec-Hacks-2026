@@ -13,7 +13,8 @@ import {
   getGroupInvites,
   acceptGroupInvite,
   rejectGroupInvite,
-  acceptGroupInviteByToken
+  acceptGroupInviteByToken,
+  leaveGroup
 } from "../controllers/group.controllers.js";
 import { processGroupPayment } from "../controllers/groupPayment.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -35,6 +36,7 @@ router.route("/").post(createGroup);
 router.route("/user-groups").get(getUserGroups); // Get all groups user is member of
 router.route("/:groupId").get(getGroupDetails); // Get group details
 router.route("/:groupId/join").post(joinGroup);
+router.route("/:groupId/leave").post(leaveGroup);
 router.route("/:groupId/expense").post(logExpense);
 router.route("/:groupId/rules").post(addRule);
 router.route("/:groupId/add-funds").post(addFundsToGroup);

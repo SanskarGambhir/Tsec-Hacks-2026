@@ -874,6 +874,46 @@ const acceptGroupInviteByToken = asyncHandler(async (req, res) => {
   );
 });
 
+// Leave group
+const leaveGroup = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user._id;
+
+  // Check if group exists
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  // Check if user is the owner
+  if (group.owner.toString() === userId.toString()) {
+    throw new ApiError(403, "Group owner cannot leave the group. Please transfer ownership or delete the group.");
+  }
+
+  // Check if user is a member
+  const isMember = group.members.some(m => m.toString() === userId.toString());
+  if (!isMember) {
+    throw new ApiError(400, "You are not a member of this group");
+  }
+
+  // Remove user from members
+  group.members = group.members.filter(m => m.toString() !== userId.toString());
+  await group.save();
+
+  // Emit socket event for member left
+  const io = getIO();
+  if (io) {
+    io.to(groupId).emit("memberLeft", {
+      groupId,
+      user: req.user
+    });
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, null, "Successfully left the group")
+  );
+});
+
 export { 
   createGroup, 
   logExpense, 
@@ -888,5 +928,6 @@ export {
   getGroupInvites,
   acceptGroupInvite,
   rejectGroupInvite,
-  acceptGroupInviteByToken
+  acceptGroupInviteByToken,
+  leaveGroup
 };
