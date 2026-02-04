@@ -266,7 +266,6 @@ const GroupDetailPage = () => {
     try {
       setAddingFunds(true);
       setFundsMessage("");
-      cosnole.log("bye")
       if (releaseType === 'time_locked') {
         console.log("Hello")
         const unlockDate = group.unlockDate
