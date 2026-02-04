@@ -11,6 +11,7 @@ import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
 import FriendsPage from "./pages/FriendsPage";
 import InviteHandler from "./pages/InviteHandler";
+import BillScanner from "./pages/BillScanner";
 import "./App.css";
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/scan-bill" element={<BillScanner />} />
         </Route>
       </Routes>
     </Router>
