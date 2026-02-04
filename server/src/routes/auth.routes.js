@@ -17,6 +17,7 @@ import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { verifyPhoneOTP } from "../controllers/auth.controllers.js";
 
 
+
 const router = Router();
 
 // Below line of code means that when a POST request is made to "/register", the registerUser controller function will be called.
