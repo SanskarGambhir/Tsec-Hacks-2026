@@ -136,6 +136,24 @@ export const onReceiveMessage = (callback) => {
   }
 };
 
+// Listen for funds added event
+export const onFundsAdded = (callback) => {
+  const socketInstance = getSocket();
+  if (socketInstance) {
+    socketInstance.on('fundsAdded', callback);
+  }
+
+  console.log("Listening for fundsAdded event");
+};
+
+// Listen for expense logged event
+export const onExpenseLogged = (callback) => {
+  const socketInstance = getSocket();
+  if (socketInstance) {
+    socketInstance.on('expenseLogged', callback);
+  }
+};
+
 // Remove listeners
 export const removeListener = (event, callback) => {
   const socketInstance = getSocket();

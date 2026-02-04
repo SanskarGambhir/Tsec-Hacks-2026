@@ -60,6 +60,10 @@ const groupSchema = new Schema(
         ref: "User"
       }
     ],
+    wallet: {
+      type: Schema.Types.ObjectId,
+      ref: "GroupWallet"
+    },
     expenses: [expenseSchema]
   },
   {

@@ -4,6 +4,8 @@ import SignUp from "./pages/SignUp";
 import Homepage from "./pages/Homepage";
 import Wallet from "./pages/Walllet";
 import SocketTestComponent from "./components/SocketTestComponent";
+import JoinGroup from "./components/JoinGroup";
+import GroupDetailPage from "./components/GroupDetailPage";
 import "./App.css";
 
 function App() {
@@ -16,6 +18,8 @@ function App() {
         <Route path="/homepage" element={<Homepage />} />
         <Route path="/wallet" element={<Wallet />} />
         <Route path="/socket-test" element={<SocketTestComponent />} />
+        <Route path="/join-group" element={<JoinGroup />} />
+        <Route path="/group/:groupId" element={<GroupDetailPage />} />
       </Routes>
     </Router>
   );
