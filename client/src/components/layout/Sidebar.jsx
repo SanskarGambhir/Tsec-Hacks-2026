@@ -10,6 +10,7 @@ import {
   Zap,
   X,
   UserPlus,
+  Share2,
 } from "lucide-react";
 
 const navItems = [
@@ -17,6 +18,7 @@ const navItems = [
   { icon: Users, label: "My Groups", path: "/groups" },
   { icon: UserPlus, label: "Friends", path: "/friends" },
   { icon: Wallet, label: "Wallet", path: "/wallet" },
+  { icon: Share2, label: "Splitwise", path: "/split-bills" },
   { icon: Activity, label: "Activity", path: "/activity" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
@@ -58,10 +60,9 @@ export default function Sidebar({ isOpen, onClose }) {
             to={item.path}
             onClick={onClose}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
-                isActive
-                  ? "text-emerald-400 border border-emerald-500/30"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${isActive
+                ? "text-emerald-400 border border-emerald-500/30"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
               }`
             }
             style={({ isActive }) =>
@@ -73,9 +74,8 @@ export default function Sidebar({ isOpen, onClose }) {
             {({ isActive }) => (
               <div className="flex items-center gap-3 w-full">
                 <item.icon
-                  className={`w-5 h-5 transition-all ${
-                    isActive ? "text-emerald-400" : "group-hover:text-emerald-400"
-                  }`}
+                  className={`w-5 h-5 transition-all ${isActive ? "text-emerald-400" : "group-hover:text-emerald-400"
+                    }`}
                 />
                 <span className="font-medium">{item.label}</span>
                 {isActive && (

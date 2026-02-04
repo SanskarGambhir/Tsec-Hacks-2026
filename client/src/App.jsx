@@ -16,6 +16,9 @@ import FriendsPage from "./pages/FriendsPage";
 import InviteHandler from "./pages/InviteHandler";
 import BillScanner from "./pages/BillScanner";
 import Dashboard from "./pages/Dashboard";
+import SplitwiseSync from "./pages/SplitwiseSync";
+import CreateSharedExpense from "./pages/CreateSharedExpense";
+import ViewSharedExpense from "./pages/ViewSharedExpense";
 import "./App.css";
 
 function App() {
@@ -32,6 +35,8 @@ function App() {
         <Route path="/socket-test" element={<SocketTestComponent />} />
         <Route path="/join-group" element={<JoinGroup />} />
         <Route path="/group/:groupId" element={<GroupDetailPage />} />
+        <Route path="/shared-expense/:shareLink" element={<ViewSharedExpense />} />
+        <Route path="/split-bills" element={<CreateSharedExpense />} />
 
         {/* App Routes with Layout */}
         <Route element={<MainLayout />}>
@@ -44,6 +49,7 @@ function App() {
           <Route path="/activity" element={<Activity />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/scan-bill" element={<BillScanner />} />
+          <Route path="/splitwise" element={<SplitwiseSync />} />
         </Route>
       </Routes>
     </Router>

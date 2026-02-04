@@ -6,6 +6,7 @@ import authRouter from "./routes/auth.routes.js";
 import walletRouter from "./routes/wallet.routes.js";
 import groupRouter from "./routes/group.routes.js";
 import friendRouter from "./routes/friend.routes.js";
+import sharedExpenseRouter from "./routes/sharedExpense.routes.js";
 import cookieParser from "cookie-parser";
 import billRoutes from "./routes/bill.routes.js";
 
@@ -31,6 +32,7 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/wallet", walletRouter);
 app.use("/api/v1/groups", groupRouter);
 app.use("/api/v1/friends", friendRouter);
+app.use("/api/v1/shared-expenses", sharedExpenseRouter);
 app.use("/api/v1/bill", billRoutes);
 
 
