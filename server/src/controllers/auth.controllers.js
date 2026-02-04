@@ -6,6 +6,8 @@ import { sendEmail } from '../utils/mail.js';
 import { emailVerificationMailgenContent, forgotPasswordMailgenContent } from '../utils/mail.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { sendOTP, verifyOTP } from "../utils/twilio.js";
+
 
 
 const generateAccessAndRefreshToken = async (userId) => {
@@ -26,70 +28,68 @@ const generateAccessAndRefreshToken = async (userId) => {
 }
 
 const registerUser = asyncHandler(async (req, res) => {
-  // 1. Get user data from req.body
-  const {email, username, password, role} = req.body
+  const { email, username, password, phone, panCard } = req.body;
 
-  if(!email || !username || !password) {
-    throw new ApiError(400, 'Email, username and password are required fields', [])
+  if (!email || !username || !password || !phone || !panCard) {
+    throw new ApiError(400, "All fields are required");
   }
 
-  // 2. Check if user with the same email or username exists
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  if (!panRegex.test(panCard)) {
+    throw new ApiError(400, "Invalid PAN format");
+  }
+
   const existedUser = await User.findOne({
-    $or: [{username}, {email}]
-  })
+    $or: [{ username }, { email }, { phone }],
+  });
 
-  // 3. If exists, throw error
-  if(existedUser) {
-    throw new ApiError(409, 'Username or email already exists', [])
+  if (existedUser) {
+    throw new ApiError(409, "Username, email or phone already exists");
   }
 
-  // 4. If not, create user
   const user = await User.create({
-    email,  
-    password, 
+    email,
     username,
+    password,
+    phone,
+    panCard,
     isEmailVerified: false,
-  })
+    isPhoneVerified: false,
+  });
 
-  // 5. Generate email verification token
-  const {forgotToken, forgotPasswordToken, forgotPasswordExpiry} = user.generateTemporaryForgotPasswordToken();
+  const { forgotToken, forgotPasswordToken, forgotPasswordExpiry } =
+    user.generateTemporaryForgotPasswordToken();
 
-  // 6. Save email verification token and expiry to user document
   user.emailVerificationToken = forgotPasswordToken;
   user.emailVerificationExpiry = forgotPasswordExpiry;
 
-  // What this does is to save the user without running validation again because we have already validated the data while creating the user
-  await user.save({validateBeforeSave: false});
-  // save() is an instance method provided by Mongoose to save the document to the database.
+  await user.save({ validateBeforeSave: false });
 
-  // 7. Send verification email
   await sendEmail({
-    email: user?.email,
-    subject: 'Email Verification',
+    email: user.email,
+    subject: "Email Verification",
     mailgenContent: emailVerificationMailgenContent(
-      user.username, 
-      `${req.protocol}://${req.get('host')}/api/v1/users/verify-email/${forgotToken}`)
+      user.username,
+      `${req.protocol}://${req.get("host")}/api/v1/users/verify-email/${forgotToken}`
+    ),
   });
 
-  // Before sending response, remove sensitive fields
-  const createdUser = await User.findById(user._id).select('-password -refreshToken -emailVerificationToken -emailVerificationExpiry');
-  
-  // If user creation failed
-  if(!createdUser) {
-    throw new ApiError(500, 'Something went wrong while registering the user');
-  }
+  // 🔥 SEND PHONE OTP
+  await sendOTP(phone);
 
-  // 8. Send response
-  return res
-    .status(201)
-    .json(
-      new ApiResponse(
-        200,
-        {user: createdUser},
-        'User registered successfully. Please check your email to verify your account.'
-      )
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+  );
+
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      { user: createdUser },
+      "User registered. Verify email and phone."
     )
+  );
 });
+
 
 const loginUser = asyncHandler(async (req, res) => {
   // 1. Get email and password from req.body
@@ -109,6 +109,12 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordvalid) {
     throw new ApiError(401, 'Invalid email or password', []);
   }
+
+
+
+if (!user.isPhoneVerified) {
+  throw new ApiError(403, "Please verify your phone before login");
+}
 
   // 4. Generate access and refresh tokens
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
@@ -387,4 +393,62 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 });
 
 
-export { registerUser, loginUser, logoutUser, getCurrentUser, verifyEmail, resendVerificationEmail, forgotPasswordRequest, refreshAccessToken, resetForgotPassword , changeCurrentPassword };
+const verifyPhoneOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new ApiError(400, "Email and OTP required");
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const response = await verifyOTP(user.phone, otp);
+
+  if (response.status !== "approved") {
+    throw new ApiError(400, "Invalid OTP");
+  }
+
+  user.isPhoneVerified = true;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Phone verified successfully"));
+});
+
+const resendPhoneOTP = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  await sendOTP(user.phone);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "OTP resent successfully"));
+});
+
+
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  getCurrentUser,
+  verifyEmail,
+  resendVerificationEmail,
+  forgotPasswordRequest,
+  refreshAccessToken,
+  resetForgotPassword,
+  changeCurrentPassword,
+  verifyPhoneOTP,
+  resendPhoneOTP   // 👈 MUST be here
+};
