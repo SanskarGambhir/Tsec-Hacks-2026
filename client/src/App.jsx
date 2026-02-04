@@ -8,6 +8,13 @@ import GroupChat from "./pages/GroupChat";
 import SocketTestComponent from "./components/SocketTestComponent";
 import JoinGroup from "./components/JoinGroup";
 import GroupDetailPage from "./components/GroupDetailPage";
+import Groups from "./pages/Groups";
+import CreateGroup from "./pages/CreateGroup";
+import GroupDetails from "./pages/GroupDetails";
+import Activity from "./pages/Activity";
+import Profile from "./pages/Profile";
+import BillScanner from "./pages/BillScanner";
+import Dashboard from "./pages/Dashboard";
 import "./App.css";
 
 function App() {
