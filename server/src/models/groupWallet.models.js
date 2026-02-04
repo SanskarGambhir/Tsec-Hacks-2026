@@ -12,7 +12,7 @@ const transactionSchema = new Schema({
   },
   type: {
     type: String,
-    enum: ["DEPOSIT", "WITHDRAWAL"], // In case funds are returned or spent directly
+    enum: ["DEPOSIT", "WITHDRAWAL", "GROUP_PAYMENT"], // In case funds are returned or spent directly
     default: "DEPOSIT"
   },
   date: {

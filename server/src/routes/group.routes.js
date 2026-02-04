@@ -17,7 +17,9 @@ import {
   getGroupTransactions,
   checkGroupPayments,
   completeGroupDeposit,
+  leaveGroup
 } from "../controllers/group.controllers.js";
+import { processGroupPayment } from "../controllers/groupPayment.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -37,6 +39,7 @@ router.route("/").post(createGroup);
 router.route("/user-groups").get(getUserGroups); // Get all groups user is member of
 router.route("/:groupId").get(getGroupDetails); // Get group details
 router.route("/:groupId/join").post(joinGroup);
+router.route("/:groupId/leave").post(leaveGroup);
 router.route("/:groupId/expense").post(logExpense);
 router.route("/:groupId/rules").post(addRule);
 router.route("/:groupId/add-funds").post(addFundsToGroup);
@@ -44,5 +47,6 @@ router.route("/:groupId/messages").post(sendMessage);
 router.route("/:groupId/transactions").get(getGroupTransactions);
 router.route("/:groupId/check-payments").get(checkGroupPayments);
 router.route("/:groupId/complete-deposit/:intentId").post(completeGroupDeposit);
+router.route("/:groupId/process-payment").post(processGroupPayment);
 
 export default router;

@@ -34,6 +34,12 @@ import {
   RefreshCw,
   History,
   XCircle,
+  Link,
+  Phone,
+  Loader2,
+  MessageCircle,
+  Check,
+  LogOut,
 } from "lucide-react";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -41,6 +47,7 @@ import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Progress } from "./ui/progress";
 import {
@@ -50,6 +57,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import GroupPaymentModal from "./GroupPaymentModal";
+import { getFriends } from "../api/friends";
+import {
+  sendGroupInviteToFriend,
+  sendGroupInviteViaWhatsApp,
+  leaveGroup,
+} from "../api/groups";
 
 const categoryColors = {
   Accommodation: "bg-blue-500/20 text-blue-400",
@@ -75,13 +89,42 @@ const GroupDetailPage = () => {
   const [addingFunds, setAddingFunds] = useState(false);
   const [fundsMessage, setFundsMessage] = useState("");
 
-  // Member Management State (placeholder logic for now)
+  // Member Management State
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
 
   // Transaction State
   const [transactions, setTransactions] = useState([]);
   const [checkingPayments, setCheckingPayments] = useState(false);
+  // Expense Modal State
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+
+  // Group Payment Modal State
+  const [showGroupPaymentModal, setShowGroupPaymentModal] = useState(false);
+
+  // Group Invitation State
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+
+  // Friend selection states
+  const [addMethod, setAddMethod] = useState("friends"); // 'friends' or 'whatsapp'
+  const [friends, setFriends] = useState([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [selectedFriends, setSelectedFriends] = useState([]);
+
+  // WhatsApp invite states
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [phoneInviteSuccess, setPhoneInviteSuccess] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+
+  // Leave group state
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [leavingGroup, setLeavingGroup] = useState(false);
+
+  // Get current user
+  const userData = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUser = userData?.data?.user || userData;
+  const currentUserId = currentUser?._id;
 
   useEffect(() => {
     const fetchGroupDetails = async () => {
@@ -354,7 +397,7 @@ const GroupDetailPage = () => {
 
     try {
       await api.post(
-        `/api/v1/groups/${groupId}/messages`,
+        `/groups/${groupId}/messages`,
         {
           content: newMessage.trim(),
         },
@@ -382,7 +425,6 @@ const GroupDetailPage = () => {
     try {
       setAddingFunds(true);
       setFundsMessage("");
-      console.log("Release Type:", releaseType);
 
       if (releaseType === "time_locked") {
         console.log("Creating time-locked payment intent");
@@ -479,6 +521,163 @@ const GroupDetailPage = () => {
     }
   };
 
+  // Fetch friends list
+  const fetchFriends = async () => {
+    setFriendsLoading(true);
+    try {
+      const response = await getFriends();
+      setFriends(response.data || []);
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+    } finally {
+      setFriendsLoading(false);
+    }
+  };
+
+  // Handle dialog open
+  const handleDialogOpen = (open) => {
+    setShowAddMember(open);
+    if (open) {
+      fetchFriends();
+      setSelectedFriends([]);
+      setPhoneInviteSuccess(false);
+      setInviteError("");
+    }
+  };
+
+  // Toggle friend selection
+  const toggleFriendSelection = (friend) => {
+    const isSelected = selectedFriends.some((f) => f._id === friend._id);
+    if (isSelected) {
+      setSelectedFriends(selectedFriends.filter((f) => f._id !== friend._id));
+    } else {
+      setSelectedFriends([...selectedFriends, friend]);
+    }
+  };
+
+  // Send invites to selected friends
+  const handleInviteSelectedFriends = async () => {
+    if (selectedFriends.length === 0) return;
+
+    setFriendsLoading(true);
+    setInviteError("");
+
+    try {
+      // Send invites to all selected friends
+      await Promise.all(
+        selectedFriends.map((friend) =>
+          sendGroupInviteToFriend(groupId, friend._id),
+        ),
+      );
+
+      setSelectedFriends([]);
+      setShowAddMember(false);
+      alert(`Successfully sent ${selectedFriends.length} invite(s)!`);
+    } catch (error) {
+      console.error("Error sending friend invites:", error);
+      setInviteError(error.response?.data?.message || "Failed to send invites");
+    } finally {
+      setFriendsLoading(false);
+    }
+  };
+
+  // Send WhatsApp invite
+  const handleSendWhatsAppInvite = async () => {
+    if (!phoneNumber.trim()) {
+      setInviteError("Please enter a phone number");
+      return;
+    }
+
+    setPhoneLoading(true);
+    setInviteError("");
+
+    try {
+      await sendGroupInviteViaWhatsApp(groupId, phoneNumber.trim());
+
+      setPhoneInviteSuccess(true);
+      setPhoneNumber("");
+
+      setTimeout(() => {
+        setPhoneInviteSuccess(false);
+        setShowAddMember(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Error sending WhatsApp invite:", error);
+      setInviteError(error.response?.data?.message || "Failed to send invite");
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  // Leave group handler
+  const handleLeaveGroup = async () => {
+    setLeavingGroup(true);
+    try {
+      await leaveGroup(groupId);
+      // Navigate back to groups page after leaving
+      navigate("/groups");
+    } catch (error) {
+      console.error("Error leaving group:", error);
+      alert(error.response?.data?.message || "Failed to leave group");
+    } finally {
+      setLeavingGroup(false);
+      setShowLeaveDialog(false);
+    }
+  };
+
+  // Function to handle adding an expense
+  const handleAddExpense = async (expenseData) => {
+    try {
+      const response = await api.post(
+        `/groups/${groupId}/expense`,
+        expenseData,
+        { withCredentials: true },
+      );
+
+      // The expense will be reflected via socket update
+      console.log("Expense added successfully:", response.data);
+    } catch (err) {
+      console.error("Error adding expense:", err);
+      alert(err.response?.data?.message || "Failed to add expense");
+    }
+  };
+
+  // Function to handle group payment
+  const handleGroupPayment = async (paymentData) => {
+    try {
+      const response = await api.post(
+        `/api/v1/groups/${groupId}/process-payment`,
+        paymentData,
+        { withCredentials: true },
+      );
+
+      // The expense will be reflected via socket update
+      console.log("Group payment processed successfully:", response.data);
+      setShowGroupPaymentModal(false);
+    } catch (err) {
+      console.error("Error processing group payment:", err);
+      alert(err.response?.data?.message || "Failed to process group payment");
+    }
+  };
+
+  // Check if the group is a regular split group
+  const isRegularSplitGroup = group?.rules?.some(
+    (rule) => rule.ruleType === "regular_split",
+  );
+
+  // Function to copy invitation link to clipboard
+  const copyInvitationLink = async () => {
+    try {
+      // Generate the invitation link
+      const link = `${window.location.origin}/join-group/${groupId}`;
+      await navigator.clipboard.writeText(link);
+      alert("Invitation link copied to clipboard!");
+    } catch (err) {
+      console.error("Error copying link:", err);
+      alert("Failed to copy link");
+    }
+  };
+
   // Helper to generate a consistent color/avatar if missing
   const getAvatarLetter = (name) => (name ? name.charAt(0).toUpperCase() : "?");
 
@@ -539,16 +738,93 @@ const GroupDetailPage = () => {
             variant="outline"
             size="sm"
             className="border-white/10 hover:bg-white/5"
+            onClick={() => setShowInviteDialog(true)}
+          >
+            <Link className="w-4 h-4" />
+          </Button>
+          {group.owner?._id !== currentUserId && (
+            <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-red-500/50 hover:bg-red-500/10 text-red-400 hover:text-red-300"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="glass-card border-white/10">
+                <DialogHeader>
+                  <DialogTitle>Leave Group</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <p className="text-gray-300">
+                    Are you sure you want to leave{" "}
+                    <span className="font-semibold text-white">
+                      {group.name}
+                    </span>
+                    ?
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    You will need to be invited again to rejoin this group.
+                  </p>
+                  <div className="flex gap-2 justify-end pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowLeaveDialog(false)}
+                      disabled={leavingGroup}
+                      className="border-white/10"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleLeaveGroup}
+                      disabled={leavingGroup}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {leavingGroup ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Leaving...
+                        </>
+                      ) : (
+                        <>
+                          <LogOut className="w-4 h-4 mr-2" />
+                          Leave Group
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-white/10 hover:bg-white/5"
           >
             <Settings className="w-4 h-4" />
           </Button>
+          {isRegularSplitGroup && (
+            <Button
+              size="sm"
+              className="text-black"
+              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+              onClick={() => setShowExpenseModal(true)}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Expense
+            </Button>
+          )}
           <Button
             size="sm"
             className="text-black"
-            style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+            style={{ background: "linear-gradient(90deg, #60a5fa, #3b82f6)" }}
+            onClick={() => setShowGroupPaymentModal(true)}
           >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Expense
+            <Wallet className="w-4 h-4 mr-1" />
+            Pay from Group
           </Button>
         </div>
       </motion.div>
@@ -932,7 +1208,7 @@ const GroupDetailPage = () => {
           <Card className="glass-card border-white/10">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg">Group Members</CardTitle>
-              <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
+              <Dialog open={showAddMember} onOpenChange={handleDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
                     size="sm"
@@ -945,87 +1221,283 @@ const GroupDetailPage = () => {
                     Add Member
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="glass-card border-white/10">
+                <DialogContent className="glass-card border-white/10 max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Member</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4 pt-4">
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <Input
-                        type="email"
-                        placeholder="Enter email address"
-                        value={newMemberEmail}
-                        onChange={(e) => setNewMemberEmail(e.target.value)}
-                        className="pl-11 h-12 bg-white/5 border-white/10"
-                      />
-                    </div>
-                    <div className="flex gap-2 justify-end">
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowAddMember(false)}
-                        className="border-white/10"
+
+                  {/* Tabs for Friend/WhatsApp */}
+                  <Tabs
+                    value={addMethod}
+                    onValueChange={setAddMethod}
+                    className="w-full mt-4"
+                  >
+                    <TabsList className="grid w-full grid-cols-2 bg-white/5">
+                      <TabsTrigger
+                        value="friends"
+                        className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400"
                       >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={() =>
-                          alert("Invite functionality to be implemented")
-                        }
-                        className="text-black"
-                        style={{
-                          background:
-                            "linear-gradient(90deg, #4ade80, #22c55e)",
-                        }}
+                        <Users className="w-4 h-4 mr-2" />
+                        Friends
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="whatsapp"
+                        className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400"
                       >
-                        Send Invite
-                      </Button>
-                    </div>
-                  </div>
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        WhatsApp
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Friends Tab */}
+                    <TabsContent value="friends" className="space-y-4 mt-4">
+                      {inviteError && (
+                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                          {inviteError}
+                        </div>
+                      )}
+
+                      {friendsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                        </div>
+                      ) : friends.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Users className="w-12 h-12 mx-auto text-gray-500 mb-3" />
+                          <p className="text-gray-400">No friends found</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Add friends first to invite them to groups
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                          {friends
+                            .filter(
+                              (friend) =>
+                                !group.members?.some(
+                                  (m) => m.email === friend.email,
+                                ),
+                            )
+                            .map((friend) => (
+                              <div
+                                key={friend._id}
+                                onClick={() => toggleFriendSelection(friend)}
+                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                  selectedFriends.some(
+                                    (f) => f._id === friend._id,
+                                  )
+                                    ? "bg-emerald-500/20 border border-emerald-500/30"
+                                    : "bg-white/5 hover:bg-white/10 border border-transparent"
+                                }`}
+                              >
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={friend.avatar} />
+                                  <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white">
+                                    {friend.username?.[0]?.toUpperCase() || "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">
+                                    {friend.username}
+                                  </p>
+                                  <p className="text-sm text-gray-400 truncate">
+                                    {friend.email}
+                                  </p>
+                                </div>
+                                {selectedFriends.some(
+                                  (f) => f._id === friend._id,
+                                ) && (
+                                  <Check className="w-5 h-5 text-emerald-400" />
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowAddMember(false)}
+                          className="border-white/10"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleInviteSelectedFriends}
+                          disabled={
+                            selectedFriends.length === 0 || friendsLoading
+                          }
+                          className="text-black"
+                          style={{
+                            background:
+                              "linear-gradient(90deg, #4ade80, #22c55e)",
+                          }}
+                        >
+                          {friendsLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            `Invite ${selectedFriends.length > 0 ? `(${selectedFriends.length})` : ""}`
+                          )}
+                        </Button>
+                      </div>
+                    </TabsContent>
+
+                    {/* WhatsApp Tab */}
+                    <TabsContent value="whatsapp" className="space-y-4 mt-4">
+                      {inviteError && (
+                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                          {inviteError}
+                        </div>
+                      )}
+
+                      {phoneInviteSuccess ? (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="text-center py-8 space-y-3"
+                        >
+                          <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
+                            <Check className="w-8 h-8 text-emerald-400" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg">
+                              Invite Sent!
+                            </h3>
+                            <p className="text-sm text-gray-400 mt-1">
+                              WhatsApp invitation has been sent
+                            </p>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <>
+                          <div className="space-y-3">
+                            <Label className="text-sm text-gray-300">
+                              Enter Phone Number
+                            </Label>
+                            <div className="relative">
+                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                              <Input
+                                type="tel"
+                                placeholder="+91 9876543210"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                className="pl-11 h-12 bg-white/5 border-white/10"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleSendWhatsAppInvite();
+                                  }
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              Include country code (e.g., +91 for India)
+                            </p>
+                          </div>
+
+                          <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowAddMember(false)}
+                              className="border-white/10"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={handleSendWhatsAppInvite}
+                              disabled={phoneLoading || !phoneNumber.trim()}
+                              className="text-black"
+                              style={{
+                                background:
+                                  "linear-gradient(90deg, #4ade80, #22c55e)",
+                              }}
+                            >
+                              {phoneLoading ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                <>
+                                  <MessageCircle className="w-4 h-4 mr-2" />
+                                  Send Invite
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 </DialogContent>
               </Dialog>
             </CardHeader>
             <CardContent className="space-y-3">
-              {group.members?.map((member, index) => (
-                <motion.div
-                  key={member._id || index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-white/5"
-                >
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
-                    />
-                    <AvatarFallback
-                      className="text-black font-bold"
-                      style={{
-                        background: "linear-gradient(135deg, #4ade80, #22c55e)",
-                      }}
-                    >
-                      {getAvatarLetter(member.username || member.email)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">
-                        {member.username || member.email}
-                      </p>
-                      {member._id === group.owner?._id && (
-                        <Crown className="w-4 h-4 text-yellow-500" />
-                      )}
+              {group.members?.map((member, index) => {
+                // Find the member's balance in memberBalances
+                const memberBalance = group.wallet?.memberBalances?.find(
+                  (balance) =>
+                    balance.user.toString() === member._id.toString(),
+                );
+
+                const balanceAmount = memberBalance ? memberBalance.balance : 0;
+                const isPositive = balanceAmount >= 0;
+
+                return (
+                  <motion.div
+                    key={member._id || index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5"
+                  >
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
+                      />
+                      <AvatarFallback
+                        className="text-black font-bold"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #4ade80, #22c55e)",
+                        }}
+                      >
+                        {getAvatarLetter(member.username || member.email)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">
+                          {member.username || member.email}
+                        </p>
+                        {member._id === group.owner?._id && (
+                          <Crown className="w-4 h-4 text-yellow-500" />
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400">{member.email}</p>
                     </div>
-                    <p className="text-sm text-gray-400">{member.email}</p>
-                  </div>
-                  {/* Placeholder for remove logic if user is owner */}
-                  {/* <button
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <UserMinus className="w-4 h-4" />
-                    </button> */}
-                </motion.div>
-              ))}
+                    <div className="text-right">
+                      <p
+                        className={`text-sm font-medium ${isPositive ? "text-emerald-400" : "text-red-400"}`}
+                      >
+                        {isPositive ? "+" : "-"}₹
+                        {Math.abs(balanceAmount).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {isPositive ? "Credit" : "Debt"}
+                      </p>
+                    </div>
+                    {/* Placeholder for remove logic if user is owner */}
+                    {/* <button
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <UserMinus className="w-4 h-4" />
+                      </button> */}
+                  </motion.div>
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1086,6 +1558,60 @@ const GroupDetailPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Add Expense Modal */}
+      {/* {showExpenseModal && group && (
+        // <AddExpenseModal
+        //   group={group}
+        //   onClose={() => setShowExpenseModal(false)}
+        //   onSave={handleAddExpense}
+        // />
+      )} */}
+
+      {/* Group Payment Modal */}
+      {showGroupPaymentModal && group && (
+        <GroupPaymentModal
+          group={group}
+          onClose={() => setShowGroupPaymentModal(false)}
+          onSuccess={() => {}}
+        />
+      )}
+
+      {/* Invitation Link Dialog */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent className="glass-card border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link className="w-5 h-5 text-emerald-400" />
+              Invite Members
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="p-4 bg-gray-800/50 rounded-lg">
+              <p className="text-sm text-gray-300 mb-2">
+                Share this link with others to join your group:
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={`${window.location.origin}/join-group/${groupId}`}
+                  className="flex-1 bg-gray-700/50 text-gray-200"
+                />
+                <Button
+                  onClick={copyInvitationLink}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  Copy
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Anyone with this link can join your group. Make sure to share it
+              securely.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
