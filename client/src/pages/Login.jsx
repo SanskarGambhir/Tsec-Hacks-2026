@@ -30,7 +30,6 @@ export default function Login() {
 
     try {
       const res = await loginUser({ email, password });
-
       localStorage.setItem("user", JSON.stringify(res.data));
 
       await api.post("wallet/add_new", {}, { withCredentials: true });

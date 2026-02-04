@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -25,19 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const userData = {
-  name: "Alex Johnson",
-  email: "alex@example.com",
-  phone: "+1 (555) 123-4567",
-  location: "San Francisco, CA",
-  avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=cooper",
-  joinedDate: "January 2024",
-  stats: {
-    groups: 8,
-    expenses: 156,
-    settled: "$12,450",
-  },
-};
+
 
 const menuSections = [
   {
@@ -70,6 +58,21 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  
+  // Get user data from localStorage
+  const [userData, setUserData] = useState({
+    name: "User",
+    email: "user@example.com",
+    phone: "+1 (555) 123-4567",
+    location: "San Francisco, CA",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=cooper",
+    joinedDate: "January 2024",
+    stats: {
+      groups: 8,
+      expenses: 156,
+      settled: "$12,450",
+    },
+  });
 
   const [formData, setFormData] = useState({
     name: userData.name,
@@ -78,7 +81,42 @@ export default function ProfilePage() {
     location: userData.location,
   });
 
+  useEffect(() => {
+    // Fetch user data from localStorage
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        const user = parsed.data?.user || parsed.user || parsed; // Handle nested structure
+        const updatedUserData = {
+          name: user.username || "User",
+          email: user.email || "user@example.com",
+          phone: user.phone || "+1 (555) 123-4567",
+          location: user.location || "San Francisco, CA",
+          avatar: user.avatar?.url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || 'cooper'}`,
+          joinedDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "January 2024",
+          stats: {
+            groups: 8,
+            expenses: 156,
+            settled: "$12,450",
+          },
+        };
+        setUserData(updatedUserData);
+        setFormData({
+          name: updatedUserData.name,
+          email: updatedUserData.email,
+          phone: updatedUserData.phone,
+          location: updatedUserData.location,
+        });
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
+
   const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("inviteToken");
     navigate("/login");
   };
 
@@ -108,7 +146,7 @@ export default function ProfilePage() {
                     className="text-black text-3xl font-bold"
                     style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
                   >
-                    A
+                    {userData.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <button className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center hover:bg-emerald-600 transition-colors">

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -118,6 +119,22 @@ const item = {
 };
 
 export default function Dashboard() {
+  const [username, setUsername] = useState("User");
+
+  useEffect(() => {
+    // Get username from localStorage
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        const user = parsed.data?.user || parsed.user || parsed; // Handle nested structure
+        setUsername(user.username || "User");
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -128,7 +145,7 @@ export default function Dashboard() {
       >
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">
-            Welcome back, <span className="gradient-text">Alex</span> 👋
+            Welcome back, <span className="gradient-text">{username}</span> 👋
           </h1>
           <p className="text-gray-400 mt-1">Here's what's happening with your expenses</p>
         </div>
