@@ -82,7 +82,8 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   // 🔥 SEND PHONE OTP - SKIPPED
-  // await sendOTP(phone);
+  await sendOTP(phone);
+  await sendOTP(phone);
 
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
@@ -413,13 +414,10 @@ const verifyPhoneOTP = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
-  // Bypass for testing
-  if (otp !== "123456") {
-    const response = await verifyOTP(user.phone, otp);
+  const response = await verifyOTP(user.phone, otp);
 
-    if (response.status !== "approved") {
-      throw new ApiError(400, "Invalid OTP");
-    }
+  if (response.status !== "approved") {
+    throw new ApiError(400, "Invalid OTP");
   }
 
   user.isPhoneVerified = true;

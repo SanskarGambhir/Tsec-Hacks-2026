@@ -11,6 +11,7 @@ import {
   onReceiveMessage,
   onFundsAdded,
   onExpenseLogged,
+  onNewMessage,
   removeListener
 } from '../lib/socket';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "./ui/card";
@@ -118,12 +119,28 @@ const GroupDetailPage = () => {
       }]);
     };
 
+    const handleNewMessage = (data) => {
+      // Update the group's messages array
+      setGroup(prevGroup => ({
+        ...prevGroup,
+        messages: [...(prevGroup.messages || []), data.message]
+      }));
+
+      // Also add to the activity feed
+      setMessages(prev => [...prev, {
+        type: 'message',
+        content: `${data.message.sender.username || data.message.sender.email}: ${data.message.content}`,
+        timestamp: new Date(data.message.timestamp).toLocaleString()
+      }]);
+    };
+
     // Set up socket listeners
     onRuleAdded(handleRuleAdded);
     onMemberJoined(handleMemberJoined);
     onReceiveMessage(handleReceiveMessage);
     onFundsAdded(handleFundsAdded);
     onExpenseLogged(handleExpenseLogged);
+    onNewMessage(handleNewMessage);
 
     return () => {
       // Clean up socket listeners
@@ -132,6 +149,7 @@ const GroupDetailPage = () => {
       removeListener('receiveMessage', handleReceiveMessage);
       removeListener('fundsAdded', handleFundsAdded);
       removeListener('expenseLogged', handleExpenseLogged);
+      removeListener('newMessage', handleNewMessage);
     };
   }, [groupId]);
 
@@ -155,19 +173,20 @@ const GroupDetailPage = () => {
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    emitSendMessage({
-      groupId,
-      message: newMessage.trim(),
-      sender: {
-        name: 'Current User', // In a real app, this would come from user context
-        email: 'current@example.com'
-      }
-    });
+    try {
+      await api.post(`/api/v1/groups/${groupId}/messages`, {
+        content: newMessage.trim()
+      }, { withCredentials: true });
 
-    setNewMessage('');
+      // Clear the input field
+      setNewMessage('');
+    } catch (err) {
+      console.error('Error sending message:', err);
+      // Optionally show an error message to the user
+    }
   };
 
   const handleAddFunds = async () => {
@@ -311,24 +330,49 @@ const GroupDetailPage = () => {
         <Button onClick={handleSendMessage}>Send</Button>
       </div>
 
-      <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
-        <h4 className="text-sm font-semibold mb-2">Recent Expenses</h4>
-        {group.expenses?.slice(-5)?.reverse()?.map((expense, index) => (
-          <div key={index} className="p-3 bg-muted/50 rounded-lg border">
-            <div className="flex justify-between items-start">
-              <p className="font-medium text-sm text-foreground">{expense.description}</p>
-              <p className="font-bold text-sm text-destructive">₹{expense.amount.toFixed(2)}</p>
+      <Tabs defaultValue="chat" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="chat">Chat</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
+        </TabsList>
+        <TabsContent value="chat" className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+          <h4 className="text-sm font-semibold mb-2">Chat Messages</h4>
+          {group.messages?.length > 0 ? (
+            [...group.messages].reverse().map((message, index) => (
+              <div key={index} className="p-3 bg-muted/50 rounded-lg border">
+                <div className="flex justify-between items-start">
+                  <p className="font-medium text-sm text-foreground">
+                    {message.sender?.username || message.sender?.email}: {message.content}
+                  </p>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {new Date(message.timestamp).toLocaleString()}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground italic text-xs text-center py-4">No messages yet</p>
+          )}
+        </TabsContent>
+        <TabsContent value="expenses" className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+          <h4 className="text-sm font-semibold mb-2">Recent Expenses</h4>
+          {group.expenses?.slice(-5)?.reverse()?.map((expense, index) => (
+            <div key={index} className="p-3 bg-muted/50 rounded-lg border">
+              <div className="flex justify-between items-start">
+                <p className="font-medium text-sm text-foreground">{expense.description}</p>
+                <p className="font-bold text-sm text-destructive">₹{expense.amount.toFixed(2)}</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {new Date(expense.date).toLocaleDateString()}
+              </p>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              {new Date(expense.date).toLocaleDateString()}
-            </p>
-          </div>
-        ))}
+          ))}
 
-        {(!group.expenses || group.expenses.length === 0) && (
-          <p className="text-muted-foreground italic text-xs text-center py-4">No expenses recorded yet</p>
-        )}
-      </div>
+          {(!group.expenses || group.expenses.length === 0) && (
+            <p className="text-muted-foreground italic text-xs text-center py-4">No expenses recorded yet</p>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 

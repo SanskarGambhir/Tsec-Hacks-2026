@@ -1,5 +1,21 @@
 import mongoose, { Schema } from 'mongoose';
 
+const messageSchema = new Schema({
+  content: {
+    type: String,
+    required: true
+  },
+  sender: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const expenseSchema = new Schema({
   amount: {
     type: Number,
@@ -64,7 +80,8 @@ const groupSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "GroupWallet"
     },
-    expenses: [expenseSchema]
+    expenses: [expenseSchema],
+    messages: [messageSchema]
   },
   {
     timestamps: true

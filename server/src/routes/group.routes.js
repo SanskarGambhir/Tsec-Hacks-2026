@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createGroup, logExpense, addRule, addFundsToGroup, joinGroup, getGroupDetails } from "../controllers/group.controllers.js";
+import { createGroup, logExpense, addRule, addFundsToGroup, joinGroup, getGroupDetails, sendMessage } from "../controllers/group.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -12,5 +12,6 @@ router.route("/:groupId/join").post(joinGroup);
 router.route("/:groupId/expense").post(logExpense);
 router.route("/:groupId/rules").post(addRule);
 router.route("/:groupId/add-funds").post(addFundsToGroup);
+router.route("/:groupId/messages").post(sendMessage);
 
 export default router;

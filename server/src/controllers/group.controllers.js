@@ -369,4 +369,78 @@ const getGroupDetails = asyncHandler(async (req, res) => {
     );
 });
 
-export { createGroup, logExpense, addRule, addFundsToGroup, joinGroup, getGroupDetails };
+const sendMessage = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const { content } = req.body;
+
+  if (!content || content.trim().length === 0) {
+    throw new ApiError(400, "Message content is required");
+  }
+
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  // Check if the user is a member of the group
+  const isMember = group.members.some(member =>
+    member.toString() === req.user._id.toString()
+  ) || group.owner.toString() === req.user._id.toString();
+
+  if (!isMember) {
+    throw new ApiError(403, "You are not a member of this group");
+  }
+
+  // Create and add the message to the group
+  const message = {
+    content: content.trim(),
+    sender: req.user._id
+  };
+
+  group.messages.push(message);
+  await group.save();
+
+  // Populate the sender information for the response
+  const populatedGroup = await Group.findById(groupId)
+    .populate('owner', 'username email')
+    .populate('members', 'username email')
+    .populate({
+      path: 'messages',
+      populate: {
+        path: 'sender',
+        select: 'username email'
+      }
+    })
+    .populate('wallet');
+
+  // Emit real-time update
+  try {
+    const io = getIO();
+    io.to(groupId).emit("newMessage", {
+      groupId,
+      message: {
+        content: message.content,
+        sender: {
+          _id: req.user._id,
+          username: req.user.username,
+          email: req.user.email
+        },
+        timestamp: new Date()
+      }
+    });
+  } catch (error) {
+    console.error("Socket emit failed:", error);
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { message: populatedGroup.messages[populatedGroup.messages.length - 1] },
+        "Message sent successfully"
+      )
+    );
+});
+
+export { createGroup, logExpense, addRule, addFundsToGroup, joinGroup, getGroupDetails, sendMessage };
