@@ -10,10 +10,12 @@ import {
   refreshAccessToken,
   resetForgotPassword,
   changeCurrentPassword,
-  resendPhoneOTP   // 👈 ADD THIS
+  resendPhoneOTP,
+  addMoneyToUserWallet
 } from '../controllers/auth.controllers.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { verifyPhoneOTP } from "../controllers/auth.controllers.js";
+
 
 
 const router = Router();
@@ -35,5 +37,6 @@ router.route('/logout').post(verifyJWT, logoutUser);
 router.route('/current-user').get(verifyJWT, getCurrentUser);
 router.route('/resend-verification-email').post(verifyJWT, resendVerificationEmail);
 router.route('/change-password').post(verifyJWT, changeCurrentPassword);
+router.route('/add-money').post(verifyJWT, addMoneyToUserWallet);
 
 export default router;

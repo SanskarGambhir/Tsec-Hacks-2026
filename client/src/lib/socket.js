@@ -16,7 +16,7 @@ export const connectSocket = (token = null) => {
   };
 
   // Use environment variable or default to localhost:8000
-  const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000';
+  const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
 
   if (token) {
     options.auth = { token };
@@ -133,6 +133,32 @@ export const onReceiveMessage = (callback) => {
   const socketInstance = getSocket();
   if (socketInstance) {
     socketInstance.on('receiveMessage', callback);
+  }
+};
+
+// Listen for funds added event
+export const onFundsAdded = (callback) => {
+  const socketInstance = getSocket();
+  if (socketInstance) {
+    socketInstance.on('fundsAdded', callback);
+  }
+
+  console.log("Listening for fundsAdded event");
+};
+
+// Listen for new message event
+export const onNewMessage = (callback) => {
+  const socketInstance = getSocket();
+  if (socketInstance) {
+    socketInstance.on('newMessage', callback);
+  }
+};
+
+// Listen for expense logged event
+export const onExpenseLogged = (callback) => {
+  const socketInstance = getSocket();
+  if (socketInstance) {
+    socketInstance.on('expenseLogged', callback);
   }
 };
 

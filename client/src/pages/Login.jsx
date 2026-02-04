@@ -1,8 +1,10 @@
+import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../api/auth.js";
 import axios from "axios";
 import api from "../api/axios.js";
 import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -26,22 +28,20 @@ export default function Login() {
     setLoading(true);
 
     try {
-      var res=await loginUser({ email, password });
+      const res = await loginUser({ email, password });
 
-      alert("Logged in successfully");
       localStorage.setItem("user", JSON.stringify(res.data));
-      const res1=await api.post("api/v1/wallet/add_new",{}, { withCredentials: true });
-      console.log(res1)
-      navigate("/homepage");
+
+      await api.post("wallet/add_new", {}, { withCredentials: true });
+
+      navigate("/dashboard");
 
     } catch (error) {
-      alert(error);
       const message = error.response?.data?.message;
 
       if (message?.includes("phone")) {
-        alert("Phone not verified. OTP sent.");
         setShowOTP(true);
-        startCountdown();
+        setCountdown(60);
       } else {
         alert(message);
       }
@@ -59,14 +59,15 @@ export default function Login() {
     }
 
     try {
-      await axios.post("/api/v1/users/verify-phone", {
-        email,
-        otp,
-      });
+      await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}auth/verify-phone`,
+        { email, otp },
+        { withCredentials: true }
+      );
 
-      alert("Phone verified successfully. Please login again.");
       setShowOTP(false);
       setOtp("");
+      alert("Phone verified successfully. Please login again.");
 
     } catch (error) {
       alert(error.response?.data?.message);
@@ -76,153 +77,116 @@ export default function Login() {
   /* ================= RESEND OTP ================= */
 
   const handleResendOTP = async () => {
-    try {
-      await axios.post("/api/v1/users/resend-phone-otp", {
-        email,
-      });
-
-      alert("OTP resent successfully");
-      startCountdown();
-
-    } catch (error) {
-      alert(error.response?.data?.message);
-    }
-  };
-
-  /* ================= COUNTDOWN LOGIC ================= */
-
-  const startCountdown = () => {
+    await axios.post(
+      `${import.meta.env.VITE_SERVER_URL}auth/resend-phone-otp`,
+      { email },
+      { withCredentials: true }
+    );
     setCountdown(60);
   };
 
   useEffect(() => {
-    let timer;
-
     if (countdown > 0) {
-      timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
     }
-
-    return () => clearTimeout(timer);
   }, [countdown]);
 
   /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
-      <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 border border-gray-200">
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md"
+      >
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-8 space-y-6">
 
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Login
-          </h2>
-        </div>
+            <div className="text-center">
+              <h2 className="text-2xl font-bold">
+                Welcome Back <span className="text-emerald-400">👋</span>
+              </h2>
+              <p className="text-gray-400 text-sm mt-1">
+                Login to manage your shared expenses
+              </p>
+            </div>
 
-        <form
-          className="space-y-6"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleLogin();
-          }}
-        >
-          {/* EMAIL */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Email ID
-            </label>
-            <input
-              type="email"
-              placeholder="your.name@gmail.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500"
-            />
-          </div>
-
-          {/* PASSWORD */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500"
-            />
-          </div>
-
-          {/* OTP SECTION */}
-          {showOTP && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Enter OTP
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter OTP"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
-                />
-              </div>
 
-              <button
-                type="button"
-                onClick={handleVerifyOTP}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold"
-              >
-                Verify OTP
-              </button>
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+              />
 
-              {/* RESEND + TIMER */}
-              <div className="text-center text-sm">
-                {countdown > 0 ? (
-                  <p className="text-gray-500">
-                    Resend OTP in {countdown}s
-                  </p>
-                ) : (
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+              />
+
+              {showOTP && (
+                <div className="space-y-4 pt-2">
+
+                  <input
+                    type="text"
+                    placeholder="Enter OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  />
+
                   <button
                     type="button"
-                    onClick={handleResendOTP}
-                    className="text-indigo-600 font-semibold hover:underline"
+                    onClick={handleVerifyOTP}
+                    className="w-full py-3 rounded-xl bg-emerald-600 font-semibold hover:bg-emerald-500 transition-colors"
                   >
-                    Resend OTP
+                    Verify OTP
                   </button>
-                )}
-              </div>
+
+                  {countdown > 0 ? (
+                    <p className="text-center text-gray-400 text-sm">
+                      Resend OTP in {countdown}s
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendOTP}
+                      className="text-emerald-400 text-sm w-full text-center"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={handleLogin}
+                disabled={loading}
+                className="w-full py-3 rounded-xl font-semibold text-black"
+                style={{ background: "linear-gradient(90deg,#4ade80,#22c55e)" }}
+              >
+                {loading ? "Logging In..." : "Login"}
+              </button>
+
             </div>
-          )}
 
-          {/* LOGIN BUTTON */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3 rounded-lg font-semibold shadow-lg"
-          >
-            {loading ? "Logging In..." : "Login"}
-          </button>
-        </form>
+            <p className="text-center text-gray-400 text-sm">
+              Don’t have an account?{" "}
+              <Link to="/signup" className="text-emerald-400 hover:text-emerald-300">
+                Sign Up
+              </Link>
+            </p>
 
-        <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-          <p className="text-sm text-gray-600">
-            Don’t have an account?
-            <Link
-              to="/signup"
-              className="ml-1 text-indigo-600 font-semibold hover:underline"
-            >
-              Sign Up
-            </Link>
-          </p>
-
-          <p className="text-xs text-gray-400 mt-3">
-            © 2025 Project Management App. All rights reserved.
-          </p>
-        </div>
-      </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

@@ -29,3 +29,12 @@ export const verifyOTP = async (phone, code) => {
       code,
     });
 };
+
+// Send SMS message
+export const sendSMS = async (to, message) => {
+  return await client.messages.create({
+    body: message,
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: to,
+  });
+};
