@@ -4,7 +4,7 @@ import { PhoneInvite } from '../models/phoneInvite.models.js';
 import { ApiResponse } from '../utils/api-response.js';
 import { ApiError } from '../utils/api-error.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { sendSMS } from '../utils/twilio.js';
+import { sendWhatsApp } from '../utils/twilio.js';
 
 // Send friend request
 const sendFriendRequest = asyncHandler(async (req, res) => {
@@ -360,13 +360,30 @@ const sendPhoneInvite = asyncHandler(async (req, res) => {
   // Create invite link
   const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/invite/${token}`;
 
-  // Skip SMS sending - user will share link manually
-  console.log("📱 Invite created for:", formattedPhone);
-  console.log("🔗 Invite link:", inviteLink);
-  console.log("💡 User will share this link manually via WhatsApp/Telegram");
+  // Send WhatsApp message
+  try {
+    console.log("📱 Sending WhatsApp to:", formattedPhone);
+    console.log("📞 From Twilio WhatsApp:", process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER);
+    console.log("📝 Message:", `${req.user.username} invited you to join Cooper! Click here to accept: ${inviteLink}`);
+    
+    const whatsappResult = await sendWhatsApp(
+      formattedPhone,
+      `${req.user.username} invited you to join Cooper! Click here to accept: ${inviteLink}`
+    );
+    
+    console.log("✅ WhatsApp sent successfully! SID:", whatsappResult.sid);
+    console.log("📊 Status:", whatsappResult.status);
+  } catch (error) {
+    // Delete invite if WhatsApp fails
+    await invite.deleteOne();
+    console.error("❌ WhatsApp Error:", error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    throw new ApiError(500, `Failed to send WhatsApp: ${error.message || 'Unknown error'}`);
+  }
 
   return res.status(201).json(
-    new ApiResponse(201, { inviteLink, phoneNumber: formattedPhone }, "Invite link created! Share it with your friend.")
+    new ApiResponse(201, { inviteLink, phoneNumber: formattedPhone }, "WhatsApp invite sent successfully!")
   );
 });
 
