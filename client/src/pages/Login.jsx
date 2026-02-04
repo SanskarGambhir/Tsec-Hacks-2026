@@ -61,7 +61,7 @@ export default function Login() {
 
     try {
       await axios.post(
-        "http://localhost:8000/api/v1/auth/verify-phone",
+        `${import.meta.env.VITE_SERVER_URL}auth/verify-phone`,
         { email, otp },
         { withCredentials: true }
       );
@@ -79,7 +79,7 @@ export default function Login() {
 
   const handleResendOTP = async () => {
     await axios.post(
-      "http://localhost:8000/api/v1/auth/resend-phone-otp",
+      `${import.meta.env.VITE_SERVER_URL}auth/resend-phone-otp`,
       { email },
       { withCredentials: true }
     );

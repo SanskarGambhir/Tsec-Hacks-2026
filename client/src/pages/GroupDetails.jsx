@@ -264,9 +264,8 @@ export default function GroupDetails() {
                     className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
                   >
                     <div
-                      className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                        categoryColors[expense.category]
-                      }`}
+                      className={`px-2 py-1 rounded-lg text-xs font-medium ${categoryColors[expense.category]
+                        }`}
                     >
                       {expense.category}
                     </div>
@@ -298,7 +297,7 @@ export default function GroupDetails() {
                       <AvatarImage
                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
                       />
-                      <AvatarFallback 
+                      <AvatarFallback
                         className="text-black"
                         style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
                       >
@@ -313,9 +312,8 @@ export default function GroupDetails() {
                     </div>
                     <div className="text-right">
                       <p
-                        className={`font-semibold text-sm ${
-                          member.owed > 0 ? "text-red-400" : "text-emerald-400"
-                        }`}
+                        className={`font-semibold text-sm ${member.owed > 0 ? "text-red-400" : "text-emerald-400"
+                          }`}
                       >
                         {member.owed > 0 ? `-$${member.owed}` : "Settled"}
                       </p>
@@ -340,9 +338,8 @@ export default function GroupDetails() {
                   className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                 >
                   <div
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
-                      categoryColors[expense.category]
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium ${categoryColors[expense.category]
+                      }`}
                   >
                     {expense.category}
                   </div>
@@ -425,7 +422,7 @@ export default function GroupDetails() {
                     <AvatarImage
                       src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
                     />
-                    <AvatarFallback 
+                    <AvatarFallback
                       className="text-black font-bold"
                       style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
                     >
