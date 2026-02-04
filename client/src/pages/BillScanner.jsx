@@ -7,6 +7,9 @@ export default function BillScanner() {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [billData, setBillData] = useState(null);
+  const [members] = useState(["Alex", "Sarah", "Mike"]);
+  const [balances, setBalances] = useState(null);
+  const [settled, setSettled] = useState(false);
 
   const handleUpload = (e) => {
     const file = e.target.files[0];
@@ -20,22 +23,65 @@ export default function BillScanner() {
     setLoading(true);
 
     try {
-      // Step 1: OCR
       const { data } = await Tesseract.recognize(image, "eng");
 
-      // Step 2: Send text to backend (Gemini)
       const response = await axios.post(
         "http://localhost:8000/api/v1/bill/analyze",
-        { text: data.text }
+        { text: data.text, members }
       );
 
       setBillData(response.data.data);
+      setBalances(null);
+      setSettled(false);
 
     } catch (error) {
       console.error(error);
     }
 
     setLoading(false);
+  };
+
+  const handleAssign = (index, member) => {
+    const updated = [...billData.items];
+
+    if (updated[index].assignedTo.includes(member)) {
+      updated[index].assignedTo =
+        updated[index].assignedTo.filter(m => m !== member);
+    } else {
+      updated[index].assignedTo.push(member);
+    }
+
+    updated[index].isShared = false;
+    setBillData({ ...billData, items: updated });
+  };
+
+  const handleShared = (index) => {
+    const updated = [...billData.items];
+    updated[index].isShared = !updated[index].isShared;
+    updated[index].assignedTo = [];
+    setBillData({ ...billData, items: updated });
+  };
+
+  const handleSplit = async () => {
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/api/v1/bill/split",
+        {
+          items: billData.items,
+          members
+        }
+      );
+
+      setBalances(response.data.balances);
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleAutoSettle = () => {
+    // Simulate settlement logic
+    setSettled(true);
   };
 
   return (
@@ -56,21 +102,86 @@ export default function BillScanner() {
       </button>
 
       {billData && (
-        <div className="glass-card p-6 rounded-xl mt-6">
-          <h3 className="font-semibold text-lg">Extracted Details</h3>
-          <p><strong>Vendor:</strong> {billData.vendor}</p>
-          <p><strong>Date:</strong> {billData.date}</p>
-          <p><strong>Total:</strong> ₹ {billData.total}</p>
-          <p><strong>Tax:</strong> ₹ {billData.tax}</p>
+        <div className="glass-card p-6 rounded-xl mt-6 space-y-4">
 
-          <div className="mt-4">
-            <h4 className="font-semibold">Items:</h4>
-            {billData.items.map((item, i) => (
-              <div key={i} className="text-sm">
-                {item.name} × {item.quantity} — ₹ {item.price}
+          <h3 className="font-semibold text-lg">
+            {billData.vendor}
+          </h3>
+
+          {billData.items.map((item, i) => (
+            <div key={i} className="border p-4 rounded-xl space-y-3">
+
+              <div className="flex justify-between font-semibold">
+                <span>{item.name}</span>
+                <span>₹ {Number(item.price).toFixed(2)}</span>
               </div>
-            ))}
-          </div>
+
+              <div className="flex gap-2 flex-wrap">
+                {members.map(member => (
+                  <button
+                    key={member}
+                    onClick={() => handleAssign(i, member)}
+                    className={`px-3 py-1 rounded-lg text-sm ${
+                      item.assignedTo.includes(member)
+                        ? "bg-emerald-500 text-black"
+                        : "bg-white/10"
+                    }`}
+                  >
+                    {member}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => handleShared(i)}
+                  className={`px-3 py-1 rounded-lg text-sm ${
+                    item.isShared
+                      ? "bg-blue-500 text-black"
+                      : "bg-white/10"
+                  }`}
+                >
+                  Shared
+                </button>
+              </div>
+            </div>
+          ))}
+
+          <button
+            onClick={handleSplit}
+            className="w-full bg-emerald-500 py-2 rounded-xl font-semibold"
+          >
+            Calculate Split
+          </button>
+
+          {/* 🔥 SPLIT RESULT DISPLAY */}
+          {balances && (
+            <div className="mt-6 p-4 rounded-xl bg-white/5 space-y-3">
+              <h4 className="font-semibold text-lg">Split Summary</h4>
+
+              {Object.entries(balances).map(([member, amount]) => (
+                <div key={member} className="flex justify-between text-sm">
+                  <span>{member}</span>
+                  <span className="font-semibold">
+                    ₹ {amount.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+
+              {!settled && (
+                <button
+                  onClick={handleAutoSettle}
+                  className="w-full bg-blue-500 mt-4 py-2 rounded-xl font-semibold"
+                >
+                  Auto Settle
+                </button>
+              )}
+
+              {settled && (
+                <div className="text-green-400 font-semibold text-center mt-4">
+                  ✅ Settlement Completed Successfully
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
