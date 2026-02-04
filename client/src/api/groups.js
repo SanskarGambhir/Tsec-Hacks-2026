@@ -35,3 +35,9 @@ export const acceptGroupInviteByToken = async (token) => {
   const response = await axios.post(`/groups/invite-token/${token}/accept`);
   return response.data;
 };
+
+// Leave group
+export const leaveGroup = async (groupId) => {
+  const response = await axios.post(`/groups/${groupId}/leave`);
+  return response.data;
+};
