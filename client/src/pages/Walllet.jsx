@@ -19,24 +19,12 @@ function Wallet() {
 // }, []);
 
 useEffect(() => {
-  fetchBalance();
-  // getTransactionStatus();
-    fetchTransactions();
+ fetchBalance();
+ fetchTransactions();
  checkPayments();
 
-  // const intentId = localStorage.getItem("pendingIntent");
-  // if (intentId) {
-  //   verifyPayment(intentId);
-  // }
 }, []);
-// const getTransactionStatus = async () => {
-//   intentId = localStorage.getItem("pendingIntent");
-//   if(intentId){
-//     try{
-//       const res = await axios.post("http://api.fmm.finternetlab.io/api/v1/payment-intents/"+intentId+" );
-//     }
-//   }
-// }
+
 useEffect(() => {
   const interval = setInterval(checkPayments, 5000);
   return () => clearInterval(interval);

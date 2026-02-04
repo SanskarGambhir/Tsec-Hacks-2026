@@ -82,6 +82,8 @@ export const checkPayments = async (req, res) => {
         const remoteStatus =
           response.data?.data?.status || response.data?.status;
 
+        // Only update paymentStatus, NOT the transaction status
+        // Transaction should only be COMPLETED after proof is submitted
         const successStates = [
           "SUCCEEDED",
           "COMPLETED",
@@ -91,16 +93,17 @@ export const checkPayments = async (req, res) => {
         ];
 
         if (successStates.includes(remoteStatus)) {
-          tx.status = "COMPLETED";
+          // Only update the payment status, keep transaction as PENDING
+          // User needs to verify proof before we mark as COMPLETED
           tx.paymentStatus = remoteStatus;
           await tx.save();
-
-          // Update wallet balance
 
           updated.push({
             intentId: tx.intentId,
             amount: tx.amount,
             status: tx.status,
+            paymentStatus: remoteStatus,
+            requiresProof: true,
           });
         }
       } catch (err) {
@@ -118,7 +121,7 @@ export const checkPayments = async (req, res) => {
 };
 
 export const completeDeposit = async (req, res) => {
-  console.log("hello")
+  console.log("hello");
   try {
     const { intentId } = req.params;
 
@@ -147,7 +150,7 @@ export const completeDeposit = async (req, res) => {
     console.log(intentId, proofHash, proofURI);
     // 3️⃣ Send Proof to Finternet
     const response = await axios.post(
-    `https://api.fmm.finternetlab.io/api/v1/payment-intents/${intentId}/escrow/delivery-proof`,
+      `https://api.fmm.finternetlab.io/api/v1/payment-intents/${intentId}/escrow/delivery-proof`,
       {
         proofHash,
         proofURI,
@@ -173,7 +176,7 @@ export const completeDeposit = async (req, res) => {
 
     return res.json({ success: true });
   } catch (error) {
-    console.log(error)
+    console.log(error);   
     console.error("Proof error:", error.message);
     return res.status(500).json({ error: error.message });
   }
