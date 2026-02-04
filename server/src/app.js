@@ -3,11 +3,8 @@ import cors from "cors"
 // Import Routes
 import healthCheckRouter from "./routes/healthcheck.routes.js";
 import authRouter from "./routes/auth.routes.js";
-<<<<<<< HEAD
 import walletRouter from "./routes/wallet.routes.js";
-=======
 import groupRouter from "./routes/group.routes.js";
->>>>>>> 26f71551bf10c7e462338aa076865904a37b3796
 import cookieParser from "cookie-parser";
 
 const app = express();

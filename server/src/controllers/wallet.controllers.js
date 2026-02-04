@@ -3,8 +3,20 @@ import mongoose from "mongoose";
 import {UserWallet} from "../models/wallet.models.js";
 
 
+export const addNewWallet= async (req,res) => {
+  console.log("Hello")
+  const userId = req.user._id;
+  const newWallet = new UserWallet({
+    user: userId,
+    balance: 0,
+    status: "ACTIVE",
+  });
+  await newWallet.save();
+  return newWallet;
+};
 
 const addAmountToWallet = async (req, res) => {
+    console.log("Hello")
   try {
     const userId = req.user._id;
     const { amount } = req.body;

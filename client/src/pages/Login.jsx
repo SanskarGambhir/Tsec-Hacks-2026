@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../api/auth.js";
 import { useState } from "react";
+import api from "../api/axios.js";
 
 
 export default function Login() {
@@ -25,10 +26,14 @@ export default function Login() {
 
       console.log(res.data);
       alert("Logged in successfully");
+      localStorage.setItem("user", JSON.stringify(res.data));
+      const res1=await api.post("api/v1/wallet/add_new",{}, { withCredentials: true });
+      console.log("Hello")
+      console.log(res1)
 
       navigate('/homepage');
     } catch (error) {
-      alert(error.response?.data?.message);
+      alert(error);
     } finally {
       setLoading(false);
     }
