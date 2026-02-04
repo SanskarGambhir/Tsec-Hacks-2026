@@ -27,7 +27,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await loginUser({ email, password });
+      var res=await loginUser({ email, password });
 
       alert("Logged in successfully");
       localStorage.setItem("user", JSON.stringify(res.data));
