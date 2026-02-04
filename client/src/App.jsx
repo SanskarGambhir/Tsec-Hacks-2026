@@ -14,6 +14,7 @@ import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
 import FriendsPage from "./pages/FriendsPage";
 import InviteHandler from "./pages/InviteHandler";
+import GroupInviteHandler from "./pages/GroupInviteHandler";
 import BillScanner from "./pages/BillScanner";
 import Dashboard from "./pages/Dashboard";
 import SplitwiseSync from "./pages/SplitwiseSync";
@@ -30,6 +31,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/invite/:token" element={<InviteHandler />} />
+        <Route path="/group-invite/:token" element={<GroupInviteHandler />} />
         <Route path="/wallet" element={<Wallet />} />
         <Route path="/chat/:groupId" element={<GroupChat />} />
         <Route path="/socket-test" element={<SocketTestComponent />} />

@@ -228,6 +228,7 @@ const GroupDetailPage = () => {
   };
 
   const handleAddFunds = async () => {
+    const releaseType = group.releaseType;
     if (!addFundsAmount || isNaN(addFundsAmount) || Number(addFundsAmount) <= 0) {
       setFundsMessage("Enter a valid amount");
       return;
@@ -236,7 +237,13 @@ const GroupDetailPage = () => {
     try {
       setAddingFunds(true);
       setFundsMessage("");
+      cosnole.log("bye")
+      if (releaseType === 'time_locked') {
+        console.log("Hello")
+        const unlockDate = group.unlockDate
+        console.log(unlockDate);
 
+      }
       const res = await api.post(
         `/groups/${groupId}/add-funds`,
         { amount: Number(addFundsAmount) },

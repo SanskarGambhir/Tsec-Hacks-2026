@@ -15,94 +15,45 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import api from "../api/axios";
 
-const stats = [
-  {
-    title: "Total Balance",
-    value: "$12,450.00",
-    change: "+12.5%",
-    trend: "up",
-    icon: Wallet,
-  },
-  {
-    title: "Active Groups",
-    value: "8",
-    change: "+2",
-    trend: "up",
-    icon: Users,
-  },
-  {
-    title: "Money Owed",
-    value: "$340.00",
-    change: "-$120",
-    trend: "down",
-    icon: TrendingDown,
-  },
-  {
-    title: "Money Lent",
-    value: "$890.00",
-    change: "+$250",
-    trend: "up",
-    icon: TrendingUp,
-  },
-];
+// Helper function to get emoji based on group name
+const getGroupEmoji = (name) => {
+  const nameLower = name.toLowerCase();
+  if (nameLower.includes('trip') || nameLower.includes('travel') || nameLower.includes('vacation')) return '🏖️';
+  if (nameLower.includes('room') || nameLower.includes('home') || nameLower.includes('house')) return '🏠';
+  if (nameLower.includes('food') || nameLower.includes('lunch') || nameLower.includes('dinner') || nameLower.includes('restaurant')) return '🍕';
+  if (nameLower.includes('office') || nameLower.includes('work')) return '💼';
+  if (nameLower.includes('party') || nameLower.includes('event')) return '🎉';
+  if (nameLower.includes('sport') || nameLower.includes('gym')) return '⚽';
+  return '👥';
+};
 
-const recentGroups = [
-  {
-    id: 1,
-    name: "Weekend Trip",
-    members: 5,
-    balance: "$1,200",
-    avatar: "🏖️",
-    color: "from-blue-500 to-cyan-500",
-  },
-  {
-    id: 2,
-    name: "Roommates",
-    members: 4,
-    balance: "$450",
-    avatar: "🏠",
-    color: "from-purple-500 to-pink-500",
-  },
-  {
-    id: 3,
-    name: "Office Lunch",
-    members: 8,
-    balance: "$89",
-    avatar: "🍕",
-    color: "from-orange-500 to-red-500",
-  },
-];
+// Helper function to get gradient color based on index
+const getGradientColor = (index) => {
+  const colors = [
+    "from-blue-500 to-cyan-500",
+    "from-purple-500 to-pink-500",
+    "from-orange-500 to-red-500",
+    "from-green-500 to-emerald-500",
+    "from-yellow-500 to-orange-500",
+    "from-indigo-500 to-purple-500",
+  ];
+  return colors[index % colors.length];
+};
 
-const recentActivity = [
-  {
-    id: 1,
-    type: "expense",
-    title: "Grocery Shopping",
-    group: "Roommates",
-    amount: "$65.00",
-    user: "Sarah",
-    time: "2h ago",
-  },
-  {
-    id: 2,
-    type: "payment",
-    title: "Settled Up",
-    group: "Weekend Trip",
-    amount: "$120.00",
-    user: "Mike",
-    time: "5h ago",
-  },
-  {
-    id: 3,
-    type: "expense",
-    title: "Dinner",
-    group: "Office Lunch",
-    amount: "$45.00",
-    user: "You",
-    time: "1d ago",
-  },
-];
+// Helper function to format time ago
+const getTimeAgo = (date) => {
+  const now = new Date();
+  const diffMs = now - new Date(date);
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+};
 
 const container = {
   hidden: { opacity: 0 },
@@ -121,6 +72,108 @@ const item = {
 
 export default function Dashboard() {
   const [username, setUsername] = useState("User");
+  const [balance, setBalance] = useState(null);
+  const [recentGroups, setRecentGroups] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [stats, setStats] = useState([
+    {
+      title: "Total Balance",
+      value: "...",
+      change: "+12.5%",
+      trend: "up",
+      icon: Wallet,
+    },
+    {
+      title: "Active Groups",
+      value: "...",
+      change: "+2",
+      trend: "up",
+      icon: Users,
+    },
+  ]);
+
+  const fetchBalance = async () => {
+    try {
+      const res = await api.get("/wallet/balance", { withCredentials: true });
+      if (res.data.success) {
+        const balanceValue = res.data.balance;
+        setBalance(balanceValue);
+        
+        // Update the stats array with the fetched balance
+        setStats(prev => prev.map((stat, index) => 
+          index === 0 
+            ? { ...stat, value: `₹${balanceValue.toLocaleString()}` }
+            : stat
+        ));
+      }
+    } catch (err) {
+      console.error("Failed to fetch balance:", err);
+      setStats(prev => prev.map((stat, index) => 
+        index === 0 
+          ? { ...stat, value: "₹0" }
+          : stat
+      ));
+    }
+  };
+
+  const fetchUserGroups = async () => {
+    try {
+      const res = await api.get("/groups/user-groups", { withCredentials: true });
+      if (res.data.success) {
+        const groups = res.data.data || [];
+        
+        // Update active groups count in stats
+        setStats(prev => prev.map((stat, index) => 
+          index === 1 
+            ? { ...stat, value: groups.length.toString() }
+            : stat
+        ));
+        
+        // Take only the 3 most recent groups
+        const recentGroupsData = groups.slice(0, 3).map((group, index) => ({
+          id: group._id,
+          name: group.name,
+          members: group.members,
+          balance: `₹${group.balance.toLocaleString()}`,
+          avatar: getGroupEmoji(group.name),
+          color: getGradientColor(index),
+        }));
+        
+        setRecentGroups(recentGroupsData);
+      }
+    } catch (err) {
+      console.error("Failed to fetch groups:", err);
+      setStats(prev => prev.map((stat, index) => 
+        index === 1 
+          ? { ...stat, value: "0" }
+          : stat
+      ));
+    }
+  };
+
+  const fetchRecentTransactions = async () => {
+    try {
+      const res = await api.get("/wallet/get_trans", { withCredentials: true });
+      if (res.data.success) {
+        const transactions = res.data.transactions || [];
+        
+        // Take only the 3 most recent transactions
+        const recentActivityData = transactions.slice(0, 3).map((tx) => ({
+          id: tx._id,
+          type: tx.type === "DEPOSIT" ? "payment" : "expense",
+          title: tx.type === "DEPOSIT" ? "Wallet Deposit" : tx.type,
+          group: "Wallet",
+          amount: `₹${tx.amount.toLocaleString()}`,
+          user: "You",
+          time: getTimeAgo(tx.createdAt),
+        }));
+        
+        setRecentActivity(recentActivityData);
+      }
+    } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+    }
+  };
 
   useEffect(() => {
     // Get username from localStorage
@@ -134,6 +187,11 @@ export default function Dashboard() {
         console.error("Error parsing user data:", error);
       }
     }
+    
+    // Fetch all data
+    fetchBalance();
+    fetchUserGroups();
+    fetchRecentTransactions();
   }, []);
 
   return (
@@ -167,7 +225,7 @@ export default function Dashboard() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        className="grid grid-cols-2 lg:grid-cols-2 gap-4"
       >
         {stats.map((stat, index) => (
           <motion.div key={stat.title} variants={item}>
@@ -243,34 +301,50 @@ export default function Dashboard() {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentGroups.map((group, index) => (
-                <motion.div
-                  key={group.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                >
+              {recentGroups.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-500 space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                    <Users className="w-8 h-8 opacity-20" />
+                  </div>
+                  <p className="text-sm">No groups yet</p>
                   <Link
-                    to={`/groups/${group.id}`}
-                    className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-emerald-500/30 transition-all"
+                    to="/groups/create"
+                    className="text-emerald-400 hover:text-emerald-300 text-sm flex items-center gap-1"
                   >
-                    <div
-                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0"
-                      style={{ background: `linear-gradient(135deg, ${group.color.includes('blue') ? '#3b82f6, #06b6d4' : group.color.includes('purple') ? '#a855f7, #ec4899' : '#f97316, #ef4444'})` }}
-                    >
-                      {group.avatar}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate">{group.name}</h3>
-                      <p className="text-sm text-gray-400">{group.members} members</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-emerald-400">{group.balance}</div>
-                      <div className="text-xs text-gray-400">Pool Balance</div>
-                    </div>
+                    <Plus className="w-4 h-4" />
+                    Create your first group
                   </Link>
-                </motion.div>
-              ))}
+                </div>
+              ) : (
+                recentGroups.map((group, index) => (
+                  <motion.div
+                    key={group.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + index * 0.1 }}
+                  >
+                    <Link
+                      to={`/groups/${group.id}`}
+                      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-emerald-500/30 transition-all"
+                    >
+                      <div
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${group.color.includes('blue') ? '#3b82f6, #06b6d4' : group.color.includes('purple') ? '#a855f7, #ec4899' : '#f97316, #ef4444'})` }}
+                      >
+                        {group.avatar}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">{group.name}</h3>
+                        <p className="text-sm text-gray-400">{group.members} members</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-emerald-400">{group.balance}</div>
+                        <div className="text-xs text-gray-400">Pool Balance</div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -293,44 +367,53 @@ export default function Dashboard() {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentActivity.map((activity, index) => (
-                <motion.div
-                  key={activity.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
-                >
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${activity.type === "expense"
-                        ? "bg-red-500/20 text-red-400"
-                        : "bg-emerald-500/20 text-emerald-400"
-                      }`}
+              {recentActivity.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-500 space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                    <TrendingUp className="w-8 h-8 opacity-20" />
+                  </div>
+                  <p className="text-sm">No recent activity</p>
+                </div>
+              ) : (
+                recentActivity.map((activity, index) => (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
                   >
-                    {activity.type === "expense" ? (
-                      <TrendingDown className="w-5 h-5" />
-                    ) : (
-                      <TrendingUp className="w-5 h-5" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{activity.title}</p>
-                    <p className="text-xs text-gray-400">
-                      {activity.user} • {activity.group}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`font-semibold text-sm ${activity.type === "expense" ? "text-red-400" : "text-emerald-400"
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${activity.type === "expense"
+                          ? "bg-red-500/20 text-red-400"
+                          : "bg-emerald-500/20 text-emerald-400"
                         }`}
                     >
-                      {activity.type === "expense" ? "-" : "+"}
-                      {activity.amount}
-                    </p>
-                    <p className="text-xs text-gray-500">{activity.time}</p>
-                  </div>
-                </motion.div>
-              ))}
+                      {activity.type === "expense" ? (
+                        <TrendingDown className="w-5 h-5" />
+                      ) : (
+                        <TrendingUp className="w-5 h-5" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{activity.title}</p>
+                      <p className="text-xs text-gray-400">
+                        {activity.user} • {activity.group}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p
+                        className={`font-semibold text-sm ${activity.type === "expense" ? "text-red-400" : "text-emerald-400"
+                          }`}
+                      >
+                        {activity.type === "expense" ? "-" : "+"}
+                        {activity.amount}
+                      </p>
+                      <p className="text-xs text-gray-500">{activity.time}</p>
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </CardContent>
           </Card>
         </motion.div>

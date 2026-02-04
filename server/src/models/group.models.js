@@ -1,39 +1,39 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema } from "mongoose";
 
 const messageSchema = new Schema({
   content: {
     type: String,
-    required: true
+    required: true,
   },
   sender: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: true,
   },
   timestamp: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const expenseSchema = new Schema({
   amount: {
     type: Number,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
   },
   spentBy: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: true,
   },
   date: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const groupSchema = new Schema(
@@ -42,53 +42,92 @@ const groupSchema = new Schema(
       type: String,
       required: true,
       trim: true,
-      index: true
+      index: true,
     },
     description: {
       type: String,
-      trim: true
+      trim: true,
     },
     pool: {
       type: Number,
-      default: 0
+      default: 0,
     },
     ruleType: {
       type: String,
+      enum: ["splitwise", "pooling"],
+      default: "pooling",
     },
+    releaseType: {
+      type: String,
+      enum: ["instant", "time_locked", "milestone"],
+      default: "instant",
+    },
+    // Time-locked group fields
+    unlockDate: {
+      type: Date,
+      default: null,
+    },
+    isLocked: {
+      type: Boolean,
+      default: false,
+    },
+    // Milestone group fields
+    milestones: [
+      {
+        title: {
+          type: String,
+          required: true,
+        },
+        description: String,
+        targetAmount: {
+          type: Number,
+          required: true,
+        },
+        currentAmount: {
+          type: Number,
+          default: 0,
+        },
+        isCompleted: {
+          type: Boolean,
+          default: false,
+        },
+        completedAt: Date,
+      },
+    ],
     rules: [
       {
         ruleType: {
           type: String, // e.g., "spending_limit", "approval_required"
-          required: true
+          required: true,
         },
         ruleValue: {
           type: Schema.Types.Mixed, // flexible value depending on type
-          required: true
+          required: true,
         },
-        description: String
-      }
+        description: String,
+      },
     ],
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
     members: [
       {
         type: Schema.Types.ObjectId,
-        ref: "User"
-      }
+        ref: "User",
+      },
     ],
     wallet: {
       type: Schema.Types.ObjectId,
-      ref: "GroupWallet"
+      ref: "GroupWallet",
     },
     expenses: [expenseSchema],
-    messages: [messageSchema]
+    messages: [messageSchema],
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
 export const Group = mongoose.model("Group", groupSchema);
