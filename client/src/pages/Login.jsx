@@ -33,9 +33,9 @@ export default function Login() {
 
       localStorage.setItem("user", JSON.stringify(res.data));
 
-      await api.post("api/v1/wallet/add_new", {}, { withCredentials: true });
+      await api.post("wallet/add_new", {}, { withCredentials: true });
 
-      navigate("/homepage");
+      navigate("/dashboard");
 
     } catch (error) {
       const message = error.response?.data?.message;

@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { MainLayout } from "./components/layout";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
-import Homepage from "./pages/Homepage";
 import Wallet from "./pages/Walllet";
 import GroupChat from "./pages/GroupChat";
 import SocketTestComponent from "./components/SocketTestComponent";
@@ -28,7 +27,6 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/invite/:token" element={<InviteHandler />} />
-        <Route path="/homepage" element={<Homepage />} />
         <Route path="/wallet" element={<Wallet />} />
         <Route path="/chat/:groupId" element={<GroupChat />} />
         <Route path="/socket-test" element={<SocketTestComponent />} />
