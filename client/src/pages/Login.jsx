@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../api/auth.js";
 import axios from "axios";
+import api from "../api/axios.js";
 import { useState, useEffect } from "react";
 
 export default function Login() {
@@ -26,12 +27,17 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await loginUser({ email, password });
+      var res=await loginUser({ email, password });
 
       alert("Logged in successfully");
+      localStorage.setItem("user", JSON.stringify(res.data));
+      const res1=await api.post("api/v1/wallet/add_new",{}, { withCredentials: true });
+      console.log("Hello")
+      console.log(res1)
       navigate("/homepage");
 
     } catch (error) {
+      alert(error);
       const message = error.response?.data?.message;
 
       if (message?.includes("phone")) {

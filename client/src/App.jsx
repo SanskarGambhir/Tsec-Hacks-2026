@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Homepage from "./pages/Homepage";
+import Wallet from "./pages/Walllet";
+import SocketTestComponent from "./components/SocketTestComponent";
 import "./App.css";
 
 function App() {
@@ -12,6 +14,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/homepage" element={<Homepage />} />
+        <Route path="/wallet" element={<Wallet />} />
+        <Route path="/socket-test" element={<SocketTestComponent />} />
       </Routes>
     </Router>
   );
