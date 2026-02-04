@@ -300,37 +300,6 @@ export default function CreateGroup() {
               />
             </div>
 
-            {/* Group Type Selection */}
-            <div className="space-y-2">
-              <Label>Group Type *</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  type="button"
-                  variant={groupType === "pooling" ? "default" : "outline"}
-                  className="flex flex-col items-center justify-center p-4 h-auto"
-                  onClick={() => setGroupType("pooling")}
-                >
-                  <Coins className="w-6 h-6 mb-2" />
-                  <span className="font-medium">Pooling</span>
-                  <span className="text-xs opacity-80">
-                    Collect money in a shared pool
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  variant={groupType === "splitwise" ? "default" : "outline"}
-                  className="flex flex-col items-center justify-center p-4 h-auto"
-                  onClick={() => setGroupType("splitwise")}
-                >
-                  <Divide className="w-6 h-6 mb-2" />
-                  <span className="font-medium">Splitwise</span>
-                  <span className="text-xs opacity-80">
-                    Split expenses evenly
-                  </span>
-                </Button>
-              </div>
-            </div>
-
             {/* Release Type Selection */}
             <div className="space-y-2">
               <Label>Fund Release Type *</Label>
