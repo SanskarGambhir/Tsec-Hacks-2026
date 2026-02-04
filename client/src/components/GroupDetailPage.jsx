@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import {
   connectSocket,
   joinGroup as socketJoinGroup,
-  emitRuleAdded,
-  emitSendMessage,
   onRuleAdded,
   onMemberJoined,
   onReceiveMessage,
@@ -14,28 +13,68 @@ import {
   onNewMessage,
   removeListener
 } from '../lib/socket';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "./ui/card";
+import {
+  ArrowLeft,
+  Users,
+  Wallet,
+  Receipt,
+  Settings,
+  Plus,
+  UserPlus,
+  UserMinus,
+  DollarSign,
+  Mail,
+  Crown,
+  Send,
+  MessageSquare
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Progress } from "./ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+
+const categoryColors = {
+  Accommodation: "bg-blue-500/20 text-blue-400",
+  Food: "bg-orange-500/20 text-orange-400",
+  Activities: "bg-purple-500/20 text-purple-400",
+  Transport: "bg-green-500/20 text-green-400",
+  General: "bg-gray-500/20 text-gray-400"
+};
 
 const GroupDetailPage = () => {
   const { groupId } = useParams();
+  const navigate = useNavigate();
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Interaction State
   const [newRule, setNewRule] = useState('');
   const [newMessage, setNewMessage] = useState('');
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]); // Activity Feed
   const [addFundsAmount, setAddFundsAmount] = useState('');
   const [addingFunds, setAddingFunds] = useState(false);
   const [fundsMessage, setFundsMessage] = useState('');
 
+  // Member Management State (placeholder logic for now)
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMemberEmail, setNewMemberEmail] = useState("");
+
   useEffect(() => {
     const fetchGroupDetails = async () => {
       try {
-        const response = await api.get(`/api/v1/groups/${groupId}`);
+        const response = await api.get(`/groups/${groupId}`);
         setGroup(response.data.data);
 
         // Connect to socket and join the group room
@@ -185,7 +224,6 @@ const GroupDetailPage = () => {
       setNewMessage('');
     } catch (err) {
       console.error('Error sending message:', err);
-      // Optionally show an error message to the user
     }
   };
 
@@ -200,7 +238,7 @@ const GroupDetailPage = () => {
       setFundsMessage("");
 
       const res = await api.post(
-        `/api/v1/groups/${groupId}/add-funds`,
+        `/groups/${groupId}/add-funds`,
         { amount: Number(addFundsAmount) },
         { withCredentials: true }
       );
@@ -225,10 +263,13 @@ const GroupDetailPage = () => {
     }
   };
 
+  // Helper to generate a consistent color/avatar if missing
+  const getAvatarLetter = (name) => name ? name.charAt(0).toUpperCase() : '?';
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
@@ -244,331 +285,438 @@ const GroupDetailPage = () => {
     );
   }
 
-  if (!group) {
-    return (
-      <div className="max-w-4xl mx-auto p-4">
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg relative" role="alert">
-          <span className="block sm:inline">Group not found</span>
-        </div>
-      </div>
-    );
-  }
-
-  const MembersList = () => (
-    <div className="space-y-3">
-      {group.members?.map((member) => (
-        <div key={member._id} className="flex items-center p-3 border rounded-lg bg-card">
-          <div className="bg-muted border-2 border-dashed rounded-xl w-10 h-10 shrink-0" />
-          <div className="ml-3 min-w-0">
-            <p className="font-medium text-foreground truncate">{member.username || member.email}</p>
-            {member._id === group.owner?._id && (
-              <Badge variant="secondary" className="text-[10px]">Owner</Badge>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const RulesSection = () => (
-    <div className="space-y-4">
-      <form onSubmit={handleAddRule} className="flex gap-2">
-        <Input
-          type="text"
-          value={newRule}
-          onChange={(e) => setNewRule(e.target.value)}
-          placeholder="Add a new rule..."
-          className="flex-1"
-        />
-        <Button type="submit">Add</Button>
-      </form>
-
-      <div className="space-y-3">
-        {group.rules?.map((rule, index) => (
-          <div key={index} className="p-3 bg-muted/50 rounded-lg border">
-            <p className="font-medium text-foreground">{rule.ruleType}</p>
-            <p className="text-sm text-muted-foreground">{rule.ruleValue}</p>
-            {rule.description && (
-              <p className="text-xs text-muted-foreground/80 mt-1">{rule.description}</p>
-            )}
-          </div>
-        ))}
-
-        {(!group.rules || group.rules.length === 0) && (
-          <p className="text-muted-foreground italic text-sm text-center py-4">No rules added yet</p>
-        )}
-      </div>
-    </div>
-  );
-
-  const ActivityFeed = () => (
-    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-      {messages.length > 0 ? (
-        messages.map((msg, index) => (
-          <div key={index} className="p-3 bg-muted/30 rounded-lg border border-border/50">
-            <p className="text-sm text-foreground">{msg.content}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">{msg.timestamp}</p>
-          </div>
-        ))
-      ) : (
-        <p className="text-muted-foreground italic text-sm text-center py-10">No activity yet</p>
-      )}
-    </div>
-  );
-
-  const ChatAndExpenses = () => (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <Input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1"
-          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-        />
-        <Button onClick={handleSendMessage}>Send</Button>
-      </div>
-
-      <Tabs defaultValue="chat" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="chat">Chat</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-        </TabsList>
-        <TabsContent value="chat" className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-          <h4 className="text-sm font-semibold mb-2">Chat Messages</h4>
-          {group.messages?.length > 0 ? (
-            [...group.messages].reverse().map((message, index) => (
-              <div key={index} className="p-3 bg-muted/50 rounded-lg border">
-                <div className="flex justify-between items-start">
-                  <p className="font-medium text-sm text-foreground">
-                    {message.sender?.username || message.sender?.email}: {message.content}
-                  </p>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  {new Date(message.timestamp).toLocaleString()}
-                </p>
-              </div>
-            ))
-          ) : (
-            <p className="text-muted-foreground italic text-xs text-center py-4">No messages yet</p>
-          )}
-        </TabsContent>
-        <TabsContent value="expenses" className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-          <h4 className="text-sm font-semibold mb-2">Recent Expenses</h4>
-          {group.expenses?.slice(-5)?.reverse()?.map((expense, index) => (
-            <div key={index} className="p-3 bg-muted/50 rounded-lg border">
-              <div className="flex justify-between items-start">
-                <p className="font-medium text-sm text-foreground">{expense.description}</p>
-                <p className="font-bold text-sm text-destructive">₹{expense.amount.toFixed(2)}</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {new Date(expense.date).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-
-          {(!group.expenses || group.expenses.length === 0) && (
-            <p className="text-muted-foreground italic text-xs text-center py-4">No expenses recorded yet</p>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+  if (!group) return null;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
-      {/* Header Info */}
-      <Card className="border-none shadow-none bg-transparent py-0">
-        <CardHeader className="px-0">
-          <CardTitle className="text-2xl md:text-3xl font-bold">{group.name}</CardTitle>
-          <CardDescription className="text-base">{group.description}</CardDescription>
-          <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
-            <Badge variant="outline">Created: {new Date(group.createdAt).toLocaleDateString()}</Badge>
-            <Badge variant="outline">Owner: {group.owner?.username || group.owner?.email}</Badge>
+    <div className="space-y-6 p-4 md:p-8">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center gap-4"
+      >
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate(-1)}
+          className="w-fit p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </motion.button>
+
+        <div className="flex items-center gap-4 flex-1">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg"
+          >
+            {/* Placeholder Emoji or Icon */}
+            📁
           </div>
-        </CardHeader>
-      </Card>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold truncate">{group.name}</h1>
+            <p className="text-gray-400 text-sm">{group.description}</p>
+          </div>
+        </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="py-4 border-blue-100 bg-blue-50/30">
-          <CardContent className="py-0 flex flex-col items-center sm:items-start">
-            <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">Balance</p>
-            <p className="text-2xl font-bold text-blue-700">₹{group.wallet?.balance?.toFixed(2) || '0.00'}</p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-white/10 hover:bg-white/5"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            className="text-black"
+            style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Expense
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* Quick Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Pool Balance</p>
+                <p className="text-xl font-bold text-emerald-400">
+                  ₹{group.wallet?.balance?.toFixed(2) || '0.00'}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="py-4 border-green-100 bg-green-50/30">
-          <CardContent className="py-0 flex flex-col items-center sm:items-start">
-            <p className="text-xs font-medium text-green-600 uppercase tracking-wider">Members</p>
-            <p className="text-2xl font-bold text-green-700">{group.members?.length || 0}</p>
+
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                <Receipt className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Total Expenses</p>
+                <p className="text-xl font-bold">
+                  {/* Calculate total expenses if possible, else placeholder */}
+                  {group.expenses?.length || 0}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="py-4 border-purple-100 bg-purple-50/30">
-          <CardContent className="py-0 flex flex-col items-center sm:items-start">
-            <p className="text-xs font-medium text-purple-600 uppercase tracking-wider">Rules</p>
-            <p className="text-2xl font-bold text-purple-700">{group.rules?.length || 0}</p>
+
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Members</p>
+                <p className="text-xl font-bold">{group.members?.length || 0}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Mobile Tabbed View / Desktop Grid View */}
-      <div className="lg:hidden">
-        <Tabs defaultValue="activity" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full h-10">
-            <TabsTrigger value="activity">Feed</TabsTrigger>
-            <TabsTrigger value="members">Users</TabsTrigger>
-            <TabsTrigger value="rules">Rules</TabsTrigger>
-            <TabsTrigger value="funds">Funds</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="activity" className="mt-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Activity & Chat</CardTitle>
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-orange-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Your Share</p>
+                <p className="text-xl font-bold text-emerald-400">--</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full justify-start bg-white/5 border border-white/10 p-1 rounded-xl overflow-x-auto">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="chat"
+            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+          >
+            Chat
+          </TabsTrigger>
+          <TabsTrigger
+            value="expenses"
+            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+          >
+            Expenses
+          </TabsTrigger>
+          <TabsTrigger
+            value="members"
+            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+          >
+            Members
+          </TabsTrigger>
+          <TabsTrigger
+            value="rules"
+            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+          >
+            Rules
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="mt-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Recent Activity/Messages */}
+            <Card className="glass-card border-white/10">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Recent Activity</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="feed" className="w-full">
-                  <TabsList className="grid grid-cols-2 mb-4">
-                    <TabsTrigger value="feed">Feed</TabsTrigger>
-                    <TabsTrigger value="chat">Chat</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="feed">
-                    <ActivityFeed />
-                  </TabsContent>
-                  <TabsContent value="chat">
-                    <ChatAndExpenses />
-                  </TabsContent>
-                </Tabs>
+              <CardContent className="space-y-3 max-h-[400px] overflow-y-auto">
+                {messages.length > 0 ? (
+                  messages.slice(-5).reverse().map((msg, index) => (
+                    <div key={index} className="p-3 bg-white/5 rounded-lg border border-white/10">
+                      <p className="text-sm text-gray-200">{msg.content}</p>
+                      <p className="text-[10px] text-gray-500 mt-1">{msg.timestamp}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 italic text-sm text-center py-4">No recent activity</p>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="members" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Group Members</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MembersList />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="rules" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Group Rules</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RulesSection />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="funds" className="mt-4">
-            <Card>
-              <CardHeader>
+            {/* Add Funds Section */}
+            <Card className="glass-card border-white/10 h-fit">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Add Funds</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="flex gap-2">
                   <Input
                     type="number"
                     value={addFundsAmount}
                     onChange={(e) => setAddFundsAmount(e.target.value)}
-                    placeholder="Enter amount"
+                    placeholder="Amount (₹)"
+                    className="flex-1 bg-white/5 border-white/10"
                   />
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700" 
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={handleAddFunds}
                     disabled={addingFunds}
                   >
-                    {addingFunds ? 'Processing...' : 'Add Funds'}
+                    {addingFunds ? 'Processing...' : 'Add'}
                   </Button>
-                  {fundsMessage && (
-                    <p className={`text-center text-sm font-medium ${fundsMessage.includes('successfully') ? 'text-green-600' : 'text-destructive'}`}>
-                      {fundsMessage}
-                    </p>
-                  )}
                 </div>
+                {fundsMessage && (
+                  <p className={`mt-2 text-sm font-medium ${fundsMessage.includes('successfully') ? 'text-green-400' : 'text-red-400'}`}>
+                    {fundsMessage}
+                  </p>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </TabsContent>
 
-      {/* Desktop Grid Layout (Hidden on Mobile) */}
-      <div className="hidden lg:grid grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Members & Rules</CardTitle>
+        {/* Chat Tab */}
+        <TabsContent value="chat" className="mt-6">
+          <Card className="glass-card border-white/10 flex flex-col h-[600px]">
+            <CardHeader className="border-b border-white/10">
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-emerald-400" />
+                Group Chat
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-8">
-              <section>
-                <h3 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Members</h3>
-                <MembersList />
-              </section>
-              <section>
-                <h3 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Rules</h3>
-                <RulesSection />
-              </section>
+            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+              {group.messages?.length > 0 ? (
+                [...group.messages].reverse().map((message, index) => {
+                  const isSystem = !message.sender; // simplified check
+                  return (
+                    <div key={index} className={`flex flex-col ${isSystem ? 'items-center' : 'items-start'}`}>
+                      <div className={`p-3 rounded-lg max-w-[80%] ${isSystem ? 'bg-white/5 text-center text-xs' : 'bg-emerald-500/20 border border-emerald-500/20'}`}>
+                        {!isSystem && (
+                          <p className="text-xs font-bold text-emerald-400 mb-1">
+                            {message.sender?.username || message.sender?.email}
+                          </p>
+                        )}
+                        <p className="text-sm text-gray-200">{message.content}</p>
+                      </div>
+                      <span className="text-[10px] text-gray-500 mt-1">
+                        {new Date(message.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                  No messages yet. Start the conversation!
+                </div>
+              )}
             </CardContent>
+            <div className="p-4 border-t border-white/10 flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                className="bg-white/5 border-white/10"
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              />
+              <Button onClick={handleSendMessage} className="bg-emerald-600 hover:bg-emerald-700">
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
           </Card>
+        </TabsContent>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Add Funds</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  value={addFundsAmount}
-                  onChange={(e) => setAddFundsAmount(e.target.value)}
-                  placeholder="Amount"
-                  className="max-w-[200px]"
-                />
-                <Button 
-                  className="bg-green-600 hover:bg-green-700" 
-                  onClick={handleAddFunds}
-                  disabled={addingFunds}
-                >
-                  {addingFunds ? 'Processing...' : 'Add Funds'}
-                </Button>
-              </div>
-              {fundsMessage && (
-                <p className={`mt-2 text-sm font-medium ${fundsMessage.includes('successfully') ? 'text-green-600' : 'text-destructive'}`}>
-                  {fundsMessage}
-                </p>
+        {/* Expenses Tab */}
+        <TabsContent value="expenses" className="mt-6">
+          <Card className="glass-card border-white/10">
+            <CardContent className="p-4 space-y-3">
+              {group.expenses?.length > 0 ? (
+                [...group.expenses].reverse().map((expense, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    <div
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium ${categoryColors[expense.category || 'General']}`}
+                    >
+                      {expense.category || 'Expense'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{expense.description}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(expense.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold">₹{expense.amount.toFixed(2)}</p>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <p className="text-center py-8 text-gray-500">No expenses recorded yet.</p>
               )}
             </CardContent>
           </Card>
-        </div>
+        </TabsContent>
 
-        <div className="space-y-6">
-          <Card className="h-full flex flex-col">
-            <CardHeader className="border-b">
-              <CardTitle>Activity & Discussion</CardTitle>
+        {/* Members Tab */}
+        <TabsContent value="members" className="mt-6">
+          <Card className="glass-card border-white/10">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-lg">Group Members</CardTitle>
+              <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="text-black"
+                    style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+                  >
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Add Member
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="glass-card border-white/10">
+                  <DialogHeader>
+                    <DialogTitle>Add New Member</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        type="email"
+                        placeholder="Enter email address"
+                        value={newMemberEmail}
+                        onChange={(e) => setNewMemberEmail(e.target.value)}
+                        className="pl-11 h-12 bg-white/5 border-white/10"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowAddMember(false)}
+                        className="border-white/10"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => alert("Invite functionality to be implemented")}
+                        className="text-black"
+                        style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+                      >
+                        Send Invite
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
-            <CardContent className="flex-1 py-6">
-               <Tabs defaultValue="feed" className="h-full flex flex-col">
-                  <TabsList className="grid grid-cols-2 mb-6 w-full">
-                    <TabsTrigger value="feed">Activity Feed</TabsTrigger>
-                    <TabsTrigger value="chat">Chat & Expenses</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="feed" className="flex-1">
-                    <ActivityFeed />
-                  </TabsContent>
-                  <TabsContent value="chat" className="flex-1">
-                    <ChatAndExpenses />
-                  </TabsContent>
-                </Tabs>
+            <CardContent className="space-y-3">
+              {group.members?.map((member, index) => (
+                <motion.div
+                  key={member._id || index}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-white/5"
+                >
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`} />
+                    <AvatarFallback
+                      className="text-black font-bold"
+                      style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+                    >
+                      {getAvatarLetter(member.username || member.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate">{member.username || member.email}</p>
+                      {member._id === group.owner?._id && (
+                        <Crown className="w-4 h-4 text-yellow-500" />
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-400">{member.email}</p>
+                  </div>
+                  {/* Placeholder for remove logic if user is owner */}
+                  {/* <button
+                      className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                      <UserMinus className="w-4 h-4" />
+                    </button> */}
+                </motion.div>
+              ))}
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+
+        {/* Rules Tab */}
+        <TabsContent value="rules" className="mt-6">
+          <Card className="glass-card border-white/10">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg">Group Rules</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add Rule Form */}
+              <form onSubmit={handleAddRule} className="flex gap-2 mb-6">
+                <Input
+                  type="text"
+                  value={newRule}
+                  onChange={(e) => setNewRule(e.target.value)}
+                  placeholder="Add a new rule..."
+                  className="flex-1 bg-white/5 border-white/10"
+                />
+                <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">Add</Button>
+              </form>
+
+              <div className="space-y-3">
+                {group.rules?.map((rule, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-start gap-3 p-4 rounded-xl bg-white/5"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                      <span className="text-emerald-400 font-bold text-sm">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-gray-200 font-medium">{rule.ruleType}</p>
+                      <p className="text-gray-400 text-sm">{rule.ruleValue}</p>
+                    </div>
+                  </motion.div>
+                ))}
+                {(!group.rules || group.rules.length === 0) && (
+                  <p className="text-gray-500 italic text-center">No rules set yet.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

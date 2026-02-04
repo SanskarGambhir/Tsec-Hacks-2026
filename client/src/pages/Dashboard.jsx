@@ -160,9 +160,8 @@ export default function Dashboard() {
                     <stat.icon className="w-5 h-5 text-emerald-400" />
                   </div>
                   <span
-                    className={`flex items-center text-xs font-medium ${
-                      stat.trend === "up" ? "text-emerald-400" : "text-red-400"
-                    }`}
+                    className={`flex items-center text-xs font-medium ${stat.trend === "up" ? "text-emerald-400" : "text-red-400"
+                      }`}
                   >
                     {stat.trend === "up" ? (
                       <ArrowUpRight className="w-4 h-4" />
@@ -260,11 +259,10 @@ export default function Dashboard() {
                   className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
                 >
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      activity.type === "expense"
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${activity.type === "expense"
                         ? "bg-red-500/20 text-red-400"
                         : "bg-emerald-500/20 text-emerald-400"
-                    }`}
+                      }`}
                   >
                     {activity.type === "expense" ? (
                       <TrendingDown className="w-5 h-5" />
@@ -280,9 +278,8 @@ export default function Dashboard() {
                   </div>
                   <div className="text-right">
                     <p
-                      className={`font-semibold text-sm ${
-                        activity.type === "expense" ? "text-red-400" : "text-emerald-400"
-                      }`}
+                      className={`font-semibold text-sm ${activity.type === "expense" ? "text-red-400" : "text-emerald-400"
+                        }`}
                     >
                       {activity.type === "expense" ? "-" : "+"}
                       {activity.amount}

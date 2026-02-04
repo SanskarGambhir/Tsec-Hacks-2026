@@ -26,8 +26,8 @@ export default function BillScanner() {
       const { data } = await Tesseract.recognize(image, "eng");
 
       const response = await axios.post(
-        "http://localhost:8000/api/v1/bill/analyze",
-        { text: data.text, members }
+        `${import.meta.env.VITE_SERVER_URL}bill/analyze`,
+        { text: data.text }
       );
 
       setBillData(response.data.data);
