@@ -22,7 +22,7 @@ const JoinGroup = () => {
     setMessage('');
 
     try {
-      const response = await api.post(`/api/v1/groups/${groupId}/join`);
+      const response = await api.post(`/groups/${groupId}/join`);
 
       if (response.data.success) {
         setMessage(response.data.message || 'Successfully joined the group!');
