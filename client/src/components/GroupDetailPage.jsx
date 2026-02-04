@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import api from '../api/axios';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import api from "../api/axios";
 import {
   connectSocket,
   joinGroup as socketJoinGroup,
@@ -11,8 +11,8 @@ import {
   onFundsAdded,
   onExpenseLogged,
   onNewMessage,
-  removeListener
-} from '../lib/socket';
+  removeListener,
+} from "../lib/socket";
 import {
   ArrowLeft,
   Users,
@@ -26,8 +26,16 @@ import {
   Mail,
   Crown,
   Send,
-  MessageSquare
+  MessageSquare,
+  Clock,
+  ArrowDownRight,
+  ArrowUpRight,
+  CheckCircle2,
+  RefreshCw,
+  History,
+  XCircle,
 } from "lucide-react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
@@ -48,7 +56,7 @@ const categoryColors = {
   Food: "bg-orange-500/20 text-orange-400",
   Activities: "bg-purple-500/20 text-purple-400",
   Transport: "bg-green-500/20 text-green-400",
-  General: "bg-gray-500/20 text-gray-400"
+  General: "bg-gray-500/20 text-gray-400",
 };
 
 const GroupDetailPage = () => {
@@ -56,20 +64,24 @@ const GroupDetailPage = () => {
   const navigate = useNavigate();
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
 
   // Interaction State
-  const [newRule, setNewRule] = useState('');
-  const [newMessage, setNewMessage] = useState('');
+  const [newRule, setNewRule] = useState("");
+  const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState([]); // Activity Feed
-  const [addFundsAmount, setAddFundsAmount] = useState('');
+  const [addFundsAmount, setAddFundsAmount] = useState("");
   const [addingFunds, setAddingFunds] = useState(false);
-  const [fundsMessage, setFundsMessage] = useState('');
+  const [fundsMessage, setFundsMessage] = useState("");
 
   // Member Management State (placeholder logic for now)
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
+
+  // Transaction State
+  const [transactions, setTransactions] = useState([]);
+  const [checkingPayments, setCheckingPayments] = useState(false);
 
   useEffect(() => {
     const fetchGroupDetails = async () => {
@@ -81,96 +93,115 @@ const GroupDetailPage = () => {
         connectSocket();
         socketJoinGroup(groupId);
       } catch (err) {
-        console.error('Error fetching group details:', err);
-        setError(err.response?.data?.message || 'Failed to load group details');
+        console.error("Error fetching group details:", err);
+        setError(err.response?.data?.message || "Failed to load group details");
       } finally {
         setLoading(false);
       }
     };
 
     fetchGroupDetails();
+    fetchTransactions();
 
     // Define handlers for cleanup
     const handleRuleAdded = (data) => {
-      setGroup(prevGroup => ({
+      setGroup((prevGroup) => ({
         ...prevGroup,
-        rules: [...(prevGroup.rules || []), data.rule]
+        rules: [...(prevGroup.rules || []), data.rule],
       }));
-      setMessages(prev => [...prev, {
-        type: 'ruleAdded',
-        content: `New rule added: ${data.rule.ruleType} - ${data.rule.ruleValue}`,
-        timestamp: new Date().toLocaleString()
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "ruleAdded",
+          content: `New rule added: ${data.rule.ruleType} - ${data.rule.ruleValue}`,
+          timestamp: new Date().toLocaleString(),
+        },
+      ]);
     };
 
     const handleMemberJoined = (data) => {
-      setGroup(prevGroup => ({
+      setGroup((prevGroup) => ({
         ...prevGroup,
-        members: [...(prevGroup.members || []), data.user]
+        members: [...(prevGroup.members || []), data.user],
       }));
-      setMessages(prev => [...prev, {
-        type: 'memberJoined',
-        content: `${data.user.username || data.user.email} joined the group`,
-        timestamp: new Date().toLocaleString()
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "memberJoined",
+          content: `${data.user.username || data.user.email} joined the group`,
+          timestamp: new Date().toLocaleString(),
+        },
+      ]);
     };
 
     const handleReceiveMessage = (data) => {
-      setMessages(prev => [...prev, {
-        type: 'message',
-        content: `${data.sender.name || data.sender.username}: ${data.message}`,
-        timestamp: new Date().toLocaleString()
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "message",
+          content: `${data.sender.name || data.sender.username}: ${data.message}`,
+          timestamp: new Date().toLocaleString(),
+        },
+      ]);
     };
 
     const handleFundsAdded = (data) => {
-      setGroup(prevGroup => ({
+      setGroup((prevGroup) => ({
         ...prevGroup,
         pool: data.newPoolBalance,
         wallet: {
           ...prevGroup.wallet,
-          balance: data.newWalletBalance
-        }
+          balance: data.newWalletBalance,
+        },
       }));
 
-      setMessages(prev => [...prev, {
-        type: 'fundsAdded',
-        content: `₹${data.amount} added to group`,
-        timestamp: new Date().toLocaleString()
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "fundsAdded",
+          content: `₹${data.amount} added to group`,
+          timestamp: new Date().toLocaleString(),
+        },
+      ]);
     };
 
     const handleExpenseLogged = (data) => {
-      setGroup(prevGroup => ({
+      setGroup((prevGroup) => ({
         ...prevGroup,
         pool: data.pool,
         wallet: {
           ...prevGroup.wallet,
-          balance: data.walletBalance
+          balance: data.walletBalance,
         },
-        expenses: [...(prevGroup.expenses || []), data.expense]
+        expenses: [...(prevGroup.expenses || []), data.expense],
       }));
 
-      setMessages(prev => [...prev, {
-        type: 'expenseLogged',
-        content: `Expense: ${data.expense.description} - ₹${data.expense.amount}`,
-        timestamp: new Date().toLocaleString()
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "expenseLogged",
+          content: `Expense: ${data.expense.description} - ₹${data.expense.amount}`,
+          timestamp: new Date().toLocaleString(),
+        },
+      ]);
     };
 
     const handleNewMessage = (data) => {
       // Update the group's messages array
-      setGroup(prevGroup => ({
+      setGroup((prevGroup) => ({
         ...prevGroup,
-        messages: [...(prevGroup.messages || []), data.message]
+        messages: [...(prevGroup.messages || []), data.message],
       }));
 
       // Also add to the activity feed
-      setMessages(prev => [...prev, {
-        type: 'message',
-        content: `${data.message.sender.username || data.message.sender.email}: ${data.message.content}`,
-        timestamp: new Date(data.message.timestamp).toLocaleString()
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "message",
+          content: `${data.message.sender.username || data.message.sender.email}: ${data.message.content}`,
+          timestamp: new Date(data.message.timestamp).toLocaleString(),
+        },
+      ]);
     };
 
     // Set up socket listeners
@@ -183,14 +214,120 @@ const GroupDetailPage = () => {
 
     return () => {
       // Clean up socket listeners
-      removeListener('ruleAdded', handleRuleAdded);
-      removeListener('memberJoined', handleMemberJoined);
-      removeListener('receiveMessage', handleReceiveMessage);
-      removeListener('fundsAdded', handleFundsAdded);
-      removeListener('expenseLogged', handleExpenseLogged);
-      removeListener('newMessage', handleNewMessage);
+      removeListener("ruleAdded", handleRuleAdded);
+      removeListener("memberJoined", handleMemberJoined);
+      removeListener("receiveMessage", handleReceiveMessage);
+      removeListener("fundsAdded", handleFundsAdded);
+      removeListener("expenseLogged", handleExpenseLogged);
+      removeListener("newMessage", handleNewMessage);
     };
   }, [groupId]);
+
+  // Periodic payment checking
+  useEffect(() => {
+    if (groupId) {
+      checkGroupPayments();
+      const interval = setInterval(checkGroupPayments, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [groupId]);
+
+  const fetchTransactions = async () => {
+    try {
+      const res = await api.get(`/groups/${groupId}/transactions`, {
+        withCredentials: true,
+      });
+      if (res.data.data?.transactions) {
+        setTransactions(res.data.data.transactions);
+      }
+    } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+    }
+  };
+
+  const checkGroupPayments = async () => {
+    if (!groupId) return;
+    try {
+      setCheckingPayments(true);
+      const res = await api.get(`/groups/${groupId}/check-payments`, {
+        withCredentials: true,
+      });
+      const { updated } = res.data.data || {};
+      if (updated && updated.length > 0) {
+        setFundsMessage("Payment confirmed and balance updated!");
+        fetchTransactions();
+        // Refresh group details to get updated balance
+        const response = await api.get(`/groups/${groupId}`);
+        setGroup(response.data.data);
+      }
+    } catch (err) {
+      // Silent fail for background checks
+      console.error("Payment sync failed:", err);
+    } finally {
+      setCheckingPayments(false);
+    }
+  };
+
+  const confirmTransaction = async (intentId) => {
+    try {
+      setFundsMessage("Submitting proof...");
+
+      const res = await api.post(
+        `/wallet/complete_deposit/${intentId}`,
+        {},
+        { withCredentials: true },
+      );
+
+      if (res.data.success) {
+        setFundsMessage(
+          "Proof submitted. Payment will settle at Decided Date.",
+        );
+        fetchTransactions();
+      }
+    } catch (err) {
+      console.error(err);
+      setFundsMessage("Proof submission failed");
+    }
+  };
+
+  const cancelTransaction = async (intentId) => {
+    try {
+      setFundsMessage("Cancelling transaction...");
+      // TODO: Implement cancel endpoint
+      await api.post(
+        `/groups/${groupId}/cancel-deposit/${intentId}`,
+        {},
+        { withCredentials: true },
+      );
+      setFundsMessage("Transaction cancelled");
+      fetchTransactions();
+    } catch (err) {
+      console.error(err);
+      setFundsMessage("Failed to cancel transaction");
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status?.toUpperCase()) {
+      case "COMPLETED":
+      case "SUCCESS":
+        return (
+          <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/20">
+            Completed
+          </Badge>
+        );
+      case "PENDING":
+        return (
+          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/20">
+            Pending
+          </Badge>
+        );
+      case "FAILED":
+        return <Badge variant="destructive">Failed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
   const handleAddRule = async (e) => {
     e.preventDefault();
@@ -199,16 +336,16 @@ const GroupDetailPage = () => {
 
     try {
       await api.post(`/groups/${groupId}/rules`, {
-        ruleType: 'custom',
+        ruleType: "custom",
         ruleValue: newRule.trim(),
-        description: `Rule: ${newRule.trim()}`
+        description: `Rule: ${newRule.trim()}`,
       });
 
-      setNewRule('');
+      setNewRule("");
       // The rule will be reflected via socket update
     } catch (err) {
-      console.error('Error adding rule:', err);
-      alert(err.response?.data?.message || 'Failed to add rule');
+      console.error("Error adding rule:", err);
+      alert(err.response?.data?.message || "Failed to add rule");
     }
   };
 
@@ -216,20 +353,28 @@ const GroupDetailPage = () => {
     if (!newMessage.trim()) return;
 
     try {
-      await api.post(`/api/v1/groups/${groupId}/messages`, {
-        content: newMessage.trim()
-      }, { withCredentials: true });
+      await api.post(
+        `/api/v1/groups/${groupId}/messages`,
+        {
+          content: newMessage.trim(),
+        },
+        { withCredentials: true },
+      );
 
       // Clear the input field
-      setNewMessage('');
+      setNewMessage("");
     } catch (err) {
-      console.error('Error sending message:', err);
+      console.error("Error sending message:", err);
     }
   };
 
   const handleAddFunds = async () => {
     const releaseType = group.releaseType;
-    if (!addFundsAmount || isNaN(addFundsAmount) || Number(addFundsAmount) <= 0) {
+    if (
+      !addFundsAmount ||
+      isNaN(addFundsAmount) ||
+      Number(addFundsAmount) <= 0
+    ) {
       setFundsMessage("Enter a valid amount");
       return;
     }
@@ -237,33 +382,97 @@ const GroupDetailPage = () => {
     try {
       setAddingFunds(true);
       setFundsMessage("");
-      cosnole.log("bye")
-      if (releaseType === 'time_locked') {
-        console.log("Hello")
-        const unlockDate = group.unlockDate
-        console.log(unlockDate);
+      console.log("Release Type:", releaseType);
 
+      if (releaseType === "time_locked") {
+        console.log("Creating time-locked payment intent");
+        const unlockDate = group.unlockDate;
+        console.log("Unlock Date:", unlockDate);
+
+        // Convert unlock date to Unix timestamp
+        const timeLockUntil = Math.floor(
+          new Date(unlockDate).getTime() / 1000,
+        ).toString();
+        const paymentIntentResponse = await axios.post(
+          "https://api.fmm.finternetlab.io/api/v1/payment-intents",
+          {
+            amount: addFundsAmount,
+            currency: "USDC",
+            type: "DELIVERY_VS_PAYMENT",
+            settlementMethod: "OFF_RAMP_MOCK",
+            settlementDestination: "bank_account_123",
+            metadata: {
+              releaseType: "TIME_LOCKED",
+              timeLockUntil: timeLockUntil,
+            },
+          },
+
+          {
+            headers: {
+              "X-API-Key": "sk_hackathon_5d3da8cd5d11aa58990e3edd273b1dd6",
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        // Create payment intent with time-lock metadata
+
+        console.log("Payment Intent Response:", paymentIntentResponse.data);
+        const intentId = paymentIntentResponse.data.data.id;
+        localStorage.setItem("pendingTimeLockedIntent", intentId);
+        window.open(paymentIntentResponse.data.data.paymentUrl);
+
+        // Create transaction record with intentId
+        const res = await api.post(
+          `/groups/${groupId}/add-funds`,
+          {
+            amount: Number(addFundsAmount),
+            intentId: intentId,
+          },
+          { withCredentials: true },
+        );
+
+        // Update the group data
+        setGroup((prevGroup) => ({
+          ...prevGroup,
+          pool: res.data.data.groupPool,
+          pendingFunds: res.data.data.pendingFunds,
+          wallet: {
+            ...prevGroup.wallet,
+            balance: res.data.data.groupWalletBalance,
+          },
+        }));
+
+        setFundsMessage("Payment intent created. Please confirm payment.");
+        setAddFundsAmount("");
+
+        // Fetch transactions to show the newly created one
+        setTimeout(() => fetchTransactions(), 1000);
+
+        return; // Exit early for time_locked flow
       }
+      //confirm intent automatically
+
       const res = await api.post(
         `/groups/${groupId}/add-funds`,
         { amount: Number(addFundsAmount) },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       // Update the group data with the new balance
-      setGroup(prevGroup => ({
+      setGroup((prevGroup) => ({
         ...prevGroup,
         pool: res.data.data.groupPool,
         wallet: {
           ...prevGroup.wallet,
-          balance: res.data.data.groupWalletBalance
-        }
+          balance: res.data.data.groupWalletBalance,
+        },
       }));
 
       setFundsMessage("Funds added successfully");
       setAddFundsAmount("");
     } catch (err) {
-      console.error('Error adding funds:', err);
+      console.error("Error adding funds:", err);
       setFundsMessage(err.response?.data?.message || "Something went wrong");
     } finally {
       setAddingFunds(false);
@@ -271,7 +480,7 @@ const GroupDetailPage = () => {
   };
 
   // Helper to generate a consistent color/avatar if missing
-  const getAvatarLetter = (name) => name ? name.charAt(0).toUpperCase() : '?';
+  const getAvatarLetter = (name) => (name ? name.charAt(0).toUpperCase() : "?");
 
   if (loading) {
     return (
@@ -284,7 +493,10 @@ const GroupDetailPage = () => {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto p-4">
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg relative" role="alert">
+        <div
+          className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg relative"
+          role="alert"
+        >
           <strong className="font-bold">Error! </strong>
           <span className="block sm:inline">{error}</span>
         </div>
@@ -312,9 +524,7 @@ const GroupDetailPage = () => {
         </motion.button>
 
         <div className="flex items-center gap-4 flex-1">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg"
-          >
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
             {/* Placeholder Emoji or Icon */}
             📁
           </div>
@@ -359,7 +569,7 @@ const GroupDetailPage = () => {
               <div>
                 <p className="text-sm text-gray-400">Pool Balance</p>
                 <p className="text-xl font-bold text-emerald-400">
-                  ₹{group.wallet?.balance?.toFixed(2) || '0.00'}
+                  ₹{group.wallet?.balance?.toFixed(2) || "0.00"}
                 </p>
               </div>
             </div>
@@ -391,25 +601,57 @@ const GroupDetailPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Members</p>
-                <p className="text-xl font-bold">{group.members?.length || 0}</p>
+                <p className="text-xl font-bold">
+                  {group.members?.length || 0}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-orange-400" />
+        {group.releaseType === "time_locked" ? (
+          <Card className="glass-card border-white/10">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-yellow-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400">Pending Funds</p>
+                  <p className="text-xl font-bold text-yellow-400">
+                    ₹{group.pendingFunds?.toFixed(2) || "0.00"}
+                  </p>
+                  {group.unlockDate && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Unlocks:{" "}
+                      {new Date(group.unlockDate).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-400">Your Share</p>
-                <p className="text-xl font-bold text-emerald-400">--</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="glass-card border-white/10">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Your Share</p>
+                  <p className="text-xl font-bold text-emerald-400">--</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </motion.div>
 
       {/* Tabs */}
@@ -450,21 +692,101 @@ const GroupDetailPage = () => {
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Recent Activity/Messages */}
+            {/* Recent Activity - Transactions */}
             <Card className="glass-card border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Recent Activity</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <History className="w-5 h-5 text-emerald-400" />
+                  Recent Transactions
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchTransactions}
+                  className="text-gray-400 hover:text-emerald-400"
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 ${checkingPayments ? "animate-spin" : ""}`}
+                  />
+                </Button>
               </CardHeader>
               <CardContent className="space-y-3 max-h-[400px] overflow-y-auto">
-                {messages.length > 0 ? (
-                  messages.slice(-5).reverse().map((msg, index) => (
-                    <div key={index} className="p-3 bg-white/5 rounded-lg border border-white/10">
-                      <p className="text-sm text-gray-200">{msg.content}</p>
-                      <p className="text-[10px] text-gray-500 mt-1">{msg.timestamp}</p>
+                {transactions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-500 space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
+                      <History className="w-6 h-6 opacity-20" />
                     </div>
-                  ))
+                    <p className="text-sm">No transactions found</p>
+                  </div>
                 ) : (
-                  <p className="text-gray-500 italic text-sm text-center py-4">No recent activity</p>
+                  transactions.map((tx, idx) => (
+                    <motion.div
+                      key={tx._id || idx}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="group p-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                            tx.type === "DEPOSIT"
+                              ? "bg-emerald-500/10"
+                              : "bg-red-500/10"
+                          }`}
+                        >
+                          {tx.type === "DEPOSIT" ? (
+                            <ArrowDownRight className="w-5 h-5 text-emerald-400" />
+                          ) : (
+                            <ArrowUpRight className="w-5 h-5 text-red-400" />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-semibold text-sm text-gray-200">
+                              {tx.type === "DEPOSIT" ? "Deposit" : tx.type}
+                            </p>
+                            <p className="font-bold text-emerald-400">
+                              ₹{tx.amount?.toLocaleString()}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Clock className="w-3 h-3" />
+                              <span>ID: {tx.intentId?.slice(0, 8)}...</span>
+                            </div>
+                            {getStatusBadge(tx.status)}
+                          </div>
+
+                          {tx.status === "PENDING" && (
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                onClick={() => confirmTransaction(tx.intentId)}
+                                disabled={addingFunds}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs h-8"
+                              >
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Confirm
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => cancelTransaction(tx.intentId)}
+                                disabled={addingFunds}
+                                variant="destructive"
+                                className="flex-1 text-xs h-8"
+                              >
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
                 )}
               </CardContent>
             </Card>
@@ -488,11 +810,13 @@ const GroupDetailPage = () => {
                     onClick={handleAddFunds}
                     disabled={addingFunds}
                   >
-                    {addingFunds ? 'Processing...' : 'Add'}
+                    {addingFunds ? "Processing..." : "Add"}
                   </Button>
                 </div>
                 {fundsMessage && (
-                  <p className={`mt-2 text-sm font-medium ${fundsMessage.includes('successfully') ? 'text-green-400' : 'text-red-400'}`}>
+                  <p
+                    className={`mt-2 text-sm font-medium ${fundsMessage.includes("successfully") ? "text-green-400" : "text-red-400"}`}
+                  >
                     {fundsMessage}
                   </p>
                 )}
@@ -515,20 +839,27 @@ const GroupDetailPage = () => {
                 [...group.messages].reverse().map((message, index) => {
                   const isSystem = !message.sender; // simplified check
                   return (
-                    <div key={index} className={`flex flex-col ${isSystem ? 'items-center' : 'items-start'}`}>
-                      <div className={`p-3 rounded-lg max-w-[80%] ${isSystem ? 'bg-white/5 text-center text-xs' : 'bg-emerald-500/20 border border-emerald-500/20'}`}>
+                    <div
+                      key={index}
+                      className={`flex flex-col ${isSystem ? "items-center" : "items-start"}`}
+                    >
+                      <div
+                        className={`p-3 rounded-lg max-w-[80%] ${isSystem ? "bg-white/5 text-center text-xs" : "bg-emerald-500/20 border border-emerald-500/20"}`}
+                      >
                         {!isSystem && (
                           <p className="text-xs font-bold text-emerald-400 mb-1">
                             {message.sender?.username || message.sender?.email}
                           </p>
                         )}
-                        <p className="text-sm text-gray-200">{message.content}</p>
+                        <p className="text-sm text-gray-200">
+                          {message.content}
+                        </p>
                       </div>
                       <span className="text-[10px] text-gray-500 mt-1">
                         {new Date(message.timestamp).toLocaleString()}
                       </span>
                     </div>
-                  )
+                  );
                 })
               ) : (
                 <div className="h-full flex items-center justify-center text-gray-500">
@@ -542,9 +873,12 @@ const GroupDetailPage = () => {
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
                 className="bg-white/5 border-white/10"
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
               />
-              <Button onClick={handleSendMessage} className="bg-emerald-600 hover:bg-emerald-700">
+              <Button
+                onClick={handleSendMessage}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </div>
@@ -565,23 +899,29 @@ const GroupDetailPage = () => {
                     className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                   >
                     <div
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium ${categoryColors[expense.category || 'General']}`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium ${categoryColors[expense.category || "General"]}`}
                     >
-                      {expense.category || 'Expense'}
+                      {expense.category || "Expense"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{expense.description}</p>
+                      <p className="font-medium truncate">
+                        {expense.description}
+                      </p>
                       <p className="text-sm text-gray-500">
                         {new Date(expense.date).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xl font-bold">₹{expense.amount.toFixed(2)}</p>
+                      <p className="text-xl font-bold">
+                        ₹{expense.amount.toFixed(2)}
+                      </p>
                     </div>
                   </motion.div>
                 ))
               ) : (
-                <p className="text-center py-8 text-gray-500">No expenses recorded yet.</p>
+                <p className="text-center py-8 text-gray-500">
+                  No expenses recorded yet.
+                </p>
               )}
             </CardContent>
           </Card>
@@ -597,7 +937,9 @@ const GroupDetailPage = () => {
                   <Button
                     size="sm"
                     className="text-black"
-                    style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+                    style={{
+                      background: "linear-gradient(90deg, #4ade80, #22c55e)",
+                    }}
                   >
                     <UserPlus className="w-4 h-4 mr-1" />
                     Add Member
@@ -627,9 +969,14 @@ const GroupDetailPage = () => {
                         Cancel
                       </Button>
                       <Button
-                        onClick={() => alert("Invite functionality to be implemented")}
+                        onClick={() =>
+                          alert("Invite functionality to be implemented")
+                        }
                         className="text-black"
-                        style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+                        style={{
+                          background:
+                            "linear-gradient(90deg, #4ade80, #22c55e)",
+                        }}
                       >
                         Send Invite
                       </Button>
@@ -648,17 +995,23 @@ const GroupDetailPage = () => {
                   className="flex items-center gap-4 p-4 rounded-xl bg-white/5"
                 >
                   <Avatar className="w-12 h-12">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`} />
+                    <AvatarImage
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
+                    />
                     <AvatarFallback
                       className="text-black font-bold"
-                      style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+                      style={{
+                        background: "linear-gradient(135deg, #4ade80, #22c55e)",
+                      }}
                     >
                       {getAvatarLetter(member.username || member.email)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">{member.username || member.email}</p>
+                      <p className="font-medium truncate">
+                        {member.username || member.email}
+                      </p>
                       {member._id === group.owner?._id && (
                         <Crown className="w-4 h-4 text-yellow-500" />
                       )}
@@ -693,7 +1046,12 @@ const GroupDetailPage = () => {
                   placeholder="Add a new rule..."
                   className="flex-1 bg-white/5 border-white/10"
                 />
-                <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">Add</Button>
+                <Button
+                  type="submit"
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  Add
+                </Button>
               </form>
 
               <div className="space-y-3">
@@ -711,13 +1069,17 @@ const GroupDetailPage = () => {
                       </span>
                     </div>
                     <div>
-                      <p className="text-gray-200 font-medium">{rule.ruleType}</p>
+                      <p className="text-gray-200 font-medium">
+                        {rule.ruleType}
+                      </p>
                       <p className="text-gray-400 text-sm">{rule.ruleValue}</p>
                     </div>
                   </motion.div>
                 ))}
                 {(!group.rules || group.rules.length === 0) && (
-                  <p className="text-gray-500 italic text-center">No rules set yet.</p>
+                  <p className="text-gray-500 italic text-center">
+                    No rules set yet.
+                  </p>
                 )}
               </div>
             </CardContent>

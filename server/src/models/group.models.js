@@ -71,6 +71,10 @@ const groupSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    pendingFunds: {
+      type: Number,
+      default: 0,
+    },
     // Milestone group fields
     milestones: [
       {

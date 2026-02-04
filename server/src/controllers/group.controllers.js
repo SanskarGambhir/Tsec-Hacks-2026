@@ -3,30 +3,42 @@ import { GroupWallet } from "../models/groupWallet.models.js";
 import { UserWallet } from "../models/wallet.models.js";
 import { GroupInvite } from "../models/groupInvite.models.js";
 import { User } from "../models/user.models.js";
+import { Transaction } from "../models/transactions.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { getIO } from "../socket.js";
 import { sendWhatsApp } from "../utils/twilio.js";
+import axios from "axios";
 
 const createGroup = asyncHandler(async (req, res) => {
-  const { name, description, rules, pool, ruleType } = req.body;
+  const {
+    name,
+    description,
+    rules,
+    pool,
+    ruleType,
+    releaseType,
+    unlockDate,
+    isLocked,
+    milestones,
+  } = req.body;
 
   if (!name || !rules || !Array.isArray(rules) || rules.length === 0) {
     throw new ApiError(400, "Name and rules (array) are required fields");
   }
 
   // Check if any rule specifies the group type
-  const hasGroupType = rules.some(rule =>
-    rule.ruleType === 'pool' || rule.ruleType === 'regular_split'
+  const hasGroupType = rules.some(
+    (rule) => rule.ruleType === "pool" || rule.ruleType === "regular_split",
   );
 
   // If no group type is specified, default to 'pool'
   if (!hasGroupType) {
     rules.push({
-      ruleType: 'pool',
-      ruleValue: 'Pool-based group',
-      description: 'Money is collected in a shared pool'
+      ruleType: "pool",
+      ruleValue: "Pool-based group",
+      description: "Money is collected in a shared pool",
     });
   }
 
@@ -35,9 +47,13 @@ const createGroup = asyncHandler(async (req, res) => {
     description: description || "",
     rules,
     ruleType,
+    releaseType: releaseType || "instant",
+    unlockDate: unlockDate || null,
+    isLocked: isLocked || false,
+    milestones: milestones || [],
     pool: pool || 0,
     owner: req.user._id,
-    members: [req.user._id] // Owner is automatically a member
+    members: [req.user._id], // Owner is automatically a member
   });
 
   const createdGroup = await Group.findById(group._id);
@@ -50,7 +66,7 @@ const createGroup = asyncHandler(async (req, res) => {
   const groupWallet = await GroupWallet.create({
     group: createdGroup._id,
     balance: 0, // Initialize with pool amount if provided
-    currency: "INR"
+    currency: "INR",
   });
 
   // Link Wallet to Group
@@ -59,18 +75,12 @@ const createGroup = asyncHandler(async (req, res) => {
 
   return res
     .status(201)
-    .json(
-      new ApiResponse(
-        201,
-        createdGroup,
-        "Group created successfully"
-      )
-    );
+    .json(new ApiResponse(201, createdGroup, "Group created successfully"));
 });
 
 const addFundsToGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
-  const { amount } = req.body;
+  const { amount, intentId } = req.body;
 
   if (!amount || amount <= 0) {
     throw new ApiError(400, "Valid amount is required");
@@ -81,6 +91,48 @@ const addFundsToGroup = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Group not found");
   }
 
+  // Get Group Wallet
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (!groupWallet) {
+    throw new ApiError(404, "Group wallet not found");
+  }
+
+  // If intentId is provided, create a Transaction record for tracking
+  if (intentId) {
+    const existingTransaction = await Transaction.findOne({ intentId });
+
+    if (!existingTransaction) {
+      await Transaction.create({
+        user: req.user._id,
+        wallet: groupWallet._id,
+        intentId: intentId,
+        type: "DEPOSIT",
+        amount: amount,
+        currency: "USDC",
+        status: "PENDING",
+      });
+
+      // For time-locked groups, add to pending funds instead of pool
+      if (group.releaseType === "time_locked") {
+        group.pendingFunds = (group.pendingFunds || 0) + amount;
+        await group.save();
+      }
+    }
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          groupPool: group.pool,
+          groupWalletBalance: groupWallet.balance,
+          pendingFunds: group.pendingFunds,
+        },
+        "Payment intent created, awaiting confirmation",
+      ),
+    );
+  }
+
+  // Original flow for instant payments (no intentId)
   // 1. Get User Wallet
   const userWallet = await UserWallet.findOne({ user: req.user._id });
   if (!userWallet) {
@@ -92,12 +144,6 @@ const addFundsToGroup = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Insufficient funds in user wallet");
   }
 
-  // 3. Get Group Wallet
-  const groupWallet = await GroupWallet.findOne({ group: groupId });
-  if (!groupWallet) {
-    throw new ApiError(404, "Group wallet not found");
-  }
-
   // 4. Perform Transaction
   userWallet.balance -= amount;
 
@@ -106,7 +152,7 @@ const addFundsToGroup = asyncHandler(async (req, res) => {
 
   // Update Specific User's Mini-Pool in Group Wallet
   const memberBalanceIndex = groupWallet.memberBalances.findIndex(
-    (mb) => mb.user.toString() === req.user._id.toString()
+    (mb) => mb.user.toString() === req.user._id.toString(),
   );
 
   if (memberBalanceIndex > -1) {
@@ -114,14 +160,14 @@ const addFundsToGroup = asyncHandler(async (req, res) => {
   } else {
     groupWallet.memberBalances.push({
       user: req.user._id,
-      balance: amount
+      balance: amount,
     });
   }
 
   groupWallet.transactions.push({
     fromUser: req.user._id,
     amount,
-    type: "DEPOSIT"
+    type: "DEPOSIT",
   });
 
   // Sync group pool for display/legacy purposes
@@ -139,7 +185,7 @@ const addFundsToGroup = asyncHandler(async (req, res) => {
       addedBy: req.user._id,
       amount,
       newPoolBalance: group.pool,
-      newWalletBalance: groupWallet.balance
+      newWalletBalance: groupWallet.balance,
     });
     console.log("Socket emit successful");
   } catch (error) {
@@ -152,8 +198,8 @@ const addFundsToGroup = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         { groupPool: group.pool, groupWalletBalance: groupWallet.balance },
-        "Funds added successfully"
-      )
+        "Funds added successfully",
+      ),
     );
 });
 
@@ -172,7 +218,9 @@ const logExpense = asyncHandler(async (req, res) => {
   }
 
   // Check if the user is a member or owner
-  const isMember = group.members.includes(req.user._id) || group.owner.toString() === req.user._id.toString();
+  const isMember =
+    group.members.includes(req.user._id) ||
+    group.owner.toString() === req.user._id.toString();
 
   if (!isMember) {
     throw new ApiError(403, "You are not a member of this group");
@@ -194,21 +242,24 @@ const logExpense = asyncHandler(async (req, res) => {
   // Note: We need to handle cases where a member might not have an entry in memberBalances yet (effectively 0 balance)
   for (const memberId of group.members) {
     const memberBalanceEntry = groupWallet.memberBalances.find(
-      (mb) => mb.user.toString() === memberId.toString()
+      (mb) => mb.user.toString() === memberId.toString(),
     );
     const currentBalance = memberBalanceEntry ? memberBalanceEntry.balance : 0;
 
     if (currentBalance < splitAmount) {
-      throw new ApiError(400, `Insufficient funds for user ${memberId}. Each member needs ${splitAmount}`);
+      throw new ApiError(
+        400,
+        `Insufficient funds for user ${memberId}. Each member needs ${splitAmount}`,
+      );
     }
   }
 
   // Deduct from each member's mini-pool
   for (const memberId of group.members) {
     const memberBalanceEntry = groupWallet.memberBalances.find(
-      (mb) => mb.user.toString() === memberId.toString()
+      (mb) => mb.user.toString() === memberId.toString(),
     );
-    // We already verified existence and balance above, so strictly speaking it should be there, 
+    // We already verified existence and balance above, so strictly speaking it should be there,
     // but safe to check if we created it (though we expect it to exist if balance > 0)
     if (memberBalanceEntry) {
       memberBalanceEntry.balance -= splitAmount;
@@ -220,7 +271,7 @@ const logExpense = asyncHandler(async (req, res) => {
     amount,
     description,
     spentBy: req.user._id,
-    date: new Date()
+    date: new Date(),
   };
 
   group.pool -= amount;
@@ -231,7 +282,7 @@ const logExpense = asyncHandler(async (req, res) => {
   groupWallet.transactions.push({
     fromUser: req.user._id, // Recording who spent it essentially
     amount,
-    type: "WITHDRAWAL" // Or specific expense type if needed
+    type: "WITHDRAWAL", // Or specific expense type if needed
   });
 
   await group.save();
@@ -244,7 +295,7 @@ const logExpense = asyncHandler(async (req, res) => {
       groupId,
       pool: group.pool,
       walletBalance: groupWallet.balance,
-      expense
+      expense,
     });
   } catch (error) {
     console.error("Socket emit failed:", error);
@@ -253,13 +304,7 @@ const logExpense = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        group,
-        "Expense logged successfully"
-      )
-    );
+    .json(new ApiResponse(200, group, "Expense logged successfully"));
 });
 
 const addRule = asyncHandler(async (req, res) => {
@@ -284,7 +329,7 @@ const addRule = asyncHandler(async (req, res) => {
   const newRule = {
     ruleType,
     ruleValue,
-    description: description || ""
+    description: description || "",
   };
 
   group.rules.push(newRule);
@@ -295,7 +340,7 @@ const addRule = asyncHandler(async (req, res) => {
     const io = getIO();
     io.to(groupId).emit("ruleAdded", {
       groupId,
-      rule: newRule
+      rule: newRule,
     });
   } catch (error) {
     console.error("Socket emit failed:", error);
@@ -303,29 +348,23 @@ const addRule = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        group,
-        "Rule added successfully"
-      )
-    );
+    .json(new ApiResponse(200, group, "Rule added successfully"));
 });
 
 const joinGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
 
   const group = await Group.findById(groupId)
-    .populate('owner', 'username email')
-    .populate('members', 'username email');
+    .populate("owner", "username email")
+    .populate("members", "username email");
 
   if (!group) {
     throw new ApiError(404, "Group not found");
   }
 
   // Check if user is already a member
-  const isAlreadyMember = group.members.some(member =>
-    member._id.toString() === req.user._id.toString()
+  const isAlreadyMember = group.members.some(
+    (member) => member._id.toString() === req.user._id.toString(),
   );
 
   if (isAlreadyMember) {
@@ -338,8 +377,8 @@ const joinGroup = asyncHandler(async (req, res) => {
 
   // Get updated group details with populated data
   const updatedGroup = await Group.findById(groupId)
-    .populate('owner', 'username email')
-    .populate('members', 'username email');
+    .populate("owner", "username email")
+    .populate("members", "username email");
 
   // Get group wallet information
   const groupWallet = await GroupWallet.findOne({ group: groupId });
@@ -356,21 +395,23 @@ const joinGroup = asyncHandler(async (req, res) => {
     owner: {
       _id: updatedGroup.owner._id,
       username: updatedGroup.owner.username,
-      email: updatedGroup.owner.email
+      email: updatedGroup.owner.email,
     },
-    members: updatedGroup.members.map(member => ({
+    members: updatedGroup.members.map((member) => ({
       _id: member._id,
       username: member.username,
-      email: member.email
+      email: member.email,
     })),
     expenses: updatedGroup.expenses,
     createdAt: updatedGroup.createdAt,
     updatedAt: updatedGroup.updatedAt,
-    wallet: groupWallet ? {
-      balance: groupWallet.balance,
-      currency: groupWallet.currency,
-      transactions: groupWallet.transactions
-    } : null
+    wallet: groupWallet
+      ? {
+          balance: groupWallet.balance,
+          currency: groupWallet.currency,
+          transactions: groupWallet.transactions,
+        }
+      : null,
   };
 
   // Emit real-time update to notify other members
@@ -381,8 +422,8 @@ const joinGroup = asyncHandler(async (req, res) => {
       user: {
         _id: req.user._id,
         username: req.user.username, // assuming user object has username
-        email: req.user.email
-      }
+        email: req.user.email,
+      },
     });
   } catch (error) {
     console.error("Socket emit failed:", error);
@@ -390,31 +431,26 @@ const joinGroup = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        groupDetails,
-        "Successfully joined the group"
-      )
-    );
+    .json(new ApiResponse(200, groupDetails, "Successfully joined the group"));
 });
 
 const getGroupDetails = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
 
   const group = await Group.findById(groupId)
-    .populate('owner', 'username email')
-    .populate('members', 'username email')
-    .populate('wallet'); // Populate wallet for detailed info
+    .populate("owner", "username email")
+    .populate("members", "username email")
+    .populate("wallet"); // Populate wallet for detailed info
 
   if (!group) {
     throw new ApiError(404, "Group not found");
   }
 
   // Check if the user is a member or owner of the group
-  const isMember = group.members.some(member =>
-    member._id.toString() === req.user._id.toString()
-  ) || group.owner._id.toString() === req.user._id.toString();
+  const isMember =
+    group.members.some(
+      (member) => member._id.toString() === req.user._id.toString(),
+    ) || group.owner._id.toString() === req.user._id.toString();
 
   if (!isMember) {
     throw new ApiError(403, "You are not authorized to view this group");
@@ -422,13 +458,7 @@ const getGroupDetails = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        group,
-        "Group details retrieved successfully"
-      )
-    );
+    .json(new ApiResponse(200, group, "Group details retrieved successfully"));
 });
 
 const sendMessage = asyncHandler(async (req, res) => {
@@ -445,9 +475,10 @@ const sendMessage = asyncHandler(async (req, res) => {
   }
 
   // Check if the user is a member of the group
-  const isMember = group.members.some(member =>
-    member.toString() === req.user._id.toString()
-  ) || group.owner.toString() === req.user._id.toString();
+  const isMember =
+    group.members.some(
+      (member) => member.toString() === req.user._id.toString(),
+    ) || group.owner.toString() === req.user._id.toString();
 
   if (!isMember) {
     throw new ApiError(403, "You are not a member of this group");
@@ -456,7 +487,7 @@ const sendMessage = asyncHandler(async (req, res) => {
   // Create and add the message to the group
   const message = {
     content: content.trim(),
-    sender: req.user._id
+    sender: req.user._id,
   };
 
   group.messages.push(message);
@@ -464,16 +495,16 @@ const sendMessage = asyncHandler(async (req, res) => {
 
   // Populate the sender information for the response
   const populatedGroup = await Group.findById(groupId)
-    .populate('owner', 'username email')
-    .populate('members', 'username email')
+    .populate("owner", "username email")
+    .populate("members", "username email")
     .populate({
-      path: 'messages',
+      path: "messages",
       populate: {
-        path: 'sender',
-        select: 'username email'
-      }
+        path: "sender",
+        select: "username email",
+      },
     })
-    .populate('wallet');
+    .populate("wallet");
 
   // Emit real-time update
   try {
@@ -485,37 +516,34 @@ const sendMessage = asyncHandler(async (req, res) => {
         sender: {
           _id: req.user._id,
           username: req.user.username,
-          email: req.user.email
+          email: req.user.email,
         },
-        timestamp: new Date()
-      }
+        timestamp: new Date(),
+      },
     });
   } catch (error) {
     console.error("Socket emit failed:", error);
   }
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { message: populatedGroup.messages[populatedGroup.messages.length - 1] },
-        "Message sent successfully"
-      )
-    );
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        message: populatedGroup.messages[populatedGroup.messages.length - 1],
+      },
+      "Message sent successfully",
+    ),
+  );
 });
 
 const getUserGroups = asyncHandler(async (req, res) => {
   // Find all groups where the user is either owner or member
   const groups = await Group.find({
-    $or: [
-      { owner: req.user._id },
-      { members: { $in: [req.user._id] } }
-    ]
+    $or: [{ owner: req.user._id }, { members: { $in: [req.user._id] } }],
   })
-    .populate('owner', 'username email')
-    .populate('members', 'username email')
-    .populate('wallet')
+    .populate("owner", "username email")
+    .populate("members", "username email")
+    .populate("wallet")
     .sort({ updatedAt: -1 }); // Sort by most recently updated
 
   if (!groups) {
@@ -523,11 +551,11 @@ const getUserGroups = asyncHandler(async (req, res) => {
   }
 
   // Format the response to match the frontend expectations
-  const formattedGroups = groups.map(group => {
+  const formattedGroups = groups.map((group) => {
     // Calculate user's share or balance if needed
     const userIsOwner = group.owner._id.toString() === req.user._id.toString();
-    const userIsMember = group.members.some(member =>
-      member._id.toString() === req.user._id.toString()
+    const userIsMember = group.members.some(
+      (member) => member._id.toString() === req.user._id.toString(),
     );
 
     return {
@@ -544,7 +572,7 @@ const getUserGroups = asyncHandler(async (req, res) => {
       lastActivity: group.updatedAt, // Use updatedAt as last activity
       hasPool: group.wallet?.balance > 0,
       owner: group.owner,
-      createdAt: group.createdAt
+      createdAt: group.createdAt,
     };
   });
 
@@ -554,8 +582,8 @@ const getUserGroups = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         formattedGroups,
-        "User groups retrieved successfully"
-      )
+        "User groups retrieved successfully",
+      ),
     );
 });
 
@@ -574,11 +602,15 @@ const sendGroupInviteToFriend = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Group not found");
   }
 
-  const isAuthorized = group.owner.toString() === senderId.toString() || 
-                      group.members.some(m => m.toString() === senderId.toString());
-  
+  const isAuthorized =
+    group.owner.toString() === senderId.toString() ||
+    group.members.some((m) => m.toString() === senderId.toString());
+
   if (!isAuthorized) {
-    throw new ApiError(403, "You are not authorized to invite members to this group");
+    throw new ApiError(
+      403,
+      "You are not authorized to invite members to this group",
+    );
   }
 
   // Check if friend exists
@@ -588,7 +620,7 @@ const sendGroupInviteToFriend = asyncHandler(async (req, res) => {
   }
 
   // Check if already a member
-  if (group.members.some(m => m.toString() === friendId)) {
+  if (group.members.some((m) => m.toString() === friendId)) {
     throw new ApiError(400, "User is already a member of this group");
   }
 
@@ -597,7 +629,7 @@ const sendGroupInviteToFriend = asyncHandler(async (req, res) => {
     group: groupId,
     recipient: friendId,
     status: "pending",
-    expiresAt: { $gt: Date.now() }
+    expiresAt: { $gt: Date.now() },
   });
 
   if (existingInvite) {
@@ -613,17 +645,17 @@ const sendGroupInviteToFriend = asyncHandler(async (req, res) => {
     sender: senderId,
     recipient: friendId,
     token,
-    inviteType: "friend"
+    inviteType: "friend",
   });
 
   await invite.populate([
     { path: "group", select: "name description" },
-    { path: "sender", select: "username email" }
+    { path: "sender", select: "username email" },
   ]);
 
-  return res.status(201).json(
-    new ApiResponse(201, invite, "Group invite sent successfully")
-  );
+  return res
+    .status(201)
+    .json(new ApiResponse(201, invite, "Group invite sent successfully"));
 });
 
 // Send group invite via WhatsApp
@@ -641,24 +673,30 @@ const sendGroupInviteViaWhatsApp = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Group not found");
   }
 
-  const isAuthorized = group.owner.toString() === senderId.toString() || 
-                      group.members.some(m => m.toString() === senderId.toString());
-  
+  const isAuthorized =
+    group.owner.toString() === senderId.toString() ||
+    group.members.some((m) => m.toString() === senderId.toString());
+
   if (!isAuthorized) {
-    throw new ApiError(403, "You are not authorized to invite members to this group");
+    throw new ApiError(
+      403,
+      "You are not authorized to invite members to this group",
+    );
   }
 
   // Format phone number
   let formattedPhone = phoneNumber.trim();
-  if (!formattedPhone.startsWith('+')) {
-    formattedPhone = '+91' + formattedPhone;
+  if (!formattedPhone.startsWith("+")) {
+    formattedPhone = "+91" + formattedPhone;
   }
 
   // Check if phone belongs to existing user
   const existingUser = await User.findOne({ phone: formattedPhone });
   if (existingUser) {
     // Check if already a member
-    if (group.members.some(m => m.toString() === existingUser._id.toString())) {
+    if (
+      group.members.some((m) => m.toString() === existingUser._id.toString())
+    ) {
       throw new ApiError(400, "User is already a member of this group");
     }
   }
@@ -668,7 +706,7 @@ const sendGroupInviteViaWhatsApp = asyncHandler(async (req, res) => {
     group: groupId,
     phoneNumber: formattedPhone,
     status: "pending",
-    expiresAt: { $gt: Date.now() }
+    expiresAt: { $gt: Date.now() },
   });
 
   if (existingInvite) {
@@ -685,26 +723,32 @@ const sendGroupInviteViaWhatsApp = asyncHandler(async (req, res) => {
     phoneNumber: formattedPhone,
     token,
     inviteType: "phone",
-    recipient: existingUser?._id
+    recipient: existingUser?._id,
   });
 
   // Create invite link
-  const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/group-invite/${token}`;
+  const inviteLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/group-invite/${token}`;
 
   // Send WhatsApp message
   try {
     await sendWhatsApp(
       formattedPhone,
-      `${req.user.username} invited you to join "${group.name}" group on Cooper! Click here to accept: ${inviteLink}`
+      `${req.user.username} invited you to join "${group.name}" group on Cooper! Click here to accept: ${inviteLink}`,
     );
   } catch (error) {
     await invite.deleteOne();
     throw new ApiError(500, `Failed to send WhatsApp: ${error.message}`);
   }
 
-  return res.status(201).json(
-    new ApiResponse(201, { inviteLink, phoneNumber: formattedPhone }, "WhatsApp group invite sent successfully")
-  );
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        { inviteLink, phoneNumber: formattedPhone },
+        "WhatsApp group invite sent successfully",
+      ),
+    );
 });
 
 // Get pending group invites for current user
@@ -715,14 +759,11 @@ const getGroupInvites = asyncHandler(async (req, res) => {
   // Build query to find invites by recipient ID or phone number
   const query = {
     status: "pending",
-    expiresAt: { $gt: Date.now() }
+    expiresAt: { $gt: Date.now() },
   };
 
   if (userPhone) {
-    query.$or = [
-      { recipient: userId },
-      { phoneNumber: userPhone }
-    ];
+    query.$or = [{ recipient: userId }, { phoneNumber: userPhone }];
   } else {
     query.recipient = userId;
   }
@@ -733,15 +774,15 @@ const getGroupInvites = asyncHandler(async (req, res) => {
       select: "name description owner members",
       populate: {
         path: "members",
-        select: "username"
-      }
+        select: "username",
+      },
     })
     .populate("sender", "username email avatar")
     .sort({ createdAt: -1 });
 
-  return res.status(200).json(
-    new ApiResponse(200, invites, "Group invites fetched successfully")
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, invites, "Group invites fetched successfully"));
 });
 
 // Accept group invite
@@ -768,7 +809,7 @@ const acceptGroupInvite = asyncHandler(async (req, res) => {
   }
 
   // Check authorization: either recipient matches OR phone number matches
-  const isAuthorized = 
+  const isAuthorized =
     (invite.recipient && invite.recipient.toString() === userId.toString()) ||
     (invite.phoneNumber && invite.phoneNumber === req.user.phone);
 
@@ -779,7 +820,7 @@ const acceptGroupInvite = asyncHandler(async (req, res) => {
   const group = invite.group;
 
   // Check if already a member
-  if (group.members.some(m => m.toString() === userId.toString())) {
+  if (group.members.some((m) => m.toString() === userId.toString())) {
     throw new ApiError(400, "You are already a member of this group");
   }
 
@@ -800,16 +841,16 @@ const acceptGroupInvite = asyncHandler(async (req, res) => {
       user: {
         _id: userId,
         username: req.user.username,
-        email: req.user.email
-      }
+        email: req.user.email,
+      },
     });
   } catch (error) {
     console.error("Socket emit failed:", error);
   }
 
-  return res.status(200).json(
-    new ApiResponse(200, group, "Group invite accepted successfully")
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, group, "Group invite accepted successfully"));
 });
 
 // Reject group invite
@@ -834,9 +875,9 @@ const rejectGroupInvite = asyncHandler(async (req, res) => {
   invite.status = "rejected";
   await invite.save();
 
-  return res.status(200).json(
-    new ApiResponse(200, {}, "Group invite rejected")
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Group invite rejected"));
 });
 
 // Accept group invite via token (for WhatsApp/phone invites)
@@ -856,7 +897,7 @@ const acceptGroupInviteByToken = asyncHandler(async (req, res) => {
   }
 
   // Check if already a member
-  if (group.members.some(m => m.toString() === userId.toString())) {
+  if (group.members.some((m) => m.toString() === userId.toString())) {
     throw new ApiError(400, "You are already a member of this group");
   }
 
@@ -869,24 +910,228 @@ const acceptGroupInviteByToken = asyncHandler(async (req, res) => {
   invite.recipient = userId;
   await invite.save();
 
-  return res.status(200).json(
-    new ApiResponse(200, group, "Successfully joined the group")
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, group, "Successfully joined the group"));
 });
 
-export { 
-  createGroup, 
-  logExpense, 
-  addRule, 
-  addFundsToGroup, 
-  joinGroup, 
-  getGroupDetails, 
-  sendMessage, 
+const getGroupTransactions = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user._id;
+
+  // Verify user is member of group
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  const isMember =
+    group.members.some((m) => m.toString() === userId.toString()) ||
+    group.owner.toString() === userId.toString();
+
+  if (!isMember) {
+    throw new ApiError(403, "You are not a member of this group");
+  }
+
+  // Get transactions for this group
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (!groupWallet) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { transactions: [] }, "No wallet found"));
+  }
+
+  // Get payment intent transactions for this user and group
+  const transactions = await Transaction.find({
+    user: userId,
+    wallet: groupWallet._id,
+  }).sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { transactions },
+        "Transactions fetched successfully",
+      ),
+    );
+});
+
+const checkGroupPayments = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user._id;
+
+  // Verify user is member of group
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  const isMember =
+    group.members.some((m) => m.toString() === userId.toString()) ||
+    group.owner.toString() === userId.toString();
+
+  if (!isMember) {
+    throw new ApiError(403, "You are not a member of this group");
+  }
+
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (!groupWallet) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { updated: [], count: 0 }, "No wallet found"));
+  }
+
+  const pending = await Transaction.find({
+    user: userId,
+    wallet: groupWallet._id,
+    status: "PENDING",
+  });
+
+  const updated = [];
+
+  for (const tx of pending) {
+    try {
+      const response = await axios.get(
+        `https://api.fmm.finternetlab.io/v1/payment-intents/${tx.intentId}`,
+        {
+          headers: {
+            "X-API-Key": "sk_hackathon_5d3da8cd5d11aa58990e3edd273b1dd6",
+          },
+        },
+      );
+
+      const apiStatus = response.data.data?.status;
+
+      if (apiStatus === "COMPLETED" || apiStatus === "SUCCESS") {
+        tx.status = "COMPLETED";
+        tx.paymentStatus = apiStatus;
+        await tx.save();
+
+        // Update group wallet balance
+        groupWallet.balance += tx.amount;
+        await groupWallet.save();
+
+        // Update group pool and move from pending to pool
+        group.pool += tx.amount;
+        if (group.pendingFunds >= tx.amount) {
+          group.pendingFunds -= tx.amount;
+        }
+        await group.save();
+
+        updated.push(tx);
+      }
+    } catch (error) {
+      console.error(`Failed to check intent ${tx.intentId}:`, error.message);
+    }
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { updated, count: updated.length },
+        "Payment check completed",
+      ),
+    );
+});
+
+const completeGroupDeposit = asyncHandler(async (req, res) => {
+  const { groupId, intentId } = req.params;
+  const userId = req.user._id;
+
+  // Verify user is member of group
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  const isMember =
+    group.members.some((m) => m.toString() === userId.toString()) ||
+    group.owner.toString() === userId.toString();
+
+  if (!isMember) {
+    throw new ApiError(403, "You are not a member of this group");
+  }
+
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (!groupWallet) {
+    throw new ApiError(404, "Group wallet not found");
+  }
+
+  const tx = await Transaction.findOne({
+    user: userId,
+    wallet: groupWallet._id,
+    intentId,
+    status: "PENDING",
+  });
+
+  if (!tx) {
+    throw new ApiError(404, "Pending transaction not found");
+  }
+
+  try {
+    // Submit delivery proof to Finternet API
+    const proofResponse = await axios.post(
+      `https://api.fmm.finternetlab.io/v1/payment-intents/${intentId}/delivery-proof`,
+      {
+        proof: {
+          type: "DELIVERY_CONFIRMATION",
+          hash: `proof_${Date.now()}`,
+          metadata: {
+            groupId: groupId,
+            userId: userId.toString(),
+          },
+        },
+      },
+      {
+        headers: {
+          "X-API-Key": "sk_hackathon_5d3da8cd5d11aa58990e3edd273b1dd6",
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    tx.proofHash =
+      proofResponse.data.data?.proof?.hash || `proof_${Date.now()}`;
+    await tx.save();
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { transaction: tx },
+          "Proof submitted successfully",
+        ),
+      );
+  } catch (error) {
+    console.error(
+      "Proof submission error:",
+      error.response?.data || error.message,
+    );
+    throw new ApiError(500, "Failed to submit delivery proof");
+  }
+});
+
+export {
+  createGroup,
+  logExpense,
+  addRule,
+  addFundsToGroup,
+  joinGroup,
+  getGroupDetails,
+  sendMessage,
   getUserGroups,
   sendGroupInviteToFriend,
   sendGroupInviteViaWhatsApp,
   getGroupInvites,
   acceptGroupInvite,
   rejectGroupInvite,
-  acceptGroupInviteByToken
+  acceptGroupInviteByToken,
+  getGroupTransactions,
+  checkGroupPayments,
+  completeGroupDeposit,
 };

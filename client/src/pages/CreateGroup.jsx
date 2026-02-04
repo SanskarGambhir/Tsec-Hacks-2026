@@ -203,14 +203,14 @@ export default function CreateGroup() {
               : "Expenses are split evenly among members",
         },
       ];
-
+      console.log("Setting Release Type:", releaseType);
       // Create group payload
       const groupData = {
         name: groupName.trim(),
         description: groupDescription.trim(),
         rules: rules,
         ruleType: groupType,
-        releaseType: releaseType,
+        releaseType,
         pool: 0,
         // Time-locked fields
         ...(releaseType === "time_locked" && {

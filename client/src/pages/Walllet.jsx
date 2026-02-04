@@ -69,7 +69,7 @@ function WalletPage() {
         { amount: Number(amount) },
         { withCredentials: true }
       );
-
+      localStorage.removeItem("pendingIntent");
     } catch (err) {
       console.error(err);
       setMessage("Proof submission failed");

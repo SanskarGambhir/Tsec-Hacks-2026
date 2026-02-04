@@ -1,19 +1,22 @@
 import { Router } from "express";
-import { 
-  createGroup, 
-  logExpense, 
-  addRule, 
-  addFundsToGroup, 
-  joinGroup, 
-  getGroupDetails, 
-  sendMessage, 
+import {
+  createGroup,
+  logExpense,
+  addRule,
+  addFundsToGroup,
+  joinGroup,
+  getGroupDetails,
+  sendMessage,
   getUserGroups,
   sendGroupInviteToFriend,
   sendGroupInviteViaWhatsApp,
   getGroupInvites,
   acceptGroupInvite,
   rejectGroupInvite,
-  acceptGroupInviteByToken
+  acceptGroupInviteByToken,
+  getGroupTransactions,
+  checkGroupPayments,
+  completeGroupDeposit,
 } from "../controllers/group.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -38,5 +41,8 @@ router.route("/:groupId/expense").post(logExpense);
 router.route("/:groupId/rules").post(addRule);
 router.route("/:groupId/add-funds").post(addFundsToGroup);
 router.route("/:groupId/messages").post(sendMessage);
+router.route("/:groupId/transactions").get(getGroupTransactions);
+router.route("/:groupId/check-payments").get(checkGroupPayments);
+router.route("/:groupId/complete-deposit/:intentId").post(completeGroupDeposit);
 
 export default router;
