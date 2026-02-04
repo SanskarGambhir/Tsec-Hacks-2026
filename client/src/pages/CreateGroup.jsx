@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Plus, X, UserPlus, Phone, Check, Loader2, MessageCircle,Coins, Divide  } from "lucide-react";
+import { Users, Plus, X, UserPlus, Phone, Check, Loader2, MessageCircle,Coins, Divide, Zap, Clock, Target  } from "lucide-react";
 import api from "@/api/axios";
 import { getFriends, sendPhoneInvite } from "@/api/friends";
 import { sendGroupInviteToFriend, sendGroupInviteViaWhatsApp } from "@/api/groups";
