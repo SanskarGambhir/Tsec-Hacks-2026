@@ -7,16 +7,31 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { getIO } from "../socket.js";
 
 const createGroup = asyncHandler(async (req, res) => {
-  const { name, description, rules, pool } = req.body;
+  const { name, description, rules, pool, ruleType } = req.body;
 
   if (!name || !rules || !Array.isArray(rules) || rules.length === 0) {
     throw new ApiError(400, "Name and rules (array) are required fields");
+  }
+
+  // Check if any rule specifies the group type
+  const hasGroupType = rules.some(rule =>
+    rule.ruleType === 'pool' || rule.ruleType === 'regular_split'
+  );
+
+  // If no group type is specified, default to 'pool'
+  if (!hasGroupType) {
+    rules.push({
+      ruleType: 'pool',
+      ruleValue: 'Pool-based group',
+      description: 'Money is collected in a shared pool'
+    });
   }
 
   const group = await Group.create({
     name,
     description: description || "",
     rules,
+    ruleType,
     pool: pool || 0,
     owner: req.user._id,
     members: [req.user._id] // Owner is automatically a member
@@ -82,7 +97,7 @@ const addFundsToGroup = asyncHandler(async (req, res) => {
 
   // 4. Perform Transaction
   userWallet.balance -= amount;
-  
+
   // Update Group Wallet Total Balance
   groupWallet.balance += amount;
 
@@ -193,7 +208,7 @@ const logExpense = asyncHandler(async (req, res) => {
     // We already verified existence and balance above, so strictly speaking it should be there, 
     // but safe to check if we created it (though we expect it to exist if balance > 0)
     if (memberBalanceEntry) {
-        memberBalanceEntry.balance -= splitAmount;
+      memberBalanceEntry.balance -= splitAmount;
     }
   }
 
@@ -495,10 +510,10 @@ const getUserGroups = asyncHandler(async (req, res) => {
       { members: { $in: [req.user._id] } }
     ]
   })
-  .populate('owner', 'username email')
-  .populate('members', 'username email')
-  .populate('wallet')
-  .sort({ updatedAt: -1 }); // Sort by most recently updated
+    .populate('owner', 'username email')
+    .populate('members', 'username email')
+    .populate('wallet')
+    .sort({ updatedAt: -1 }); // Sort by most recently updated
 
   if (!groups) {
     throw new ApiError(500, "Error fetching user groups");

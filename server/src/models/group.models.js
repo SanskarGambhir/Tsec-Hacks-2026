@@ -52,6 +52,9 @@ const groupSchema = new Schema(
       type: Number,
       default: 0
     },
+    ruleType: {
+      type: String,
+    },
     rules: [
       {
         ruleType: {
