@@ -219,7 +219,6 @@ export const paymentVerify = async (req, res) => {
   }
 };
 export const paymentIntentResponse = async (req, res) => {
-  console.log("hello");
   const amount = req.body?.amount ? req.body.amount : "25.00";
   const response = await axios.post(
     "https://api.fmm.finternetlab.io/api/v1/payment-intents",
