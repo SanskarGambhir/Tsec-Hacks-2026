@@ -2,14 +2,14 @@
   "name": "projectmangement",
   "version": "1.0.0",
   "description": "Backend Basics",
-  "main": "index.js",
+  "license": "ISC",
+  "author": "Sanskar Gambhir",
   "type": "module",
+  "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js"
   },
-  "author": "Sanskar Gambhir",
-  "license": "ISC",
   "dependencies": {
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
