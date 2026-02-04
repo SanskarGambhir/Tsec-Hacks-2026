@@ -144,6 +144,8 @@ function FriendsPage() {
   };
 
   const handleSendPhoneInvite = async () => {
+    console.log("🔵 handleSendPhoneInvite called with:", phoneNumber);
+    
     if (!phoneNumber.trim()) {
       alert("Please enter a phone number");
       return;
@@ -151,14 +153,12 @@ function FriendsPage() {
 
     setPhoneLoading(true);
     try {
+      console.log("🔵 Calling sendPhoneInvite API...");
       const response = await sendPhoneInvite(phoneNumber);
-      const inviteLink = response.data.inviteLink;
+      console.log("🔵 API Response:", response);
       
-      // Copy to clipboard
-      navigator.clipboard.writeText(inviteLink);
-      
-      // Show success with link
-      alert(`✅ Invite link copied to clipboard!\n\nShare this link with ${phoneNumber}:\n${inviteLink}\n\nYou can paste it in WhatsApp, Telegram, or any messaging app!`);
+      // Show success message
+      alert("✅ WhatsApp invite sent successfully! Check their WhatsApp.");
       
       setPhoneInviteSuccess(true);
       setPhoneNumber("");
@@ -167,7 +167,7 @@ function FriendsPage() {
         setShowAddFriendDialog(false);
       }, 2000);
     } catch (error) {
-      console.error("Error sending phone invite:", error);
+      console.error("🔴 Error sending phone invite:", error);
       alert(error.response?.data?.message || "Failed to create invite. Please check the phone number.");
     } finally {
       setPhoneLoading(false);
