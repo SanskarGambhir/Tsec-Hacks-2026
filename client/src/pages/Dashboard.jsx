@@ -10,6 +10,7 @@ import {
   ArrowDownRight,
   Plus,
   ChevronRight,
+  Share2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -252,6 +253,31 @@ export default function Dashboard() {
             </Card>
           </motion.div>
         ))}
+      </motion.div>
+
+      {/* Splitwise Teaser */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Link to="/splitwise">
+          <Card className="glass-card border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all group overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/20 transition-all" />
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                  <Share2 className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Sync with Splitwise</h3>
+                  <p className="text-sm text-gray-400">Import your existing groups and settle balances instantly</p>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+            </CardContent>
+          </Card>
+        </Link>
       </motion.div>
 
       {/* Main Content Grid */}
