@@ -41,21 +41,28 @@ export const addNewWallet = async (req, res) => {
 };
 export const getBalance = async (req, res) => {
   try {
-    const response = await payapi.get(
-      "https://api.fmm.finternetlab.io/api/v1/payment-intents/account/balance",
-      {
-        headers: {
-          "X-API-KEY": "sk_hackathon_5d3da8cd5d11aa58990e3edd273b1dd6",
-          "Content-Type": "application/json",
-        },
-      },
-    );
+    const userId = req.user._id;
+    
+    // Fetch wallet from database
+    const wallet = await UserWallet.findOne({ user: userId });
+    
+    if (!wallet) {
+      return res.status(404).json({
+        success: false,
+        message: "Wallet not found",
+      });
+    }
+
     res.status(200).json({
       success: true,
-      balance: response.data.data.availableBalance,
+      balance: wallet.balance,
     });
   } catch (err) {
     console.log(err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 export const checkPayments = async (req, res) => {
@@ -121,7 +128,6 @@ export const checkPayments = async (req, res) => {
 };
 
 export const completeDeposit = async (req, res) => {
-  console.log("hello");
   try {
     const { intentId } = req.params;
 
@@ -147,7 +153,6 @@ export const completeDeposit = async (req, res) => {
     const proofHash = "0x" + keccak256(JSON.stringify(deliveryData));
 
     const proofURI = `https://myapp.com/proofs/${intentId}`;
-    console.log(intentId, proofHash, proofURI);
     // 3️⃣ Send Proof to Finternet
     const response = await axios.post(
       `https://api.fmm.finternetlab.io/api/v1/payment-intents/${intentId}/escrow/delivery-proof`,
@@ -219,7 +224,6 @@ export const paymentVerify = async (req, res) => {
   }
 };
 export const paymentIntentResponse = async (req, res) => {
-  console.log("hello");
   const amount = req.body?.amount ? req.body.amount : "25.00";
   const response = await axios.post(
     "https://api.fmm.finternetlab.io/api/v1/payment-intents",
@@ -275,7 +279,6 @@ const addAmountToWallet = async (req, res) => {
         message: "Enter a valid amount",
       });
     }
-    console.log("bye");
 
     // 2️⃣ Atomic balance increment
     const updatedWallet = await UserWallet.findOneAndUpdate(

@@ -112,7 +112,7 @@ function WalletPage() {
     try {
       setLoading(true);
       setMessage("");
-      const res3 = await api.post("/wallet/pay", {});
+      const res3 = await api.post("/wallet/pay", { amount: Number(amount) });
       const intentId = res3.data.intentId;
       localStorage.setItem("pendingIntent", intentId);
       window.open(res3.data.paymentUrl);

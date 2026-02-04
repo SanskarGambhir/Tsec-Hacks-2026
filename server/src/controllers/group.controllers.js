@@ -1,10 +1,13 @@
 import { Group } from "../models/group.models.js";
 import { GroupWallet } from "../models/groupWallet.models.js";
 import { UserWallet } from "../models/wallet.models.js";
+import { GroupInvite } from "../models/groupInvite.models.js";
+import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { getIO } from "../socket.js";
+import { sendWhatsApp } from "../utils/twilio.js";
 
 const createGroup = asyncHandler(async (req, res) => {
   const { name, description, rules, pool } = req.body;
@@ -541,4 +544,334 @@ const getUserGroups = asyncHandler(async (req, res) => {
     );
 });
 
-export { createGroup, logExpense, addRule, addFundsToGroup, joinGroup, getGroupDetails, sendMessage, getUserGroups };
+// Send group invite to friend
+const sendGroupInviteToFriend = asyncHandler(async (req, res) => {
+  const { groupId, friendId } = req.body;
+  const senderId = req.user._id;
+
+  if (!groupId || !friendId) {
+    throw new ApiError(400, "Group ID and Friend ID are required");
+  }
+
+  // Check if group exists and user is owner or member
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  const isAuthorized = group.owner.toString() === senderId.toString() || 
+                      group.members.some(m => m.toString() === senderId.toString());
+  
+  if (!isAuthorized) {
+    throw new ApiError(403, "You are not authorized to invite members to this group");
+  }
+
+  // Check if friend exists
+  const friend = await User.findById(friendId);
+  if (!friend) {
+    throw new ApiError(404, "Friend not found");
+  }
+
+  // Check if already a member
+  if (group.members.some(m => m.toString() === friendId)) {
+    throw new ApiError(400, "User is already a member of this group");
+  }
+
+  // Check for existing pending invite
+  const existingInvite = await GroupInvite.findOne({
+    group: groupId,
+    recipient: friendId,
+    status: "pending",
+    expiresAt: { $gt: Date.now() }
+  });
+
+  if (existingInvite) {
+    throw new ApiError(400, "Invite already sent to this user");
+  }
+
+  // Generate token
+  const token = GroupInvite.generateInviteToken();
+
+  // Create invite
+  const invite = await GroupInvite.create({
+    group: groupId,
+    sender: senderId,
+    recipient: friendId,
+    token,
+    inviteType: "friend"
+  });
+
+  await invite.populate([
+    { path: "group", select: "name description" },
+    { path: "sender", select: "username email" }
+  ]);
+
+  return res.status(201).json(
+    new ApiResponse(201, invite, "Group invite sent successfully")
+  );
+});
+
+// Send group invite via WhatsApp
+const sendGroupInviteViaWhatsApp = asyncHandler(async (req, res) => {
+  const { groupId, phoneNumber } = req.body;
+  const senderId = req.user._id;
+
+  if (!groupId || !phoneNumber) {
+    throw new ApiError(400, "Group ID and phone number are required");
+  }
+
+  // Check if group exists and user is authorized
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  const isAuthorized = group.owner.toString() === senderId.toString() || 
+                      group.members.some(m => m.toString() === senderId.toString());
+  
+  if (!isAuthorized) {
+    throw new ApiError(403, "You are not authorized to invite members to this group");
+  }
+
+  // Format phone number
+  let formattedPhone = phoneNumber.trim();
+  if (!formattedPhone.startsWith('+')) {
+    formattedPhone = '+91' + formattedPhone;
+  }
+
+  // Check if phone belongs to existing user
+  const existingUser = await User.findOne({ phone: formattedPhone });
+  if (existingUser) {
+    // Check if already a member
+    if (group.members.some(m => m.toString() === existingUser._id.toString())) {
+      throw new ApiError(400, "User is already a member of this group");
+    }
+  }
+
+  // Check for existing pending invite
+  const existingInvite = await GroupInvite.findOne({
+    group: groupId,
+    phoneNumber: formattedPhone,
+    status: "pending",
+    expiresAt: { $gt: Date.now() }
+  });
+
+  if (existingInvite) {
+    throw new ApiError(400, "Invite already sent to this phone number");
+  }
+
+  // Generate token
+  const token = GroupInvite.generateInviteToken();
+
+  // Create invite
+  const invite = await GroupInvite.create({
+    group: groupId,
+    sender: senderId,
+    phoneNumber: formattedPhone,
+    token,
+    inviteType: "phone",
+    recipient: existingUser?._id
+  });
+
+  // Create invite link
+  const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/group-invite/${token}`;
+
+  // Send WhatsApp message
+  try {
+    await sendWhatsApp(
+      formattedPhone,
+      `${req.user.username} invited you to join "${group.name}" group on Cooper! Click here to accept: ${inviteLink}`
+    );
+  } catch (error) {
+    await invite.deleteOne();
+    throw new ApiError(500, `Failed to send WhatsApp: ${error.message}`);
+  }
+
+  return res.status(201).json(
+    new ApiResponse(201, { inviteLink, phoneNumber: formattedPhone }, "WhatsApp group invite sent successfully")
+  );
+});
+
+// Get pending group invites for current user
+const getGroupInvites = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const userPhone = req.user.phone;
+
+  // Build query to find invites by recipient ID or phone number
+  const query = {
+    status: "pending",
+    expiresAt: { $gt: Date.now() }
+  };
+
+  if (userPhone) {
+    query.$or = [
+      { recipient: userId },
+      { phoneNumber: userPhone }
+    ];
+  } else {
+    query.recipient = userId;
+  }
+
+  const invites = await GroupInvite.find(query)
+    .populate({
+      path: "group",
+      select: "name description owner members",
+      populate: {
+        path: "members",
+        select: "username"
+      }
+    })
+    .populate("sender", "username email avatar")
+    .sort({ createdAt: -1 });
+
+  return res.status(200).json(
+    new ApiResponse(200, invites, "Group invites fetched successfully")
+  );
+});
+
+// Accept group invite
+const acceptGroupInvite = asyncHandler(async (req, res) => {
+  const { inviteId } = req.params;
+  const userId = req.user._id;
+
+  const invite = await GroupInvite.findById(inviteId)
+    .populate("group")
+    .populate("sender", "username email");
+
+  if (!invite) {
+    throw new ApiError(404, "Invite not found");
+  }
+
+  if (invite.status !== "pending") {
+    throw new ApiError(400, "This invite is no longer pending");
+  }
+
+  if (invite.expiresAt < Date.now()) {
+    invite.status = "expired";
+    await invite.save();
+    throw new ApiError(400, "This invite has expired");
+  }
+
+  // Check authorization: either recipient matches OR phone number matches
+  const isAuthorized = 
+    (invite.recipient && invite.recipient.toString() === userId.toString()) ||
+    (invite.phoneNumber && invite.phoneNumber === req.user.phone);
+
+  if (!isAuthorized) {
+    throw new ApiError(403, "You are not authorized to accept this invite");
+  }
+
+  const group = invite.group;
+
+  // Check if already a member
+  if (group.members.some(m => m.toString() === userId.toString())) {
+    throw new ApiError(400, "You are already a member of this group");
+  }
+
+  // Add user to group
+  group.members.push(userId);
+  await group.save();
+
+  // Update invite status
+  invite.status = "accepted";
+  invite.recipient = userId; // In case it was a phone invite
+  await invite.save();
+
+  // Emit Socket.IO event
+  try {
+    const io = getIO();
+    io.to(group._id.toString()).emit("memberJoined", {
+      groupId: group._id,
+      user: {
+        _id: userId,
+        username: req.user.username,
+        email: req.user.email
+      }
+    });
+  } catch (error) {
+    console.error("Socket emit failed:", error);
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, group, "Group invite accepted successfully")
+  );
+});
+
+// Reject group invite
+const rejectGroupInvite = asyncHandler(async (req, res) => {
+  const { inviteId } = req.params;
+  const userId = req.user._id;
+
+  const invite = await GroupInvite.findById(inviteId);
+
+  if (!invite) {
+    throw new ApiError(404, "Invite not found");
+  }
+
+  if (invite.recipient && invite.recipient.toString() !== userId.toString()) {
+    throw new ApiError(403, "You are not authorized to reject this invite");
+  }
+
+  if (invite.status !== "pending") {
+    throw new ApiError(400, "This invite is no longer pending");
+  }
+
+  invite.status = "rejected";
+  await invite.save();
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Group invite rejected")
+  );
+});
+
+// Accept group invite via token (for WhatsApp/phone invites)
+const acceptGroupInviteByToken = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const userId = req.user._id;
+
+  const invite = await GroupInvite.findValidInvite(token);
+
+  if (!invite) {
+    throw new ApiError(404, "Invalid or expired invite");
+  }
+
+  const group = await Group.findById(invite.group._id);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  // Check if already a member
+  if (group.members.some(m => m.toString() === userId.toString())) {
+    throw new ApiError(400, "You are already a member of this group");
+  }
+
+  // Add user to group
+  group.members.push(userId);
+  await group.save();
+
+  // Update invite
+  invite.status = "accepted";
+  invite.recipient = userId;
+  await invite.save();
+
+  return res.status(200).json(
+    new ApiResponse(200, group, "Successfully joined the group")
+  );
+});
+
+export { 
+  createGroup, 
+  logExpense, 
+  addRule, 
+  addFundsToGroup, 
+  joinGroup, 
+  getGroupDetails, 
+  sendMessage, 
+  getUserGroups,
+  sendGroupInviteToFriend,
+  sendGroupInviteViaWhatsApp,
+  getGroupInvites,
+  acceptGroupInvite,
+  rejectGroupInvite,
+  acceptGroupInviteByToken
+};
