@@ -45,7 +45,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/groups" element={<Groups />} />
           <Route path="/groups/create" element={<CreateGroup />} />
-          <Route path="/groups/:id" element={<GroupDetails />} />
+          <Route path="/groups/:groupId" element={<GroupDetailPage />} />
           <Route path="/friends" element={<FriendsPage />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/activity" element={<Activity />} />

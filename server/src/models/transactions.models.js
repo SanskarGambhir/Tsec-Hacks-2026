@@ -23,7 +23,7 @@ const transactionSchema = new Schema(
 
     type: {
       type: String,
-      enum: ["DEPOSIT", "SPEND", "REFUND"],
+      enum: ["DEPOSIT", "SPEND", "REFUND", "GROUP_PAYMENT"],
       required: true,
     },
 

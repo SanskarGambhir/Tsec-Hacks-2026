@@ -28,7 +28,7 @@ const expenseSchema = new Schema({
   spentBy: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true,
+    // required: true,
   },
   date: {
     type: Date,

@@ -26,7 +26,8 @@ import {
   Mail,
   Crown,
   Send,
-  MessageSquare
+  MessageSquare,
+  Link
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -42,6 +43,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import GroupPaymentModal from './GroupPaymentModal';
 
 const categoryColors = {
   Accommodation: "bg-blue-500/20 text-blue-400",
@@ -70,6 +72,15 @@ const GroupDetailPage = () => {
   // Member Management State (placeholder logic for now)
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
+
+  // Expense Modal State
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+
+  // Group Payment Modal State
+  const [showGroupPaymentModal, setShowGroupPaymentModal] = useState(false);
+
+  // Group Invitation State
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
 
   useEffect(() => {
     const fetchGroupDetails = async () => {
@@ -216,7 +227,7 @@ const GroupDetailPage = () => {
     if (!newMessage.trim()) return;
 
     try {
-      await api.post(`/api/v1/groups/${groupId}/messages`, {
+      await api.post(`/groups/${groupId}/messages`, {
         content: newMessage.trim()
       }, { withCredentials: true });
 
@@ -237,7 +248,7 @@ const GroupDetailPage = () => {
     try {
       setAddingFunds(true);
       setFundsMessage("");
-      cosnole.log("bye")
+      console.log("bye")
       if (releaseType === 'time_locked') {
         console.log("Hello")
         const unlockDate = group.unlockDate
@@ -267,6 +278,49 @@ const GroupDetailPage = () => {
       setFundsMessage(err.response?.data?.message || "Something went wrong");
     } finally {
       setAddingFunds(false);
+    }
+  };
+
+  // Function to handle adding an expense
+  const handleAddExpense = async (expenseData) => {
+    try {
+      const response = await api.post(`/groups/${groupId}/expense`, expenseData, { withCredentials: true });
+
+      // The expense will be reflected via socket update
+      console.log('Expense added successfully:', response.data);
+    } catch (err) {
+      console.error('Error adding expense:', err);
+      alert(err.response?.data?.message || 'Failed to add expense');
+    }
+  };
+
+  // Function to handle group payment
+  const handleGroupPayment = async (paymentData) => {
+    try {
+      const response = await api.post(`/api/v1/groups/${groupId}/process-payment`, paymentData, { withCredentials: true });
+
+      // The expense will be reflected via socket update
+      console.log('Group payment processed successfully:', response.data);
+      setShowGroupPaymentModal(false);
+    } catch (err) {
+      console.error('Error processing group payment:', err);
+      alert(err.response?.data?.message || 'Failed to process group payment');
+    }
+  };
+
+  // Check if the group is a regular split group
+  const isRegularSplitGroup = group?.rules?.some(rule => rule.ruleType === 'regular_split');
+
+  // Function to copy invitation link to clipboard
+  const copyInvitationLink = async () => {
+    try {
+      // Generate the invitation link
+      const link = `${window.location.origin}/join-group/${groupId}`;
+      await navigator.clipboard.writeText(link);
+      alert('Invitation link copied to clipboard!');
+    } catch (err) {
+      console.error('Error copying link:', err);
+      alert('Failed to copy link');
     }
   };
 
@@ -329,16 +383,36 @@ const GroupDetailPage = () => {
             variant="outline"
             size="sm"
             className="border-white/10 hover:bg-white/5"
+            onClick={() => setShowInviteDialog(true)}
+          >
+            <Link className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-white/10 hover:bg-white/5"
           >
             <Settings className="w-4 h-4" />
           </Button>
+          {isRegularSplitGroup && (
+            <Button
+              size="sm"
+              className="text-black"
+              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+              onClick={() => setShowExpenseModal(true)}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Expense
+            </Button>
+          )}
           <Button
             size="sm"
             className="text-black"
-            style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+            style={{ background: "linear-gradient(90deg, #60a5fa, #3b82f6)" }}
+            onClick={() => setShowGroupPaymentModal(true)}
           >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Expense
+            <Wallet className="w-4 h-4 mr-1" />
+            Pay from Group
           </Button>
         </div>
       </motion.div>
@@ -639,40 +713,58 @@ const GroupDetailPage = () => {
               </Dialog>
             </CardHeader>
             <CardContent className="space-y-3">
-              {group.members?.map((member, index) => (
-                <motion.div
-                  key={member._id || index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-white/5"
-                >
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`} />
-                    <AvatarFallback
-                      className="text-black font-bold"
-                      style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
-                    >
-                      {getAvatarLetter(member.username || member.email)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">{member.username || member.email}</p>
-                      {member._id === group.owner?._id && (
-                        <Crown className="w-4 h-4 text-yellow-500" />
-                      )}
+              {group.members?.map((member, index) => {
+                // Find the member's balance in memberBalances
+                const memberBalance = group.wallet?.memberBalances?.find(
+                  balance => balance.user.toString() === member._id.toString()
+                );
+
+                const balanceAmount = memberBalance ? memberBalance.balance : 0;
+                const isPositive = balanceAmount >= 0;
+
+                return (
+                  <motion.div
+                    key={member._id || index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5"
+                  >
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`} />
+                      <AvatarFallback
+                        className="text-black font-bold"
+                        style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+                      >
+                        {getAvatarLetter(member.username || member.email)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{member.username || member.email}</p>
+                        {member._id === group.owner?._id && (
+                          <Crown className="w-4 h-4 text-yellow-500" />
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400">{member.email}</p>
                     </div>
-                    <p className="text-sm text-gray-400">{member.email}</p>
-                  </div>
-                  {/* Placeholder for remove logic if user is owner */}
-                  {/* <button
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <UserMinus className="w-4 h-4" />
-                    </button> */}
-                </motion.div>
-              ))}
+                    <div className="text-right">
+                      <p className={`text-sm font-medium ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {isPositive ? '+' : '-'}₹{Math.abs(balanceAmount).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {isPositive ? 'Credit' : 'Debt'}
+                      </p>
+                    </div>
+                    {/* Placeholder for remove logic if user is owner */}
+                    {/* <button
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <UserMinus className="w-4 h-4" />
+                      </button> */}
+                  </motion.div>
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>
@@ -724,6 +816,57 @@ const GroupDetailPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Add Expense Modal */}
+      {/* {showExpenseModal && group && (
+        // <AddExpenseModal
+        //   group={group}
+        //   onClose={() => setShowExpenseModal(false)}
+        //   onSave={handleAddExpense}
+        // />
+      )} */}
+
+      {/* Group Payment Modal */}
+      {showGroupPaymentModal && group && (
+        <GroupPaymentModal
+          group={group}
+          onClose={() => setShowGroupPaymentModal(false)}
+          onSuccess={() => { }}
+        />
+      )}
+
+      {/* Invitation Link Dialog */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent className="glass-card border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link className="w-5 h-5 text-emerald-400" />
+              Invite Members
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="p-4 bg-gray-800/50 rounded-lg">
+              <p className="text-sm text-gray-300 mb-2">Share this link with others to join your group:</p>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={`${window.location.origin}/join-group/${groupId}`}
+                  className="flex-1 bg-gray-700/50 text-gray-200"
+                />
+                <Button
+                  onClick={copyInvitationLink}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  Copy
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Anyone with this link can join your group. Make sure to share it securely.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
