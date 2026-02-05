@@ -23,6 +23,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
+  "https://tsec-hacks-2026-haoy.vercel.app",
   process.env.CORS_ORIGIN
 ].filter(Boolean);
 
