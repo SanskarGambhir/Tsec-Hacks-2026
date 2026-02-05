@@ -1,189 +1,404 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import Tesseract from "tesseract.js";
-import axios from "axios";
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { X, User, Upload, Scan, Loader2, Check, IndianRupee, Divide } from 'lucide-react';
+import api from '../api/axios';
 
-export default function BillScanner() {
+const BillScannerModal = ({ group, onClose, onSuccess }) => {
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [billData, setBillData] = useState(null);
-  const [members] = useState(["Alex", "Sarah", "Mike"]);
-  const [balances, setBalances] = useState(null);
-  const [settled, setSettled] = useState(false);
+  const [divisionMethod, setDivisionMethod] = useState('even'); // 'even', 'exclude', 'custom'
+  const [excludedMembers, setExcludedMembers] = useState([]);
+  const [customAmounts, setCustomAmounts] = useState({});
+  const [error, setError] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   const handleUpload = (e) => {
     const file = e.target.files[0];
-    setImage(file);
-    setPreview(URL.createObjectURL(file));
+    if (file) {
+      setImage(file);
+      setPreview(URL.createObjectURL(file));
+      setBillData(null);
+      setError('');
+    }
   };
 
   const handleScan = async () => {
-    if (!image) return;
+    if (!image) {
+      setError('Please upload an image first');
+      return;
+    }
 
     setLoading(true);
+    setError('');
 
     try {
+      // OCR with Tesseract
       const { data } = await Tesseract.recognize(image, "eng");
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}bill/analyze`,
-        { text: data.text }
-      );
+      // Analyze with AI
+      const response = await api.post('/bill/analyze', { text: data.text });
 
       setBillData(response.data.data);
-      setBalances(null);
-      setSettled(false);
+      
+      // Initialize custom amounts for each item
+      const initialCustomAmounts = {};
+      response.data.data.items.forEach((item, index) => {
+        group.members.forEach(member => {
+          initialCustomAmounts[`${index}-${member._id}`] = '';
+        });
+      });
+      setCustomAmounts(initialCustomAmounts);
 
     } catch (error) {
-      console.error(error);
+      console.error('Scan error:', error);
+      setError(error.response?.data?.message || 'Failed to scan bill');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
-  const handleAssign = (index, member) => {
+  const handleAssignToMember = (itemIndex, memberId) => {
     const updated = [...billData.items];
+    const item = updated[itemIndex];
 
-    if (updated[index].assignedTo.includes(member)) {
-      updated[index].assignedTo =
-        updated[index].assignedTo.filter(m => m !== member);
+    if (!item.assignedTo) {
+      item.assignedTo = [];
+    }
+
+    if (item.assignedTo.includes(memberId)) {
+      item.assignedTo = item.assignedTo.filter(m => m !== memberId);
     } else {
-      updated[index].assignedTo.push(member);
+      item.assignedTo.push(memberId);
     }
 
-    updated[index].isShared = false;
+    item.isShared = false;
     setBillData({ ...billData, items: updated });
   };
 
-  const handleShared = (index) => {
+  const handleShared = (itemIndex) => {
     const updated = [...billData.items];
-    updated[index].isShared = !updated[index].isShared;
-    updated[index].assignedTo = [];
+    updated[itemIndex].isShared = !updated[itemIndex].isShared;
+    updated[itemIndex].assignedTo = [];
     setBillData({ ...billData, items: updated });
   };
 
-  const handleSplit = async () => {
+  const calculateSplit = () => {
+    if (!billData) return null;
+
+    const memberBalances = {};
+    group.members.forEach(member => {
+      memberBalances[member._id] = 0;
+    });
+
+    billData.items.forEach(item => {
+      if (item.isShared) {
+        // Split evenly among all members
+        const perPerson = parseFloat(item.price) / group.members.length;
+        group.members.forEach(member => {
+          memberBalances[member._id] += perPerson;
+        });
+      } else if (item.assignedTo && item.assignedTo.length > 0) {
+        // Split among assigned members
+        const perPerson = parseFloat(item.price) / item.assignedTo.length;
+        item.assignedTo.forEach(memberId => {
+          memberBalances[memberId] += perPerson;
+        });
+      }
+    });
+
+    return memberBalances;
+  };
+
+  const handleProcessPayment = async () => {
+    if (!billData) {
+      setError('No bill data to process');
+      return;
+    }
+
+    // Validate that all items are assigned
+    const unassignedItems = billData.items.filter(
+      item => !item.isShared && (!item.assignedTo || item.assignedTo.length === 0)
+    );
+
+    if (unassignedItems.length > 0) {
+      setError('Please assign all items to members or mark them as shared');
+      return;
+    }
+
+    setProcessing(true);
+    setError('');
+
     try {
-      const response = await axios.post(
-        "http://localhost:8000/api/v1/bill/split",
-        {
-          items: billData.items,
-          members
-        }
+      const memberBalances = calculateSplit();
+
+      // Prepare expense data
+      const expenseData = {
+        amount: parseFloat(billData.total),
+        description: `Bill from ${billData.vendor || 'Scanned Bill'}`,
+        divisionMethod: 'custom',
+        customAmounts: memberBalances,
+        items: billData.items,
+        vendor: billData.vendor
+      };
+
+      // Process payment via API
+      const response = await api.post(
+        `/groups/${group._id}/process-payment`,
+        expenseData,
+        { withCredentials: true }
       );
 
-      setBalances(response.data.balances);
-
-    } catch (error) {
-      console.error(error);
+      if (onSuccess) {
+        onSuccess(response.data);
+      }
+      onClose();
+    } catch (err) {
+      console.error('Error processing payment:', err);
+      setError(err.response?.data?.message || 'Failed to process payment');
+    } finally {
+      setProcessing(false);
     }
   };
 
-  const handleAutoSettle = () => {
-    // Simulate settlement logic
-    setSettled(true);
-  };
+  const splitBalances = calculateSplit();
+  const totalAmount = billData?.items.reduce((sum, item) => sum + parseFloat(item.price || 0), 0) || 0;
 
   return (
-    <div className="p-8 space-y-6">
-      <h1 className="text-2xl font-bold">AI Bill Scanner</h1>
-
-      <input type="file" accept="image/*" onChange={handleUpload} />
-
-      {preview && (
-        <img src={preview} className="max-h-60 rounded-xl" />
-      )}
-
-      <button
-        onClick={handleScan}
-        className="bg-emerald-500 px-4 py-2 rounded-xl"
-      >
-        {loading ? "Processing..." : "Scan with AI"}
-      </button>
-
-      {billData && (
-        <div className="glass-card p-6 rounded-xl mt-6 space-y-4">
-
-          <h3 className="font-semibold text-lg">
-            {billData.vendor}
-          </h3>
-
-          {billData.items.map((item, i) => (
-            <div key={i} className="border p-4 rounded-xl space-y-3">
-
-              <div className="flex justify-between font-semibold">
-                <span>{item.name}</span>
-                <span>₹ {Number(item.price).toFixed(2)}</span>
-              </div>
-
-              <div className="flex gap-2 flex-wrap">
-                {members.map(member => (
-                  <button
-                    key={member}
-                    onClick={() => handleAssign(i, member)}
-                    className={`px-3 py-1 rounded-lg text-sm ${
-                      item.assignedTo.includes(member)
-                        ? "bg-emerald-500 text-black"
-                        : "bg-white/10"
-                    }`}
-                  >
-                    {member}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() => handleShared(i)}
-                  className={`px-3 py-1 rounded-lg text-sm ${
-                    item.isShared
-                      ? "bg-blue-500 text-black"
-                      : "bg-white/10"
-                  }`}
-                >
-                  Shared
-                </button>
-              </div>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <Card className="w-full max-w-4xl bg-gray-900 border-gray-700 my-8">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Scan className="w-5 h-5 text-emerald-400" />
+              <CardTitle>Scan Bill & Split</CardTitle>
             </div>
-          ))}
-
-          <button
-            onClick={handleSplit}
-            className="w-full bg-emerald-500 py-2 rounded-xl font-semibold"
-          >
-            Calculate Split
-          </button>
-
-          {/* 🔥 SPLIT RESULT DISPLAY */}
-          {balances && (
-            <div className="mt-6 p-4 rounded-xl bg-white/5 space-y-3">
-              <h4 className="font-semibold text-lg">Split Summary</h4>
-
-              {Object.entries(balances).map(([member, amount]) => (
-                <div key={member} className="flex justify-between text-sm">
-                  <span>{member}</span>
-                  <span className="font-semibold">
-                    ₹ {amount.toFixed(2)}
-                  </span>
-                </div>
-              ))}
-
-              {!settled && (
-                <button
-                  onClick={handleAutoSettle}
-                  className="w-full bg-blue-500 mt-4 py-2 rounded-xl font-semibold"
-                >
-                  Auto Settle
-                </button>
-              )}
-
-              {settled && (
-                <div className="text-green-400 font-semibold text-center mt-4">
-                  ✅ Settlement Completed Successfully
-                </div>
-              )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="text-gray-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <CardDescription>
+            Upload a bill image, scan it with AI, and split among group members
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Upload Section */}
+          {!billData && (
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-700 rounded-xl p-8 text-center space-y-4">
+                {preview ? (
+                  <div className="space-y-4">
+                    <img
+                      src={preview}
+                      alt="Bill preview"
+                      className="max-h-80 mx-auto rounded-lg object-contain"
+                    />
+                    <div className="flex gap-2 justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setImage(null);
+                          setPreview(null);
+                        }}
+                        className="border-gray-600"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Remove
+                      </Button>
+                      <Button
+                        onClick={handleScan}
+                        disabled={loading}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Scanning...
+                          </>
+                        ) : (
+                          <>
+                            <Scan className="w-4 h-4 mr-2" />
+                            Scan with AI
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUpload}
+                      className="hidden"
+                    />
+                    <div className="space-y-3">
+                      <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
+                        <Upload className="w-8 h-8 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-medium">Upload Bill Image</p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Click to browse or drag and drop
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                )}
+              </div>
             </div>
           )}
-        </div>
-      )}
+
+          {/* Bill Data Display */}
+          {billData && (
+            <div className="space-y-6">
+              {/* Bill Header */}
+              <div className="p-4 bg-gray-800/50 rounded-xl">
+                <h3 className="font-semibold text-lg mb-2">{billData.vendor || 'Vendor'}</h3>
+                <p className="text-emerald-400 text-2xl font-bold">
+                  Total: ₹{totalAmount.toFixed(2)}
+                </p>
+              </div>
+
+              {/* Items Assignment */}
+              <div className="space-y-3">
+                <Label className="text-base">Assign Items to Members</Label>
+                {billData.items.map((item, index) => (
+                  <div key={index} className="border border-gray-700 p-4 rounded-xl space-y-3 bg-gray-800/30">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold">{item.name}</p>
+                        <p className="text-emerald-400 font-bold">₹{Number(item.price).toFixed(2)}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={item.isShared ? "default" : "outline"}
+                        onClick={() => handleShared(index)}
+                        className={item.isShared ? "bg-blue-600 hover:bg-blue-700" : "border-gray-600"}
+                      >
+                        {item.isShared ? (
+                          <>
+                            <Check className="w-4 h-4 mr-1" />
+                            Shared by All
+                          </>
+                        ) : (
+                          'Mark as Shared'
+                        )}
+                      </Button>
+                    </div>
+
+                    {!item.isShared && (
+                      <div className="flex gap-2 flex-wrap">
+                        {group.members.map(member => (
+                          <Button
+                            key={member._id}
+                            size="sm"
+                            variant={item.assignedTo?.includes(member._id) ? "default" : "outline"}
+                            onClick={() => handleAssignToMember(index, member._id)}
+                            className={
+                              item.assignedTo?.includes(member._id)
+                                ? "bg-emerald-600 hover:bg-emerald-700 text-black"
+                                : "border-gray-600"
+                            }
+                          >
+                            {member.username || member.email}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Split Summary */}
+              {splitBalances && (
+                <div className="p-4 bg-gray-800/50 rounded-xl space-y-3">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <Divide className="w-4 h-4" />
+                    Split Summary
+                  </h4>
+                  <div className="space-y-2">
+                    {group.members.map(member => (
+                      <div key={member._id} className="flex justify-between items-center text-sm">
+                        <span className="text-gray-300">{member.username || member.email}</span>
+                        <span className="font-semibold text-emerald-400">
+                          ₹{splitBalances[member._id].toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="p-3 bg-red-500/20 text-red-300 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setBillData(null);
+                    setPreview(null);
+                    setImage(null);
+                  }}
+                  className="flex-1 border-gray-600"
+                  disabled={processing}
+                >
+                  Scan New Bill
+                </Button>
+                <Button
+                  onClick={handleProcessPayment}
+                  disabled={processing}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Process Payment'
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {error && !billData && (
+            <div className="p-3 bg-red-500/20 text-red-300 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          {!billData && (
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className="border-gray-600"
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default BillScannerModal;
