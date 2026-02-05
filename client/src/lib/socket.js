@@ -1,11 +1,11 @@
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
 let socket;
 
 // Create socket connection
 export const connectSocket = (token = null) => {
   const options = {
-    transports: ['websocket'],
+    transports: ["websocket"],
     upgrade: false,
     secure: false,
     rejectUnauthorized: false,
@@ -17,8 +17,8 @@ export const connectSocket = (token = null) => {
 
   // Use environment variable or default to localhost:8000
   // Remove /api/v1/ suffix if present since socket.io connects to base URL
-  let SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
-  SERVER_URL = SERVER_URL.replace(/\/api\/v1\/?$/, '');
+  let SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+  SERVER_URL = SERVER_URL.replace(/\/api\/v1\/?$/, "");
 
   if (token) {
     options.auth = { token };
@@ -26,16 +26,16 @@ export const connectSocket = (token = null) => {
 
   socket = io(SERVER_URL, options);
 
-  socket.on('connect', () => {
-    console.log('Connected to server:', socket.id);
+  socket.on("connect", () => {
+    console.log("Connected to server:", socket.id);
   });
 
-  socket.on('disconnect', (reason) => {
-    console.log('Disconnected from server:', reason);
+  socket.on("disconnect", (reason) => {
+    console.log("Disconnected from server:", reason);
   });
 
-  socket.on('connect_error', (error) => {
-    console.error('Connection error:', error);
+  socket.on("connect_error", (error) => {
+    console.error("Connection error:", error);
   });
 
   return socket;
@@ -52,17 +52,46 @@ export const disconnectSocket = () => {
 // Get socket instance
 export const getSocket = () => {
   if (!socket) {
-    console.warn('Socket not connected. Call connectSocket() first.');
+    console.warn("Socket not connected. Call connectSocket() first.");
     return null;
   }
   return socket;
+};
+
+// Get socket ID
+export const getSocketId = () => {
+  if (!socket || !socket.connected) {
+    console.warn("Socket not connected. Call connectSocket() first.");
+    return null;
+  }
+  return socket.id;
+};
+
+// Get all socket IDs in a room/group
+export const getSocketsInRoom = (roomId) => {
+  return new Promise((resolve, reject) => {
+    const socketInstance = getSocket();
+    if (!socketInstance) {
+      reject(new Error("Socket not connected"));
+      return;
+    }
+
+    socketInstance.emit("getRoomSockets", roomId, (response) => {
+      resolve(response);
+    });
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      reject(new Error("Request timeout"));
+    }, 5000);
+  });
 };
 
 // Join a group
 export const joinGroup = (groupId) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.emit('joinGroup', groupId);
+    socketInstance.emit("joinGroup", groupId);
   }
 };
 
@@ -70,7 +99,7 @@ export const joinGroup = (groupId) => {
 export const leaveGroup = (groupId) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.emit('leaveGroup', groupId);
+    socketInstance.emit("leaveGroup", groupId);
   }
 };
 
@@ -78,7 +107,7 @@ export const leaveGroup = (groupId) => {
 export const emitRuleAdded = (data) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.emit('ruleAdded', data);
+    socketInstance.emit("ruleAdded", data);
   }
 };
 
@@ -86,7 +115,7 @@ export const emitRuleAdded = (data) => {
 export const emitMemberJoined = (data) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.emit('memberJoined', data);
+    socketInstance.emit("memberJoined", data);
   }
 };
 
@@ -94,7 +123,7 @@ export const emitMemberJoined = (data) => {
 export const emitMemberLeft = (data) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.emit('memberLeft', data);
+    socketInstance.emit("memberLeft", data);
   }
 };
 
@@ -102,7 +131,7 @@ export const emitMemberLeft = (data) => {
 export const emitSendMessage = (data) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.emit('sendMessage', data);
+    socketInstance.emit("sendMessage", data);
   }
 };
 
@@ -110,7 +139,7 @@ export const emitSendMessage = (data) => {
 export const onRuleAdded = (callback) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.on('ruleAdded', callback);
+    socketInstance.on("ruleAdded", callback);
   }
 };
 
@@ -118,7 +147,7 @@ export const onRuleAdded = (callback) => {
 export const onMemberJoined = (callback) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.on('memberJoined', callback);
+    socketInstance.on("memberJoined", callback);
   }
 };
 
@@ -126,7 +155,7 @@ export const onMemberJoined = (callback) => {
 export const onMemberLeft = (callback) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.on('memberLeft', callback);
+    socketInstance.on("memberLeft", callback);
   }
 };
 
@@ -134,7 +163,7 @@ export const onMemberLeft = (callback) => {
 export const onReceiveMessage = (callback) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.on('receiveMessage', callback);
+    socketInstance.on("receiveMessage", callback);
   }
 };
 
@@ -142,7 +171,7 @@ export const onReceiveMessage = (callback) => {
 export const onFundsAdded = (callback) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.on('fundsAdded', callback);
+    socketInstance.on("fundsAdded", callback);
   }
 
   console.log("Listening for fundsAdded event");
@@ -152,7 +181,7 @@ export const onFundsAdded = (callback) => {
 export const onNewMessage = (callback) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.on('newMessage', callback);
+    socketInstance.on("newMessage", callback);
   }
 };
 
@@ -160,7 +189,7 @@ export const onNewMessage = (callback) => {
 export const onExpenseLogged = (callback) => {
   const socketInstance = getSocket();
   if (socketInstance) {
-    socketInstance.on('expenseLogged', callback);
+    socketInstance.on("expenseLogged", callback);
   }
 };
 

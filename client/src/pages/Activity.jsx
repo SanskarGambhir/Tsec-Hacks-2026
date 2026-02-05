@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Activity as ActivityIcon,
@@ -15,8 +15,24 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { getActivityFeed, getActivityStats } from "@/api/activity.js";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
-const activities = [
+const defaultActivities = [
   {
     id: 1,
     type: "expense",
@@ -112,13 +128,93 @@ const activityIcons = {
   payment: { icon: Check, color: "bg-emerald-500/20 text-emerald-400" },
   member: { icon: Users, color: "bg-blue-500/20 text-blue-400" },
   pool: { icon: TrendingUp, color: "bg-purple-500/20 text-purple-400" },
+  message: { icon: Clock, color: "bg-yellow-500/20 text-yellow-400" },
+  settlement: { icon: Check, color: "bg-emerald-500/20 text-emerald-400" },
 };
 
 const filters = ["All", "Expenses", "Payments", "Members", "Pool"];
 
 export default function ActivityPage() {
+  const [activities, setActivities] = useState([]);
+  const [stats, setStats] = useState({
+    totalActivities: 0,
+    expenses: 0,
+    payments: 0,
+    messages: 0,
+    poolActivities: 0,
+  });
   const [activeFilter, setActiveFilter] = useState("All");
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch activities and stats on component mount
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch activity feed
+        const activityResponse = await getActivityFeed();
+        
+        // Extract activities from response (could be array or object with activities property)
+        const activityData = Array.isArray(activityResponse) 
+          ? activityResponse 
+          : activityResponse?.activities || [];
+        
+        // Transform API response to component format
+        const formattedActivities = (activityData || []).map((activity) => ({
+          id: activity._id,
+          type: activity.type,
+          title: activity.title,
+          description: activity.description,
+          group: activity.groupName || activity.name || "Unknown Group",
+          amount: activity.amount || null,
+          user: {
+            name: activity.user?.username || "Unknown User",
+            avatar: activity.user?.username?.charAt(0)?.toUpperCase() || "U",
+            email: activity.user?.email || "unknown@example.com",
+          },
+          time: getTimeAgo(activity.date || activity.createdAt),
+          date: new Date(activity.date || activity.createdAt).toISOString().split("T")[0],
+        }));
+
+        setActivities(formattedActivities);
+
+        // Fetch stats
+        const statsData = await getActivityStats();
+        if (statsData) {
+          setStats(statsData);
+        }
+      } catch (err) {
+        console.error("Failed to fetch activities:", err);
+        setError("Failed to load activities. Please try again.");
+        // Use default activities as fallback
+        setActivities(defaultActivities);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []);
+
+  // Helper function to format time ago
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const activityDate = new Date(date);
+    const diffMs = now - activityDate;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    return "1 week ago";
+  };
 
   const filteredActivities = activities.filter((activity) => {
     if (activeFilter === "All") return true;
@@ -158,9 +254,61 @@ export default function ActivityPage() {
     }
   };
 
+  // Prepare chart data for activity trends by date
+  const trendChartData = Object.entries(groupedActivities)
+    .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
+    .slice(-7) // Last 7 days
+    .map(([date, dayActivities]) => ({
+      date: new Date(date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
+      count: dayActivities.length,
+    }));
+
+  // Prepare chart data for activity type distribution
+  const typeDistribution = [
+    { name: "Expenses", value: activities.filter((a) => a.type === "expense").length, fill: "#ef4444" },
+    { name: "Payments", value: activities.filter((a) => a.type === "payment").length, fill: "#10b981" },
+    { name: "Messages", value: activities.filter((a) => a.type === "message").length, fill: "#f59e0b" },
+    { name: "Settlement", value: activities.filter((a) => a.type === "settlement").length, fill: "#8b5cf6" },
+  ].filter((item) => item.value > 0);
+
+  // Prepare chart data for activity by type (bar chart)
+  const activityByType = [
+    { type: "Expenses", count: activities.filter((a) => a.type === "expense").length },
+    { type: "Payments", count: activities.filter((a) => a.type === "payment").length },
+    { type: "Messages", count: activities.filter((a) => a.type === "message").length },
+    { type: "Settlement", count: activities.filter((a) => a.type === "settlement").length },
+  ].filter((item) => item.count > 0);
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Error Message */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400"
+        >
+          {error}
+        </motion.div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-20"
+        >
+          <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center mb-6 animate-pulse">
+            <ActivityIcon className="w-12 h-12 text-emerald-400" />
+          </div>
+          <h3 className="text-2xl font-bold mb-2">Loading Activities</h3>
+          <p className="text-gray-400">Fetching your recent activity...</p>
+        </motion.div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -195,7 +343,7 @@ export default function ActivityPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Total Activities</p>
-                <p className="text-xl font-bold">{activities.length}</p>
+                <p className="text-xl font-bold">{stats.totalActivities}</p>
               </div>
             </div>
           </CardContent>
@@ -209,9 +357,7 @@ export default function ActivityPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Expenses</p>
-                <p className="text-xl font-bold">
-                  {activities.filter((a) => a.type === "expense").length}
-                </p>
+                <p className="text-xl font-bold">{stats.expenses}</p>
               </div>
             </div>
           </CardContent>
@@ -225,9 +371,7 @@ export default function ActivityPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Settlements</p>
-                <p className="text-xl font-bold">
-                  {activities.filter((a) => a.type === "payment").length}
-                </p>
+                <p className="text-xl font-bold">{stats.payments}</p>
               </div>
             </div>
           </CardContent>
@@ -241,14 +385,141 @@ export default function ActivityPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Pool Updates</p>
-                <p className="text-xl font-bold">
-                  {activities.filter((a) => a.type === "pool").length}
-                </p>
+                <p className="text-xl font-bold">{stats.poolActivities}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Charts Section */}
+      {!loading && activities.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        >
+          {/* Activity Trend Chart */}
+          <Card className="glass-card border-white/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-400" />
+                Activity Trend
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {trendChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={trendChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="date" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "#1f2937", 
+                        border: "1px solid #374151",
+                        borderRadius: "8px"
+                      }}
+                      labelStyle={{ color: "#fff" }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={{ fill: "#3b82f6", r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  No trend data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Activity Type Distribution */}
+          <Card className="glass-card border-white/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-green-400" />
+                Activity Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {typeDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={typeDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {typeDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "#1f2937", 
+                        border: "1px solid #374151",
+                        borderRadius: "8px",
+                        color: "#fff"
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  No distribution data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Activity by Type Bar Chart */}
+          <Card className="glass-card border-white/10 lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-400" />
+                Activities by Type
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {activityByType.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={activityByType}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="type" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "#1f2937", 
+                        border: "1px solid #374151",
+                        borderRadius: "8px"
+                      }}
+                      labelStyle={{ color: "#fff" }}
+                    />
+                    <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  No data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Filters */}
       <motion.div
@@ -263,10 +534,10 @@ export default function ActivityPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setActiveFilter(filter)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
               activeFilter === filter
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                : "bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10"
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-lg shadow-emerald-500/20"
+                : "bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-white/20"
             }`}
           >
             {filter}
@@ -275,7 +546,8 @@ export default function ActivityPage() {
       </motion.div>
 
       {/* Activity List */}
-      <div className="space-y-6">
+      {!loading && (
+        <div className="space-y-6">
         {Object.entries(groupedActivities).map(([date, dayActivities], groupIndex) => (
           <motion.div
             key={date}
@@ -283,14 +555,18 @@ export default function ActivityPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 * groupIndex }}
           >
-            <h3 className="text-sm font-medium text-gray-400 mb-3 px-1">
-              {formatDate(date)}
-            </h3>
-            <Card className="glass-card border-white/10">
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-base font-semibold text-white">
+                {formatDate(date)}
+              </h3>
+              <div className="flex-1 h-px bg-white/10"></div>
+            </div>
+            <Card className="glass-card border-white/10 overflow-hidden">
               <CardContent className="p-2">
                 {dayActivities.map((activity, index) => {
-                  const IconComponent = activityIcons[activity.type].icon;
-                  const iconColor = activityIcons[activity.type].color;
+                  const iconData = activityIcons[activity.type] || activityIcons.expense;
+                  const IconComponent = iconData.icon;
+                  const iconColor = iconData.color;
 
                   return (
                     <motion.div
@@ -298,15 +574,15 @@ export default function ActivityPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.05 * index }}
-                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors"
+                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 hover:border-l-2 hover:border-emerald-500/50 transition-all cursor-pointer"
                     >
                       <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconColor}`}
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${iconColor}`}
                       >
                         <IconComponent className="w-6 h-6" />
                       </div>
 
-                      <Avatar className="w-10 h-10 hidden sm:flex">
+                      <Avatar className="w-10 h-10 hidden sm:flex shrink-0">
                         <AvatarImage
                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user.email}`}
                         />
@@ -319,16 +595,16 @@ export default function ActivityPage() {
                       </Avatar>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium truncate">{activity.title}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-white truncate">{activity.title}</p>
                           <Badge
                             variant="secondary"
-                            className="bg-white/10 text-gray-400 border-0 text-xs hidden sm:inline-flex"
+                            className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs hidden sm:inline-flex"
                           >
                             {activity.group}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-sm text-gray-400 truncate">
                           {activity.description}
                         </p>
                       </div>
@@ -336,17 +612,17 @@ export default function ActivityPage() {
                       <div className="text-right">
                         {activity.amount && (
                           <p
-                            className={`font-semibold ${
+                            className={`font-bold text-base ${
                               activity.type === "expense"
                                 ? "text-red-400"
                                 : "text-emerald-400"
                             }`}
                           >
-                            {activity.type === "expense" ? "-" : "+"}$
+                            {activity.type === "expense" ? "-" : "+"}₹
                             {activity.amount.toFixed(2)}
                           </p>
                         )}
-                        <p className="text-xs text-gray-500 flex items-center justify-end gap-1">
+                        <p className="text-xs text-gray-400 flex items-center justify-end gap-1 mt-1">
                           <Clock className="w-3 h-3" />
                           {activity.time}
                         </p>
@@ -358,21 +634,24 @@ export default function ActivityPage() {
             </Card>
           </motion.div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Empty State */}
-      {filteredActivities.length === 0 && (
+      {!loading && filteredActivities.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-16"
+          className="text-center py-20"
         >
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-            <ActivityIcon className="w-10 h-10 text-gray-500" />
+          <div className="w-24 h-24 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-6">
+            <ActivityIcon className="w-12 h-12 text-gray-500 opacity-50" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">No activities found</h3>
-          <p className="text-gray-400">
-            No activities match your current filter
+          <h3 className="text-2xl font-bold mb-3">No Activities Found</h3>
+          <p className="text-gray-400 max-w-md mx-auto">
+            {activeFilter !== "All" 
+              ? `No activities match the "${activeFilter}" filter. Try selecting a different filter.`
+              : "Start adding expenses and making payments to see your activity here."}
           </p>
         </motion.div>
       )}
