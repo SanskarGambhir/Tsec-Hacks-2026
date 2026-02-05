@@ -9,7 +9,6 @@ import JoinGroup from "./components/JoinGroup";
 import GroupDetailPage from "./components/GroupDetailPage";
 import Groups from "./pages/Groups";
 import CreateGroup from "./pages/CreateGroup";
-import GroupDetails from "./pages/GroupDetails";
 import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
 import FriendsPage from "./pages/FriendsPage";
@@ -32,7 +31,7 @@ function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/invite/:token" element={<InviteHandler />} />
         <Route path="/group-invite/:token" element={<GroupInviteHandler />} />
-        
+
         <Route path="/chat/:groupId" element={<GroupChat />} />
         <Route path="/socket-test" element={<SocketTestComponent />} />
         <Route path="/join-group" element={<JoinGroup />} />

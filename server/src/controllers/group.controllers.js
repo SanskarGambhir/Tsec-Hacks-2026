@@ -396,6 +396,54 @@ const addRule = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, group, "Rule added successfully"));
 });
 
+const removeRule = asyncHandler(async (req, res) => {
+  const { groupId, ruleIndex } = req.params; // Using index from URL params
+
+  if (ruleIndex === undefined || ruleIndex < 0) {
+    throw new ApiError(400, "Rule index is required and must be a valid index");
+  }
+
+  const group = await Group.findById(groupId);
+
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  // Check if the user is the owner (only owner should typically remove rules)
+  if (group.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "Only the group owner can remove rules");
+  }
+
+  // Validate rule index (convert string to number)
+  const ruleIndexNum = parseInt(ruleIndex);
+  if (isNaN(ruleIndexNum) || ruleIndexNum >= group.rules.length) {
+    throw new ApiError(400, "Invalid rule index");
+  }
+
+  // Store the removed rule for response
+  const removedRule = group.rules[ruleIndexNum];
+
+  // Remove the rule at the specified index
+  group.rules.splice(ruleIndexNum, 1);
+  await group.save();
+
+  // Emit real-time update
+  try {
+    const io = getIO();
+    io.to(groupId).emit("ruleRemoved", {
+      groupId,
+      rule: removedRule,
+      ruleIndex: ruleIndexNum
+    });
+  } catch (error) {
+    console.error("Socket emit failed:", error);
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, group, "Rule removed successfully"));
+});
+
 const joinGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { amount } = req.body;
@@ -1475,6 +1523,7 @@ export {
   createGroup,
   logExpense,
   addRule,
+  removeRule,
   addFundsToGroup,
   joinGroup,
   getGroupDetails,
