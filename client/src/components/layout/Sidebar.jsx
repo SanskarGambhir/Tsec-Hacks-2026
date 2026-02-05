@@ -88,7 +88,7 @@ export default function Sidebar({ isOpen, onClose }) {
       </nav>
 
       {/* AI Assistant Card */}
-      <div className="mx-4 mb-4 p-4 rounded-xl glass-card">
+      {/* <div className="mx-4 mb-4 p-4 rounded-xl glass-card">
         <div className="flex items-center gap-2 mb-2">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -107,7 +107,7 @@ export default function Sidebar({ isOpen, onClose }) {
         >
           Coming Soon
         </button>
-      </div>
+      </div> */}
 
       {/* Logout Button */}
       <div className="p-4 border-t border-emerald-500/10">

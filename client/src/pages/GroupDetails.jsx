@@ -21,6 +21,7 @@ import {
   Phone,
   Loader2,
   MessageCircle,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,42 +39,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { getFriends } from "@/api/friends";
-import { sendGroupInviteToFriend, sendGroupInviteViaWhatsApp } from "@/api/groups";
-
-const groupData = {
-  id: 1,
-  name: "Weekend Trip",
-  description: "Beach vacation with college friends",
-  avatar: "🏖️",
-  colorGradient: "linear-gradient(135deg, #3b82f6, #06b6d4)",
-  poolBalance: 1200,
-  totalExpenses: 3450,
-  members: [
-    { id: 1, name: "Alex (You)", email: "alex@example.com", avatar: "A", role: "admin", contributed: 500, owed: 0 },
-    { id: 2, name: "Sarah", email: "sarah@example.com", avatar: "S", role: "member", contributed: 300, owed: 50 },
-    { id: 3, name: "Mike", email: "mike@example.com", avatar: "M", role: "member", contributed: 200, owed: 120 },
-    { id: 4, name: "Emily", email: "emily@example.com", avatar: "E", role: "member", contributed: 100, owed: 80 },
-    { id: 5, name: "John", email: "john@example.com", avatar: "J", role: "member", contributed: 100, owed: 0 },
-  ],
-  expenses: [
-    { id: 1, title: "Hotel Booking", amount: 800, paidBy: "Alex", date: "2025-01-15", category: "Accommodation" },
-    { id: 2, title: "Dinner at Beach", amount: 250, paidBy: "Sarah", date: "2025-01-16", category: "Food" },
-    { id: 3, title: "Surfing Lessons", amount: 400, paidBy: "Mike", date: "2025-01-16", category: "Activities" },
-    { id: 4, title: "Groceries", amount: 150, paidBy: "Emily", date: "2025-01-17", category: "Food" },
-    { id: 5, title: "Car Rental", amount: 350, paidBy: "Alex", date: "2025-01-14", category: "Transport" },
-  ],
-  rules: [
-    "All expenses above $100 need group approval",
-    "Pool contributions due by 1st of each month",
-    "Receipts required for reimbursement",
-  ],
-};
+import { sendGroupInviteToFriend, sendGroupInviteViaWhatsApp, getGroupDetails, removeRuleFromGroup } from "../api/groups";
+import toast from "react-hot-toast";
 
 const categoryColors = {
   Accommodation: "bg-blue-500/20 text-blue-400",
   Food: "bg-orange-500/20 text-orange-400",
   Activities: "bg-purple-500/20 text-purple-400",
-  Transport: "bg-green-500/20 text-green-400",
+  Transport: "bg-green-500/20 text-orange-400",
 };
 
 export default function GroupDetails() {
@@ -82,7 +55,9 @@ export default function GroupDetails() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
-  const [members, setMembers] = useState(groupData.members);
+  const [group, setGroup] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [removingRule, setRemovingRule] = useState(null);
 
   // Friend selection states
   const [addMethod, setAddMethod] = useState("friends"); // 'friends' or 'whatsapp'
@@ -95,6 +70,25 @@ export default function GroupDetails() {
   const [phoneLoading, setPhoneLoading] = useState(false);
   const [phoneInviteSuccess, setPhoneInviteSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  // Fetch group details
+  const fetchGroupDetails = async () => {
+    setLoading(true);
+    try {
+      const response = await getGroupDetails(id);
+      setGroup(response.data);
+    } catch (error) {
+      console.error("Error fetching group details:", error);
+      toast.error(error.response?.data?.message || "Failed to load group details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch group details on component mount and when id changes
+  useEffect(() => {
+    fetchGroupDetails();
+  }, [id]);
 
   // Fetch friends list
   const fetchFriends = async () => {
@@ -136,33 +130,23 @@ export default function GroupDetails() {
 
     setFriendsLoading(true);
     setError("");
-    
+
     try {
       // Send invites to all selected friends
       await Promise.all(
         selectedFriends.map(friend =>
-          sendGroupInviteToFriend({ groupId: id, friendId: friend._id })
+          sendGroupInviteToFriend(id, friend._id)
         )
       );
 
-      // Add to members list (as pending)
-      const newMembers = selectedFriends.map(friend => ({
-        id: `pending-${friend._id}`,
-        name: friend.username,
-        email: friend.email,
-        avatar: friend.username?.[0]?.toUpperCase() || "?",
-        role: "member",
-        contributed: 0,
-        owed: 0,
-        status: "invited"
-      }));
-      
-      setMembers([...members, ...newMembers]);
+      toast.success("Invites sent successfully!");
+      fetchGroupDetails(); // Refresh group data
       setSelectedFriends([]);
       setShowAddMember(false);
     } catch (error) {
       console.error("Error sending friend invites:", error);
       setError(error.response?.data?.message || "Failed to send invites");
+      toast.error(error.response?.data?.message || "Failed to send invites");
     } finally {
       setFriendsLoading(false);
     }
@@ -177,48 +161,65 @@ export default function GroupDetails() {
 
     setPhoneLoading(true);
     setError("");
-    
-    try {
-      await sendGroupInviteViaWhatsApp({
-        groupId: id,
-        phoneNumber: phoneNumber.trim()
-      });
 
+    try {
+      await sendGroupInviteViaWhatsApp(id, phoneNumber.trim());
       setPhoneInviteSuccess(true);
       setPhoneNumber("");
-      
+
       setTimeout(() => {
         setPhoneInviteSuccess(false);
         setShowAddMember(false);
       }, 2000);
+
+      toast.success("WhatsApp invite sent successfully!");
+      fetchGroupDetails(); // Refresh group data
     } catch (error) {
       console.error("Error sending WhatsApp invite:", error);
       setError(error.response?.data?.message || "Failed to send invite");
+      toast.error(error.response?.data?.message || "Failed to send invite");
     } finally {
       setPhoneLoading(false);
     }
   };
 
-  const handleAddMember = () => {
-    if (newMemberEmail) {
-      const newMember = {
-        id: members.length + 1,
-        name: newMemberEmail.split("@")[0],
-        email: newMemberEmail,
-        avatar: newMemberEmail[0].toUpperCase(),
-        role: "member",
-        contributed: 0,
-        owed: 0,
-      };
-      setMembers([...members, newMember]);
-      setNewMemberEmail("");
-      setShowAddMember(false);
+  // Remove rule from group
+  const handleRemoveRule = async (ruleIndex) => {
+    if (!window.confirm("Are you sure you want to remove this rule?")) {
+      return;
+    }
+
+    setRemovingRule(ruleIndex);
+    try {
+      await removeRuleFromGroup(id, ruleIndex);
+      toast.success("Rule removed successfully!");
+      fetchGroupDetails(); // Refresh group data
+    } catch (error) {
+      console.error("Error removing rule:", error);
+      toast.error(error.response?.data?.message || "Failed to remove rule");
+    } finally {
+      setRemovingRule(null);
     }
   };
 
-  const handleRemoveMember = (memberId) => {
-    setMembers(members.filter((m) => m.id !== memberId));
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+      </div>
+    );
+  }
+
+  if (!group) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Group not found</h2>
+          <Button onClick={() => navigate(-1)}>Go Back</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -240,13 +241,13 @@ export default function GroupDetails() {
         <div className="flex items-center gap-4 flex-1">
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-            style={{ background: groupData.colorGradient }}
+            style={{ background: "linear-gradient(135deg, #3b82f6, #06b6d4)" }}
           >
-            {groupData.avatar}
+            {group.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold truncate">{groupData.name}</h1>
-            <p className="text-gray-400 text-sm">{groupData.description}</p>
+            <h1 className="text-2xl font-bold truncate">{group.name}</h1>
+            <p className="text-gray-400 text-sm">{group.description}</p>
           </div>
         </div>
 
@@ -285,7 +286,7 @@ export default function GroupDetails() {
               <div>
                 <p className="text-sm text-gray-400">Pool Balance</p>
                 <p className="text-xl font-bold text-emerald-400">
-                  ${groupData.poolBalance}
+                  ₹{group.wallet?.balance || 0}
                 </p>
               </div>
             </div>
@@ -300,7 +301,7 @@ export default function GroupDetails() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Total Expenses</p>
-                <p className="text-xl font-bold">${groupData.totalExpenses}</p>
+                <p className="text-xl font-bold">₹{group.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -314,7 +315,7 @@ export default function GroupDetails() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Members</p>
-                <p className="text-xl font-bold">{members.length}</p>
+                <p className="text-xl font-bold">{group.members?.length || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -327,8 +328,8 @@ export default function GroupDetails() {
                 <DollarSign className="w-5 h-5 text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Your Share</p>
-                <p className="text-xl font-bold text-emerald-400">+$240</p>
+                <p className="text-sm text-gray-400">Rules</p>
+                <p className="text-xl font-bold">{group.rules?.length || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -379,68 +380,71 @@ export default function GroupDetails() {
                 <CardTitle className="text-lg">Recent Expenses</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {groupData.expenses.slice(0, 4).map((expense) => (
+                {(group.expenses || []).slice(0, 4).map((expense, index) => (
                   <div
-                    key={expense.id}
+                    key={expense._id || index}
                     className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
                   >
                     <div
-                      className={`px-2 py-1 rounded-lg text-xs font-medium ${categoryColors[expense.category]
-                        }`}
+                      className={`px-2 py-1 rounded-lg text-xs font-medium ${categoryColors[expense.category] || "bg-gray-500/20 text-gray-400"}`}
                     >
-                      {expense.category}
+                      {expense.category || "General"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{expense.title}</p>
-                      <p className="text-xs text-gray-500">by {expense.paidBy}</p>
+                      <p className="font-medium text-sm truncate">{expense.description}</p>
+                      <p className="text-xs text-gray-500">by {expense.spentBy?.username || "Unknown"}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">${expense.amount}</p>
-                      <p className="text-xs text-gray-500">{expense.date}</p>
+                      <p className="font-semibold">₹{expense.amount}</p>
+                      <p className="text-xs text-gray-500">{new Date(expense.date).toLocaleDateString()}</p>
                     </div>
                   </div>
                 ))}
+                {(!group.expenses || group.expenses.length === 0) && (
+                  <div className="text-center py-8 text-gray-500">
+                    No expenses recorded yet
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Member Balances */}
             <Card className="glass-card border-white/10">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Member Balances</CardTitle>
+                <CardTitle className="text-lg">Group Members</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {members.slice(0, 4).map((member) => (
+                {(group.members || []).slice(0, 4).map((member, index) => (
                   <div
-                    key={member.id}
+                    key={member._id || index}
                     className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
                   >
                     <Avatar className="w-10 h-10">
                       <AvatarImage
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email || member.username}`}
                       />
                       <AvatarFallback
                         className="text-black"
                         style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
                       >
-                        {member.avatar}
+                        {member.username?.charAt(0)?.toUpperCase() || "?"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{member.name}</p>
-                      <p className="text-xs text-gray-500">
-                        Contributed: ${member.contributed}
-                      </p>
+                      <p className="font-medium text-sm truncate">{member.username}</p>
+                      <p className="text-xs text-gray-500">{member.email}</p>
                     </div>
                     <div className="text-right">
-                      <p
-                        className={`font-semibold text-sm ${member.owed > 0 ? "text-red-400" : "text-emerald-400"
-                          }`}
-                      >
-                        {member.owed > 0 ? `-$${member.owed}` : "Settled"}
-                      </p>
+                      <p className="font-semibold">₹0</p>
+                      <p className="text-xs text-gray-500">balance</p>
                     </div>
                   </div>
                 ))}
+                {(!group.members || group.members.length === 0) && (
+                  <div className="text-center py-8 text-gray-500">
+                    No members in this group
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -450,31 +454,35 @@ export default function GroupDetails() {
         <TabsContent value="expenses" className="mt-6">
           <Card className="glass-card border-white/10">
             <CardContent className="p-4 space-y-3">
-              {groupData.expenses.map((expense, index) => (
+              {(group.expenses || []).map((expense, index) => (
                 <motion.div
-                  key={expense.id}
+                  key={expense._id || index}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                 >
                   <div
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium ${categoryColors[expense.category]
-                      }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium ${categoryColors[expense.category] || "bg-gray-500/20 text-gray-400"}`}
                   >
-                    {expense.category}
+                    {expense.category || "General"}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{expense.title}</p>
+                    <p className="font-medium truncate">{expense.description}</p>
                     <p className="text-sm text-gray-500">
-                      Paid by {expense.paidBy} • {expense.date}
+                      Paid by {expense.spentBy?.username || "Unknown"} • {new Date(expense.date).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-bold">${expense.amount}</p>
+                    <p className="text-xl font-bold">₹{expense.amount}</p>
                   </div>
                 </motion.div>
               ))}
+              {(!group.expenses || group.expenses.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  No expenses recorded yet
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -542,7 +550,7 @@ export default function GroupDetails() {
                       ) : (
                         <div className="space-y-2 max-h-[300px] overflow-y-auto">
                           {friends
-                            .filter(friend => !members.some(m => m.email === friend.email))
+                            .filter(friend => !group.members.some(m => m._id === friend._id))
                             .map((friend) => (
                               <div
                                 key={friend._id}
@@ -682,9 +690,9 @@ export default function GroupDetails() {
               </Dialog>
             </CardHeader>
             <CardContent className="space-y-3">
-              {members.map((member, index) => (
+              {(group.members || []).map((member, index) => (
                 <motion.div
-                  key={member.id}
+                  key={member._id || index}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
@@ -692,43 +700,35 @@ export default function GroupDetails() {
                 >
                   <Avatar className="w-12 h-12">
                     <AvatarImage
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email || member.username}`}
                     />
                     <AvatarFallback
                       className="text-black font-bold"
                       style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
                     >
-                      {member.avatar}
+                      {member.username?.charAt(0)?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">{member.name}</p>
-                      {member.role === "admin" && (
+                      <p className="font-medium truncate">{member.username}</p>
+                      {member._id === group.owner?._id && (
                         <Crown className="w-4 h-4 text-yellow-500" />
-                      )}
-                      {member.status === "invited" && (
-                        <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 text-xs">
-                          Invited
-                        </Badge>
                       )}
                     </div>
                     <p className="text-sm text-gray-400">{member.email}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">${member.contributed}</p>
-                    <p className="text-xs text-gray-500">contributed</p>
+                    <p className="font-semibold">₹0</p>
+                    <p className="text-xs text-gray-500">balance</p>
                   </div>
-                  {member.role !== "admin" && (
-                    <button
-                      onClick={() => handleRemoveMember(member.id)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <UserMinus className="w-4 h-4" />
-                    </button>
-                  )}
                 </motion.div>
               ))}
+              {(!group.members || group.members.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  No members in this group
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -740,7 +740,7 @@ export default function GroupDetails() {
               <CardTitle className="text-lg">Group Rules</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {groupData.rules.map((rule, index) => (
+              {(group.rules || []).map((rule, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, x: -10 }}
@@ -753,9 +753,29 @@ export default function GroupDetails() {
                       {index + 1}
                     </span>
                   </div>
-                  <p className="text-gray-300">{rule}</p>
+                  <div className="flex-1">
+                    <p className="text-gray-300 font-medium">{rule.ruleType}</p>
+                    <p className="text-gray-400 text-sm">{rule.description}</p>
+                    <p className="text-gray-500 text-xs mt-1">{rule.ruleValue}</p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveRule(index)}
+                    disabled={removingRule === index}
+                    className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                  >
+                    {removingRule === index ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
                 </motion.div>
               ))}
+              {(!group.rules || group.rules.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  No rules defined for this group
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -768,23 +788,33 @@ export default function GroupDetails() {
                 <CardTitle className="text-lg">Spending by Category</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {Object.entries({
-                  Accommodation: 800,
-                  Food: 400,
-                  Activities: 400,
-                  Transport: 350,
-                }).map(([category, amount]) => (
+                {Object.entries(
+                  (group.expenses || []).reduce((acc, expense) => {
+                    const category = expense.category || "General";
+                    acc[category] = (acc[category] || 0) + expense.amount;
+                    return acc;
+                  }, {})
+                ).map(([category, amount]) => (
                   <div key={category} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-400">{category}</span>
-                      <span className="font-medium">${amount}</span>
+                      <span className="font-medium">₹{amount}</span>
                     </div>
                     <Progress
-                      value={(amount / groupData.totalExpenses) * 100}
+                      value={(amount / Math.max(1, (group.expenses || []).reduce((sum, exp) => sum + exp.amount, 0))) * 100}
                       className="h-2 bg-white/10"
                     />
                   </div>
                 ))}
+                {Object.keys((group.expenses || []).reduce((acc, expense) => {
+                  const category = expense.category || "General";
+                  acc[category] = (acc[category] || 0) + expense.amount;
+                  return acc;
+                }, {})).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No expenses recorded yet
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -793,18 +823,23 @@ export default function GroupDetails() {
                 <CardTitle className="text-lg">Contribution Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {members.map((member) => (
-                  <div key={member.id} className="space-y-2">
+                {(group.members || []).map((member, index) => (
+                  <div key={member._id || index} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">{member.name}</span>
-                      <span className="font-medium">${member.contributed}</span>
+                      <span className="text-gray-400">{member.username}</span>
+                      <span className="font-medium">₹0</span>
                     </div>
                     <Progress
-                      value={(member.contributed / 500) * 100}
+                      value={0}
                       className="h-2 bg-white/10"
                     />
                   </div>
                 ))}
+                {(!group.members || group.members.length === 0) && (
+                  <div className="text-center py-8 text-gray-500">
+                    No members in this group
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
