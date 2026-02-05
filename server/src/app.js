@@ -19,16 +19,10 @@ import billRoutes from "./routes/bill.routes.js";
 
 const app = express();
 
-// CORS Configuration
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "https://tsec-hacks-2026-haoy.vercel.app",
-  process.env.CORS_ORIGIN
-].filter(Boolean);
+
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: "*",
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Authorization", "Content-Type"],
