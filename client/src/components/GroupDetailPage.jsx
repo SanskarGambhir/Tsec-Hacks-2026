@@ -58,6 +58,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import GroupPaymentModal from "./GroupPaymentModal";
+import MemberActionsModal from "./MemberActionsModal";
 import { getFriends } from "../api/friends";
 import {
   sendGroupInviteToFriend,
@@ -104,6 +105,11 @@ const GroupDetailPage = () => {
 
   // Group Invitation State
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+
+  // Member Actions Modal State
+  const [showMemberActionsModal, setShowMemberActionsModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedMemberBalance, setSelectedMemberBalance] = useState(0);
 
   // Friend selection states
   const [addMethod, setAddMethod] = useState("friends"); // 'friends' or 'whatsapp'
@@ -660,6 +666,38 @@ const GroupDetailPage = () => {
     }
   };
 
+  // Function to handle member actions (take credits or add funds)
+  const handleMemberAction = async (actionData) => {
+    try {
+      let response;
+
+      if (actionData.actionType === 'takeCredits') {
+        // Withdraw credits from member's balance
+        response = await api.post(`/members/${groupId}/withdraw-credits`, {
+          memberId: actionData.memberId,
+          amount: actionData.amount
+        }, { withCredentials: true });
+      } else if (actionData.actionType === 'addFunds') {
+        const response = await api.post(
+          `/groups/${groupId}/add-funds`,
+          { amount: actionData.amount },
+          { withCredentials: true }
+        );
+
+      }
+
+      console.log('Member action processed successfully:', response.data);
+
+      // Refresh the group data to reflect the changes
+      const refreshedResponse = await api.get(`/groups/${groupId}`);
+      setGroup(refreshedResponse.data.data);
+    } catch (err) {
+      console.error('Error processing member action:', err);
+      throw err; // Re-throw to be caught by the modal
+    }
+  };
+
+
   // Check if the group is a regular split group
   const isRegularSplitGroup = group?.rules?.some(
     (rule) => rule.ruleType === "regular_split",
@@ -1005,11 +1043,10 @@ const GroupDetailPage = () => {
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                            tx.type === "DEPOSIT"
-                              ? "bg-emerald-500/10"
-                              : "bg-red-500/10"
-                          }`}
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${tx.type === "DEPOSIT"
+                            ? "bg-emerald-500/10"
+                            : "bg-red-500/10"
+                            }`}
                         >
                           {tx.type === "DEPOSIT" ? (
                             <ArrowDownRight className="w-5 h-5 text-emerald-400" />
@@ -1282,13 +1319,12 @@ const GroupDetailPage = () => {
                               <div
                                 key={friend._id}
                                 onClick={() => toggleFriendSelection(friend)}
-                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                                  selectedFriends.some(
-                                    (f) => f._id === friend._id,
-                                  )
-                                    ? "bg-emerald-500/20 border border-emerald-500/30"
-                                    : "bg-white/5 hover:bg-white/10 border border-transparent"
-                                }`}
+                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedFriends.some(
+                                  (f) => f._id === friend._id,
+                                )
+                                  ? "bg-emerald-500/20 border border-emerald-500/30"
+                                  : "bg-white/5 hover:bg-white/10 border border-transparent"
+                                  }`}
                               >
                                 <Avatar className="h-10 w-10">
                                   <AvatarImage src={friend.avatar} />
@@ -1307,8 +1343,8 @@ const GroupDetailPage = () => {
                                 {selectedFriends.some(
                                   (f) => f._id === friend._id,
                                 ) && (
-                                  <Check className="w-5 h-5 text-emerald-400" />
-                                )}
+                                    <Check className="w-5 h-5 text-emerald-400" />
+                                  )}
                               </div>
                             ))}
                         </div>
@@ -1437,13 +1473,16 @@ const GroupDetailPage = () => {
             <CardContent className="space-y-3">
               {group.members?.map((member, index) => {
                 // Find the member's balance in memberBalances
+
                 const memberBalance = group.wallet?.memberBalances?.find(
                   (balance) =>
                     balance.user.toString() === member._id.toString(),
                 );
-
+                const displayButton = member._id === currentUserId && memberBalance && memberBalance.balance <= 100;
                 const balanceAmount = memberBalance ? memberBalance.balance : 0;
                 const isPositive = balanceAmount >= 0;
+
+                console.log(displayButton, member.username, balanceAmount);
 
                 return (
                   <motion.div
@@ -1488,6 +1527,25 @@ const GroupDetailPage = () => {
                       <p className="text-xs text-gray-500">
                         {isPositive ? "Credit" : "Debt"}
                       </p>
+
+                      {/* Show action button if user has credit >= 100 */}
+                      {displayButton && (
+                        <div className="mt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs border-emerald-500/30 hover:bg-emerald-500/10"
+                            onClick={() => {
+                              // Set the selected member and open the modal
+                              setSelectedMember(member);
+                              setSelectedMemberBalance(balanceAmount);
+                              setShowMemberActionsModal(true);
+                            }}
+                          >
+                            Actions
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     {/* Placeholder for remove logic if user is owner */}
                     {/* <button
@@ -1573,7 +1631,18 @@ const GroupDetailPage = () => {
         <GroupPaymentModal
           group={group}
           onClose={() => setShowGroupPaymentModal(false)}
-          onSuccess={() => {}}
+          onSuccess={() => { }}
+        />
+      )}
+
+      {/* Member Actions Modal */}
+      {showMemberActionsModal && selectedMember && (
+        <MemberActionsModal
+          member={selectedMember}
+          balance={selectedMemberBalance}
+          groupId={groupId}
+          onClose={() => setShowMemberActionsModal(false)}
+          onAction={handleMemberAction}
         />
       )}
 

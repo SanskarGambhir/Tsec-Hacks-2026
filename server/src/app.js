@@ -6,6 +6,9 @@ import authRouter from "./routes/auth.routes.js";
 import walletRouter from "./routes/wallet.routes.js";
 import groupRouter from "./routes/group.routes.js";
 import groupPaymentRouter from "./routes/groupPayment.routes.js";
+import memberActionsRouter from "./routes/memberActions.routes.js";
+import creditWithdrawalRouter from "./routes/creditWithdrawal.routes.js";
+import userProfileRouter from "./routes/userProfile.routes.js";
 import friendRouter from "./routes/friend.routes.js";
 import sharedExpenseRouter from "./routes/sharedExpense.routes.js";
 import cookieParser from "cookie-parser";
@@ -36,6 +39,9 @@ app.use("/api/v1/friends", friendRouter);
 app.use("/api/v1/shared-expenses", sharedExpenseRouter);
 app.use("/api/v1/bill", billRoutes);
 app.use("/api/v1/group-payments", groupPaymentRouter);
+app.use("/api/v1/members", memberActionsRouter);
+app.use("/api/v1/credit-withdrawals", creditWithdrawalRouter);
+app.use("/api/v1/user", userProfileRouter);
 
 
 app.get('/', (req, res) => {
