@@ -300,13 +300,13 @@ export default function ActivityPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-16"
+          className="text-center py-20"
         >
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-            <ActivityIcon className="w-10 h-10 text-gray-500 animate-spin" />
+          <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center mb-6 animate-pulse">
+            <ActivityIcon className="w-12 h-12 text-emerald-400" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">Loading activities</h3>
-          <p className="text-gray-400">Please wait...</p>
+          <h3 className="text-2xl font-bold mb-2">Loading Activities</h3>
+          <p className="text-gray-400">Fetching your recent activity...</p>
         </motion.div>
       )}
       <motion.div
@@ -534,10 +534,10 @@ export default function ActivityPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setActiveFilter(filter)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
               activeFilter === filter
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                : "bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10"
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-lg shadow-emerald-500/20"
+                : "bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-white/20"
             }`}
           >
             {filter}
@@ -555,10 +555,13 @@ export default function ActivityPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 * groupIndex }}
           >
-            <h3 className="text-sm font-medium text-gray-400 mb-3 px-1">
-              {formatDate(date)}
-            </h3>
-            <Card className="glass-card border-white/10">
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-base font-semibold text-white">
+                {formatDate(date)}
+              </h3>
+              <div className="flex-1 h-px bg-white/10"></div>
+            </div>
+            <Card className="glass-card border-white/10 overflow-hidden">
               <CardContent className="p-2">
                 {dayActivities.map((activity, index) => {
                   const iconData = activityIcons[activity.type] || activityIcons.expense;
@@ -571,15 +574,15 @@ export default function ActivityPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.05 * index }}
-                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors"
+                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 hover:border-l-2 hover:border-emerald-500/50 transition-all cursor-pointer"
                     >
                       <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconColor}`}
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${iconColor}`}
                       >
                         <IconComponent className="w-6 h-6" />
                       </div>
 
-                      <Avatar className="w-10 h-10 hidden sm:flex">
+                      <Avatar className="w-10 h-10 hidden sm:flex shrink-0">
                         <AvatarImage
                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user.email}`}
                         />
@@ -592,16 +595,16 @@ export default function ActivityPage() {
                       </Avatar>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium truncate">{activity.title}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-white truncate">{activity.title}</p>
                           <Badge
                             variant="secondary"
-                            className="bg-white/10 text-gray-400 border-0 text-xs hidden sm:inline-flex"
+                            className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs hidden sm:inline-flex"
                           >
                             {activity.group}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-sm text-gray-400 truncate">
                           {activity.description}
                         </p>
                       </div>
@@ -609,17 +612,17 @@ export default function ActivityPage() {
                       <div className="text-right">
                         {activity.amount && (
                           <p
-                            className={`font-semibold ${
+                            className={`font-bold text-base ${
                               activity.type === "expense"
                                 ? "text-red-400"
                                 : "text-emerald-400"
                             }`}
                           >
-                            {activity.type === "expense" ? "-" : "+"}$
+                            {activity.type === "expense" ? "-" : "+"}₹
                             {activity.amount.toFixed(2)}
                           </p>
                         )}
-                        <p className="text-xs text-gray-500 flex items-center justify-end gap-1">
+                        <p className="text-xs text-gray-400 flex items-center justify-end gap-1 mt-1">
                           <Clock className="w-3 h-3" />
                           {activity.time}
                         </p>
@@ -639,14 +642,16 @@ export default function ActivityPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-16"
+          className="text-center py-20"
         >
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-            <ActivityIcon className="w-10 h-10 text-gray-500" />
+          <div className="w-24 h-24 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-6">
+            <ActivityIcon className="w-12 h-12 text-gray-500 opacity-50" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">No activities found</h3>
-          <p className="text-gray-400">
-            No activities match your current filter
+          <h3 className="text-2xl font-bold mb-3">No Activities Found</h3>
+          <p className="text-gray-400 max-w-md mx-auto">
+            {activeFilter !== "All" 
+              ? `No activities match the "${activeFilter}" filter. Try selecting a different filter.`
+              : "Start adding expenses and making payments to see your activity here."}
           </p>
         </motion.div>
       )}
