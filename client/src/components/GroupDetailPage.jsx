@@ -84,6 +84,14 @@ const GroupDetailPage = () => {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
 
+  const userData = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUser = userData?.data?.user || userData;
+  const currentUserId = currentUser?._id;
+
+  console.log(currentUserId, "CURRENT USER ID");
+
+  console.log(group?.owner?._id, "OWNER ID");
+
   // Interaction State
   const [newRule, setNewRule] = useState("");
   const [newMessage, setNewMessage] = useState("");
@@ -137,9 +145,7 @@ const GroupDetailPage = () => {
   const [loadingInvites, setLoadingInvites] = useState(false);
 
   // Get current user
-  const userData = JSON.parse(localStorage.getItem("user") || "{}");
-  const currentUser = userData?.data?.user || userData;
-  const currentUserId = currentUser?._id;
+
 
   useEffect(() => {
     const fetchGroupDetails = async () => {
@@ -772,6 +778,8 @@ const GroupDetailPage = () => {
 
   if (!group) return null;
 
+
+
   return (
     <div className="space-y-6 p-4 md:p-8">
       {/* Header */}
@@ -984,15 +992,14 @@ const GroupDetailPage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Your Balance</p>
-                  <p className={`text-xl font-bold ${
-                    (() => {
-                      const userBalance = group.wallet?.memberBalances?.find(
-                        (balance) => balance.user.toString() === currentUserId?.toString()
-                      );
-                      const balanceAmount = userBalance ? userBalance.balance : 0;
-                      return balanceAmount >= 0 ? 'text-emerald-400' : 'text-red-400';
-                    })()
-                  }`}>
+                  <p className={`text-xl font-bold ${(() => {
+                    const userBalance = group.wallet?.memberBalances?.find(
+                      (balance) => balance.user.toString() === currentUserId?.toString()
+                    );
+                    const balanceAmount = userBalance ? userBalance.balance : 0;
+                    return balanceAmount >= 0 ? 'text-emerald-400' : 'text-red-400';
+                  })()
+                    }`}>
                     {(() => {
                       const userBalance = group.wallet?.memberBalances?.find(
                         (balance) => balance.user.toString() === currentUserId?.toString()
@@ -1156,13 +1163,12 @@ const GroupDetailPage = () => {
                                   </p>
                                 )}
                               </div>
-                              <p className={`font-bold ${
-                                tx.type === "DEPOSIT" 
-                                  ? "text-emerald-400" 
-                                  : tx.type === "GROUP_PAYMENT" || tx.type === "WITHDRAWAL"
-                                    ? "text-orange-400"
-                                    : "text-gray-400"
-                              }`}>
+                              <p className={`font-bold ${tx.type === "DEPOSIT"
+                                ? "text-emerald-400"
+                                : tx.type === "GROUP_PAYMENT" || tx.type === "WITHDRAWAL"
+                                  ? "text-orange-400"
+                                  : "text-gray-400"
+                                }`}>
                                 {tx.type === "DEPOSIT" ? "+" : "-"}₹{tx.amount?.toLocaleString()}
                               </p>
                             </div>
