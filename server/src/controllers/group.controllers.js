@@ -1460,6 +1460,54 @@ const leaveGroup = asyncHandler(async (req, res) => {
     throw new ApiError(400, "You are not a member of this group");
   }
 
+  // Find Group Wallet and handle refund
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (groupWallet) {
+    const memberBalanceIndex = groupWallet.memberBalances.findIndex(
+      (mb) => mb.user.toString() === userId.toString()
+    );
+
+    if (memberBalanceIndex > -1) {
+      const refundAmount = groupWallet.memberBalances[memberBalanceIndex].balance;
+
+      if (refundAmount > 0) {
+        // Refund to user wallet
+        const userWallet = await UserWallet.findOne({ user: userId });
+        if (userWallet) {
+          userWallet.balance += refundAmount;
+          await userWallet.save();
+
+          // Update Group Wallet balance and pool
+          groupWallet.balance -= refundAmount;
+          group.pool -= refundAmount;
+
+          // Record Transaction for refund
+          await Transaction.create({
+            user: userId,
+            wallet: userWallet._id,
+            intentId: `GROUP_LEAVE_REFUND_${group._id}_${Date.now()}`,
+            type: "REFUND",
+            amount: refundAmount,
+            currency: userWallet.currency || "INR",
+            status: "COMPLETED",
+            paymentStatus: "SUCCESS"
+          });
+
+          groupWallet.transactions.push({
+            fromUser: userId,
+            amount: refundAmount,
+            type: "WITHDRAWAL",
+            description: "Refund upon leaving group"
+          });
+        }
+      }
+
+      // Remove member balance entry
+      groupWallet.memberBalances.splice(memberBalanceIndex, 1);
+      await groupWallet.save();
+    }
+  }
+
   // Remove user from members
   group.members = group.members.filter(
     (m) => m.toString() !== userId.toString(),
@@ -1477,7 +1525,7 @@ const leaveGroup = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, null, "Successfully left the group"));
+    .json(new ApiResponse(200, null, "Successfully left the group and funds refunded if any"));
 });
 
 const getGroupPendingInvites = asyncHandler(async (req, res) => {
