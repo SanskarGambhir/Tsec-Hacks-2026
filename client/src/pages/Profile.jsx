@@ -170,7 +170,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/10">
+            {/* <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/10">
               <div className="text-center">
                 <p className="text-2xl font-bold text-emerald-400">
                   {userData.stats.groups}
@@ -187,7 +187,7 @@ export default function ProfilePage() {
                 </p>
                 <p className="text-sm text-gray-400">Settled</p>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </motion.div>

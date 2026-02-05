@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Tesseract from "tesseract.js";
+import toast from "react-hot-toast";
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -154,13 +155,18 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
         { withCredentials: true }
       );
 
+      // Show success toast
+      toast.success('Expense added successfully! 🎉');
+
       if (onSuccess) {
         onSuccess(response.data);
       }
       onClose();
     } catch (err) {
       console.error('Error processing payment:', err);
-      setError(err.response?.data?.message || 'Failed to process payment');
+      const errorMessage = err.response?.data?.message || 'Failed to process payment';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setProcessing(false);
     }

@@ -440,6 +440,8 @@ const getGroupDetails = asyncHandler(async (req, res) => {
   const group = await Group.findById(groupId)
     .populate("owner", "username email")
     .populate("members", "username email")
+    .populate("expenses.paidBy", "username email")
+    .populate("expenses.spentBy", "username email")
     .populate("wallet"); // Populate wallet for detailed info
 
   if (!group) {
@@ -934,25 +936,56 @@ const getGroupTransactions = asyncHandler(async (req, res) => {
   }
 
   // Get transactions for this group
-  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  const groupWallet = await GroupWallet.findOne({ group: groupId }).populate({
+    path: "transactions.fromUser",
+    select: "username email",
+  });
+  
   if (!groupWallet) {
     return res
       .status(200)
       .json(new ApiResponse(200, { transactions: [] }, "No wallet found"));
   }
 
-  // Get payment intent transactions for this user and group
-  const transactions = await Transaction.find({
-    user: userId,
+  // Get payment intent transactions (PENDING deposits waiting for confirmation)
+  const pendingIntentTransactions = await Transaction.find({
     wallet: groupWallet._id,
-  }).sort({ createdAt: -1 });
+    status: "PENDING",
+  })
+    .populate("user", "username email")
+    .sort({ createdAt: -1 });
+
+  // Get all wallet transactions (deposits, withdrawals, group payments)
+  const walletTransactions = groupWallet.transactions.map((tx) => ({
+    _id: tx._id,
+    type: tx.type,
+    amount: tx.amount,
+    fromUser: tx.fromUser,
+    date: tx.date,
+    description: tx.description,
+    status: "COMPLETED",
+  }));
+
+  // Combine both types of transactions
+  const allTransactions = [
+    ...pendingIntentTransactions.map((tx) => ({
+      _id: tx._id,
+      intentId: tx.intentId,
+      type: tx.type,
+      amount: tx.amount,
+      fromUser: tx.user,
+      date: tx.createdAt,
+      status: tx.status,
+    })),
+    ...walletTransactions,
+  ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        { transactions },
+        { transactions: allTransactions },
         "Transactions fetched successfully",
       ),
     );
@@ -1163,6 +1196,45 @@ const leaveGroup = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, null, "Successfully left the group"));
 });
 
+const getGroupPendingInvites = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user._id;
+
+  // Verify user is member or owner of group
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  const isMemberOrOwner =
+    group.members.some((m) => m.toString() === userId.toString()) ||
+    group.owner.toString() === userId.toString();
+
+  if (!isMemberOrOwner) {
+    throw new ApiError(403, "You are not authorized to view group invites");
+  }
+
+  // Get all pending invites for this group
+  const invites = await GroupInvite.find({
+    group: groupId,
+    status: "pending",
+    expiresAt: { $gt: Date.now() },
+  })
+    .populate("sender", "username email")
+    .populate("recipient", "username email")
+    .sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { invites },
+        "Pending invites fetched successfully",
+      ),
+    );
+});
+
 export {
   createGroup,
   logExpense,
@@ -1182,4 +1254,5 @@ export {
   checkGroupPayments,
   completeGroupDeposit,
   leaveGroup,
+  getGroupPendingInvites,
 };

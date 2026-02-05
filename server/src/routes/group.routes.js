@@ -17,7 +17,8 @@ import {
   getGroupTransactions,
   checkGroupPayments,
   completeGroupDeposit,
-  leaveGroup
+  leaveGroup,
+  getGroupPendingInvites
 } from "../controllers/group.controllers.js";
 import { processGroupPayment } from "../controllers/groupPayment.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -48,5 +49,6 @@ router.route("/:groupId/transactions").get(getGroupTransactions);
 router.route("/:groupId/check-payments").get(checkGroupPayments);
 router.route("/:groupId/complete-deposit/:intentId").post(completeGroupDeposit);
 router.route("/:groupId/process-payment").post(processGroupPayment);
+router.route("/:groupId/pending-invites").get(getGroupPendingInvites);
 
 export default router;
