@@ -396,6 +396,54 @@ const addRule = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, group, "Rule added successfully"));
 });
 
+const removeRule = asyncHandler(async (req, res) => {
+  const { groupId, ruleIndex } = req.params; // Using index from URL params
+
+  if (ruleIndex === undefined || ruleIndex < 0) {
+    throw new ApiError(400, "Rule index is required and must be a valid index");
+  }
+
+  const group = await Group.findById(groupId);
+
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  // Check if the user is the owner (only owner should typically remove rules)
+  if (group.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "Only the group owner can remove rules");
+  }
+
+  // Validate rule index (convert string to number)
+  const ruleIndexNum = parseInt(ruleIndex);
+  if (isNaN(ruleIndexNum) || ruleIndexNum >= group.rules.length) {
+    throw new ApiError(400, "Invalid rule index");
+  }
+
+  // Store the removed rule for response
+  const removedRule = group.rules[ruleIndexNum];
+
+  // Remove the rule at the specified index
+  group.rules.splice(ruleIndexNum, 1);
+  await group.save();
+
+  // Emit real-time update
+  try {
+    const io = getIO();
+    io.to(groupId).emit("ruleRemoved", {
+      groupId,
+      rule: removedRule,
+      ruleIndex: ruleIndexNum
+    });
+  } catch (error) {
+    console.error("Socket emit failed:", error);
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, group, "Rule removed successfully"));
+});
+
 const joinGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { amount } = req.body;
@@ -1412,6 +1460,54 @@ const leaveGroup = asyncHandler(async (req, res) => {
     throw new ApiError(400, "You are not a member of this group");
   }
 
+  // Find Group Wallet and handle refund
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (groupWallet) {
+    const memberBalanceIndex = groupWallet.memberBalances.findIndex(
+      (mb) => mb.user.toString() === userId.toString()
+    );
+
+    if (memberBalanceIndex > -1) {
+      const refundAmount = groupWallet.memberBalances[memberBalanceIndex].balance;
+
+      if (refundAmount > 0) {
+        // Refund to user wallet
+        const userWallet = await UserWallet.findOne({ user: userId });
+        if (userWallet) {
+          userWallet.balance += refundAmount;
+          await userWallet.save();
+
+          // Update Group Wallet balance and pool
+          groupWallet.balance -= refundAmount;
+          group.pool -= refundAmount;
+
+          // Record Transaction for refund
+          await Transaction.create({
+            user: userId,
+            wallet: userWallet._id,
+            intentId: `GROUP_LEAVE_REFUND_${group._id}_${Date.now()}`,
+            type: "REFUND",
+            amount: refundAmount,
+            currency: userWallet.currency || "INR",
+            status: "COMPLETED",
+            paymentStatus: "SUCCESS"
+          });
+
+          groupWallet.transactions.push({
+            fromUser: userId,
+            amount: refundAmount,
+            type: "WITHDRAWAL",
+            description: "Refund upon leaving group"
+          });
+        }
+      }
+
+      // Remove member balance entry
+      groupWallet.memberBalances.splice(memberBalanceIndex, 1);
+      await groupWallet.save();
+    }
+  }
+
   // Remove user from members
   group.members = group.members.filter(
     (m) => m.toString() !== userId.toString(),
@@ -1429,7 +1525,7 @@ const leaveGroup = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, null, "Successfully left the group"));
+    .json(new ApiResponse(200, null, "Successfully left the group and funds refunded if any"));
 });
 
 const getGroupPendingInvites = asyncHandler(async (req, res) => {
@@ -1475,6 +1571,7 @@ export {
   createGroup,
   logExpense,
   addRule,
+  removeRule,
   addFundsToGroup,
   joinGroup,
   getGroupDetails,
