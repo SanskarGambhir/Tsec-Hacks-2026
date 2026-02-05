@@ -13,16 +13,31 @@ import friendRouter from "./routes/friend.routes.js";
 import sharedExpenseRouter from "./routes/sharedExpense.routes.js";
 import cookieParser from "cookie-parser";
 import billRoutes from "./routes/bill.routes.js";
+import { ApiError } from "./utils/api-error.js";
 
 
 const app = express();
 
 // CORS Configuration
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,
+  "http://localhost:5173",
+  "https://tsec-hacks-2026-lac.vercel.app"
+].filter(Boolean);
+
 app.use(cors({
-  origin: "http://localhost:5173" || process.env.CORS_ORIGIN,
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes("*")) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // Methods that we are supporting
-  allowedHeaders: ["Authorization", "Content-Type"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
 }))
 
 // Basic Configurations
@@ -47,5 +62,23 @@ app.use("/api/v1/user", userProfileRouter);
 app.get('/', (req, res) => {
   res.send("Welcome to my Project")
 })
+
+// global error handler
+app.use((err, req, res, next) => {
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      errors: err.errors,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+  });
+});
 
 export default app;

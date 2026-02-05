@@ -1205,33 +1205,33 @@ const GroupDetailPage = () => {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.05 }}
-                        className="group p-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-all"
+                        className="group p-3 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-all"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
                           <div
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${getTransactionBgColor()}`}
+                            className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 ${getTransactionBgColor()}`}
                           >
                             {getTransactionIcon()}
                           </div>
 
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <div>
-                                <p className="font-semibold text-sm text-gray-200">
+                          <div className="flex-1 min-w-0 w-full">
+                            <div className="flex items-start justify-between mb-1 gap-2">
+                              <div className="min-w-0">
+                                <p className="font-bold text-sm md:text-base text-gray-200 truncate">
                                   {getTransactionLabel()}
                                 </p>
                                 {tx.description && (
-                                  <p className="text-xs text-gray-400 truncate">
+                                  <p className="text-xs text-gray-400 truncate mt-0.5">
                                     {tx.description}
                                   </p>
                                 )}
                                 {tx.fromUser && tx.type !== "DEPOSIT" && (
-                                  <p className="text-xs text-gray-500 truncate">
+                                  <p className="text-[10px] md:text-xs text-gray-500 truncate">
                                     by {showUsername}
                                   </p>
                                 )}
                               </div>
-                              <p className={`font-bold ${tx.type === "DEPOSIT"
+                              <p className={`font-black text-sm md:text-lg shrink-0 ${tx.type === "DEPOSIT"
                                 ? "text-emerald-400"
                                 : tx.type === "GROUP_PAYMENT" || tx.type === "WITHDRAWAL"
                                   ? "text-orange-400"
@@ -1241,8 +1241,8 @@ const GroupDetailPage = () => {
                               </p>
                             </div>
 
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-gray-500">
                                 <Clock className="w-3 h-3" />
                                 <span>
                                   {new Date(tx.date).toLocaleDateString("en-US", {
@@ -1253,16 +1253,18 @@ const GroupDetailPage = () => {
                                   })}
                                 </span>
                               </div>
-                              {getStatusBadge(tx.status)}
+                              <div className="scale-90 md:scale-100 origin-right">
+                                {getStatusBadge(tx.status)}
+                              </div>
                             </div>
 
                             {tx.status === "PENDING" && tx.intentId && (
-                              <div className="flex gap-2 mt-3">
+                              <div className="flex flex-row gap-2 mt-4">
                                 <Button
                                   size="sm"
                                   onClick={() => confirmTransaction(tx.intentId)}
                                   disabled={addingFunds}
-                                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs h-8"
+                                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-[10px] md:text-xs h-8 rounded-lg"
                                 >
                                   <CheckCircle2 className="w-3 h-3 mr-1" />
                                   Confirm
@@ -1272,7 +1274,7 @@ const GroupDetailPage = () => {
                                   onClick={() => cancelTransaction(tx.intentId)}
                                   disabled={addingFunds}
                                   variant="destructive"
-                                  className="flex-1 text-xs h-8"
+                                  className="flex-1 text-[10px] md:text-xs h-8 rounded-lg"
                                 >
                                   <XCircle className="w-3 h-3 mr-1" />
                                   Cancel

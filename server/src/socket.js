@@ -5,7 +5,11 @@ let io;
 export const initializeSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:5173",
+      origin: [
+        process.env.CORS_ORIGIN,
+        "http://localhost:5173",
+        "https://tsec-hacks-2026-lac.vercel.app"
+      ].filter(Boolean),
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
       credentials: true
     }
