@@ -36,8 +36,20 @@ export const acceptGroupInviteByToken = async (token) => {
   return response.data;
 };
 
+// Get group details
+export const getGroupDetails = async (groupId) => {
+  const response = await axios.get(`/groups/${groupId}`);
+  return response.data;
+};
+
 // Leave group
 export const leaveGroup = async (groupId) => {
   const response = await axios.post(`/groups/${groupId}/leave`);
+  return response.data;
+};
+
+// Remove rule from group
+export const removeRuleFromGroup = async (groupId, ruleIndex) => {
+  const response = await axios.delete(`/groups/${groupId}/rules/${ruleIndex}`);
   return response.data;
 };

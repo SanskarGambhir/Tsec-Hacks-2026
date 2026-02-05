@@ -11,6 +11,8 @@ import creditWithdrawalRouter from "./routes/creditWithdrawal.routes.js";
 import userProfileRouter from "./routes/userProfile.routes.js";
 import friendRouter from "./routes/friend.routes.js";
 import sharedExpenseRouter from "./routes/sharedExpense.routes.js";
+import activityRouter from "./routes/activity.routes.js";
+import aiInsightsRouter from "./routes/aiInsights.routes.js";
 import cookieParser from "cookie-parser";
 import billRoutes from "./routes/bill.routes.js";
 
@@ -18,10 +20,16 @@ import billRoutes from "./routes/bill.routes.js";
 const app = express();
 
 // CORS Configuration
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  process.env.CORS_ORIGIN
+].filter(Boolean);
+
 app.use(cors({
-  origin: "http://localhost:5173" || process.env.CORS_ORIGIN,
+  origin: allowedOrigins,
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // Methods that we are supporting
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Authorization", "Content-Type"],
 }))
 
@@ -42,6 +50,11 @@ app.use("/api/v1/group-payments", groupPaymentRouter);
 app.use("/api/v1/members", memberActionsRouter);
 app.use("/api/v1/credit-withdrawals", creditWithdrawalRouter);
 app.use("/api/v1/user", userProfileRouter);
+app.use("/api/v1/activity", activityRouter);
+app.use("/api/v1/ai-insights", aiInsightsRouter);
+app.use("/api/v1/credit-withdrawals", creditWithdrawalRouter);
+app.use("/api/v1/user", userProfileRouter);
+app.use("/api/v1/activity", activityRouter);
 
 
 app.get('/', (req, res) => {

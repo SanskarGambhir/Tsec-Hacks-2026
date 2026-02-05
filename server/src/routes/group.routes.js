@@ -3,6 +3,7 @@ import {
   createGroup,
   logExpense,
   addRule,
+  removeRule,
   addFundsToGroup,
   joinGroup,
   getGroupDetails,
@@ -44,6 +45,7 @@ router.route("/:groupId/join").post(joinGroup);
 router.route("/:groupId/leave").post(leaveGroup);
 router.route("/:groupId/expense").post(logExpense);
 router.route("/:groupId/rules").post(addRule);
+router.route("/:groupId/rules/:ruleIndex").delete(removeRule);
 router.route("/:groupId/add-funds").post(addFundsToGroup);
 router.route("/:groupId/messages").post(sendMessage);
 router.route("/:groupId/transactions").get(getGroupTransactions);

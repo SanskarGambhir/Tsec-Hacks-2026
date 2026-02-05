@@ -43,6 +43,7 @@ import {
   MessageCircle,
   Check,
   LogOut,
+  Trash2,
 } from "lucide-react";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -51,6 +52,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Progress } from "./ui/progress";
 import {
@@ -69,6 +77,7 @@ import {
   sendGroupInviteToFriend,
   sendGroupInviteViaWhatsApp,
   leaveGroup,
+  removeRuleFromGroup,
 } from "../api/groups";
 
 const categoryColors = {
@@ -78,6 +87,39 @@ const categoryColors = {
   Transport: "bg-green-500/20 text-green-400",
   General: "bg-gray-500/20 text-gray-400",
 };
+
+const RULE_OPTIONS = [
+  {
+    label: "Minimum Deposit ₹500",
+    ruleType: "min_deposit",
+    ruleValue: "500",
+    description: "Requires members to contribute at least ₹500 to the pool.",
+  },
+  {
+    label: "Single Expense Limit ₹1000",
+    ruleType: "max_expense",
+    ruleValue: "1000",
+    description: "Limits any single expense recorded in the group to ₹1000.",
+  },
+  {
+    label: "Owner Approval Policy",
+    ruleType: "approval",
+    ruleValue: "required",
+    description: "All expenses must be approved by the group owner before settlement.",
+  },
+  {
+    label: "Anyone Can Pay Policy",
+    ruleType: "all_pay",
+    ruleValue: "enabled",
+    description: "Any member can pay for expenses, not just the owner.",
+  },
+  {
+    label: "Strict Receipt Policy",
+    ruleType: "receipt",
+    ruleValue: "mandatory",
+    description: "A valid receipt image must be uploaded for every expense.",
+  }
+];
 
 const GroupDetailPage = () => {
   const { groupId } = useParams();
@@ -94,15 +136,17 @@ const GroupDetailPage = () => {
   // console.log(currentUserId, "CURRENT USER ID");
 
   // console.log(group?.owner?._id, "OWNER ID");
+  console.log(group?.rules, "GROUP RULES");
 
   // Interaction State
-  const [newRule, setNewRule] = useState("");
+  const [selectedRule, setSelectedRule] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState([]); // Activity Feed
   const [addFundsAmount, setAddFundsAmount] = useState("");
   const [addingFunds, setAddingFunds] = useState(false);
   const [fundsMessage, setFundsMessage] = useState("");
   const [socket, setSocket] = useState(null);
+  const [removingRule, setRemovingRule] = useState(null);
 
   // Member Management State
   const [showAddMember, setShowAddMember] = useState(false);
@@ -454,20 +498,41 @@ const GroupDetailPage = () => {
   const handleAddRule = async (e) => {
     e.preventDefault();
 
-    if (!newRule.trim()) return;
+    if (!selectedRule) return;
+
+    const ruleData = RULE_OPTIONS.find(r => r.label === selectedRule);
+    if (!ruleData) return;
 
     try {
       await api.post(`/groups/${groupId}/rules`, {
-        ruleType: "custom",
-        ruleValue: newRule.trim(),
-        description: `Rule: ${newRule.trim()}`,
+        ruleType: ruleData.ruleType,
+        ruleValue: ruleData.ruleValue,
+        description: ruleData.description,
       });
 
-      setNewRule("");
-      // The rule will be reflected via socket update
+      setSelectedRule("");
+      toast.success("Rule added successfully!");
     } catch (err) {
       console.error("Error adding rule:", err);
-      alert(err.response?.data?.message || "Failed to add rule");
+      toast.error(err.response?.data?.message || "Failed to add rule");
+    }
+  };
+
+  const handleDeleteRule = async (ruleIndex) => {
+    if (!window.confirm("Are you sure you want to remove this rule?")) return;
+
+    setRemovingRule(ruleIndex);
+    try {
+      await removeRuleFromGroup(groupId, ruleIndex);
+      toast.success("Rule removed successfully!");
+      // Refresh group details
+      const response = await api.get(`/groups/${groupId}`);
+      setGroup(response.data.data);
+    } catch (err) {
+      console.error("Error deleting rule:", err);
+      toast.error(err.response?.data?.message || "Failed to delete rule");
+    } finally {
+      setRemovingRule(null);
     }
   };
 
@@ -700,7 +765,7 @@ const GroupDetailPage = () => {
       navigate("/groups");
     } catch (error) {
       console.error("Error leaving group:", error);
-      alert(error.response?.data?.message || "Failed to leave group");
+      toast.error(error.response?.data?.message || "Failed to leave group");
     } finally {
       setLeavingGroup(false);
       setShowLeaveDialog(false);
@@ -720,7 +785,7 @@ const GroupDetailPage = () => {
       console.log("Expense added successfully:", response.data);
     } catch (err) {
       console.error("Error adding expense:", err);
-      alert(err.response?.data?.message || "Failed to add expense");
+      toast.error(err.response?.data?.message || "Failed to add expense");
     }
   };
 
@@ -738,7 +803,7 @@ const GroupDetailPage = () => {
       setShowGroupPaymentModal(false);
     } catch (err) {
       console.error("Error processing group payment:", err);
-      alert(err.response?.data?.message || "Failed to process group payment");
+      toast.error(err.response?.data?.message || "Failed to process group payment");
     }
   };
 
@@ -781,16 +846,20 @@ const GroupDetailPage = () => {
     (rule) => rule.ruleType === "regular_split",
   );
 
+  const isAllPayEnabled = group?.rules?.some(
+    (rule) => rule.ruleType === "all_pay",
+  );
+
   // Function to copy invitation link to clipboard
   const copyInvitationLink = async () => {
     try {
       // Generate the invitation link
       const link = `${window.location.origin}/join-group/${groupId}`;
       await navigator.clipboard.writeText(link);
-      alert("Invitation link copied to clipboard!");
+      toast.success("Invitation link copied to clipboard!");
     } catch (err) {
       console.error("Error copying link:", err);
-      alert("Failed to copy link");
+      toast.error("Failed to copy link");
     }
   };
 
@@ -926,7 +995,7 @@ const GroupDetailPage = () => {
               Add Expense
             </Button>
           )}
-          {group.owner?._id === currentUserId && (
+          {(group.owner?._id === currentUserId || isAllPayEnabled) && (
             <Button
               size="sm"
               className="text-black"
@@ -1845,23 +1914,32 @@ const GroupDetailPage = () => {
         <TabsContent value="rules" className="mt-6">
           <Card className="glass-card border-white/10">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Group Rules</CardTitle>
+              <CardTitle className="text-lg font-bold">Group Rules</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add Rule Form */}
-              <form onSubmit={handleAddRule} className="flex gap-2 mb-6">
-                <Input
-                  type="text"
-                  value={newRule}
-                  onChange={(e) => setNewRule(e.target.value)}
-                  placeholder="Add a new rule..."
-                  className="flex-1 bg-white/5 border-white/10"
-                />
+              <form onSubmit={handleAddRule} className="flex flex-col sm:flex-row gap-3 mb-6 items-end">
+                <div className="flex-1 w-full space-y-2">
+                  <Label className="text-xs text-gray-400">Select Predefined Rule</Label>
+                  <Select value={selectedRule} onValueChange={setSelectedRule}>
+                    <SelectTrigger className="bg-white/5 border-white/10 h-11 w-full">
+                      <SelectValue placeholder="Choose a rule to apply..." />
+                    </SelectTrigger>
+                    <SelectContent className="glass-card border-white/10">
+                      {RULE_OPTIONS.map((option) => (
+                        <SelectItem key={option.label} value={option.label}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  disabled={!selectedRule}
+                  className="bg-emerald-600 hover:bg-emerald-700 h-11 px-8 w-full sm:w-auto"
                 >
-                  Add
+                  Apply Rule
                 </Button>
               </form>
 
@@ -1872,25 +1950,48 @@ const GroupDetailPage = () => {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-white/5"
+                    className="flex items-start gap-3 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500/20 transition-all"
                   >
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
                       <span className="text-emerald-400 font-bold text-sm">
                         {index + 1}
                       </span>
                     </div>
-                    <div>
-                      <p className="text-gray-200 font-medium">
-                        {rule.ruleType}
-                      </p>
-                      <p className="text-gray-400 text-sm">{rule.ruleValue}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-gray-200 font-bold capitalize">
+                          {rule.ruleType.replace("_", " ")}
+                        </p>
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-emerald-500/30 text-emerald-400 font-bold">
+                          {rule.ruleValue}
+                        </Badge>
+                      </div>
+                      {rule.description && (
+                        <p className="text-gray-400 text-xs leading-relaxed">
+                          {rule.description}
+                        </p>
+                      )}
                     </div>
+                    {group.owner?._id === currentUserId && (
+                      <button
+                        onClick={() => handleDeleteRule(index)}
+                        disabled={removingRule === index}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 ml-2"
+                      >
+                        {removingRule === index ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
                   </motion.div>
                 ))}
                 {(!group.rules || group.rules.length === 0) && (
-                  <p className="text-gray-500 italic text-center">
-                    No rules set yet.
-                  </p>
+                  <div className="text-center py-12 text-gray-500 space-y-2">
+                    <History className="w-12 h-12 mx-auto opacity-20" />
+                    <p className="italic text-sm">No group rules have been set yet.</p>
+                  </div>
                 )}
               </div>
             </CardContent>
