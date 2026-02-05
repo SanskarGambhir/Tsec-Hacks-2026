@@ -256,7 +256,7 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Splitwise Teaser */}
-      <motion.div
+      {/* <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -278,7 +278,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </Link>
-      </motion.div>
+      </motion.div> */}
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
@@ -420,7 +420,7 @@ export default function Dashboard() {
       </div>
 
       {/* Monthly Overview */}
-      <motion.div
+      {/* <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
@@ -455,7 +455,7 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </motion.div> */}
     </div>
   );
 }

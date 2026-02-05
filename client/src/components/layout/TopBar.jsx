@@ -62,7 +62,7 @@ export default function TopBar({ onMenuClick, title }) {
           </motion.button>
 
           {/* Notifications */}
-          <motion.button
+          {/* <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
@@ -71,7 +71,7 @@ export default function TopBar({ onMenuClick, title }) {
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center">
               3
             </span>
-          </motion.button>
+          </motion.button> */}
 
           {/* Avatar */}
           <motion.div

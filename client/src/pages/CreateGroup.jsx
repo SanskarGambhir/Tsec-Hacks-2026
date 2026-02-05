@@ -28,6 +28,7 @@ import { sendGroupInviteToFriend, sendGroupInviteViaWhatsApp } from "@/api/group
 export default function CreateGroup() {
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
+  const [poolAmount, setPoolAmount] = useState("");
   const [groupType, setGroupType] = useState("pooling"); // splitwise or pooling
   const [releaseType, setReleaseType] = useState("instant"); // instant, time_locked, or milestone
   const [unlockDate, setUnlockDate] = useState("");
@@ -211,7 +212,7 @@ export default function CreateGroup() {
         rules: rules,
         ruleType: groupType,
         releaseType,
-        pool: 0,
+        pool: Number(poolAmount) || 0,
         // Time-locked fields
         ...(releaseType === "time_locked" && {
           unlockDate: new Date(unlockDate),
@@ -300,35 +301,23 @@ export default function CreateGroup() {
               />
             </div>
 
-            {/* Group Type Selection */}
+            {/* Initial Pool Amount */}
             <div className="space-y-2">
-              <Label>Group Type *</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  type="button"
-                  variant={groupType === "pooling" ? "default" : "outline"}
-                  className="flex flex-col items-center justify-center p-4 h-auto"
-                  onClick={() => setGroupType("pooling")}
-                >
-                  <Coins className="w-6 h-6 mb-2" />
-                  <span className="font-medium">Pooling</span>
-                  <span className="text-xs opacity-80">
-                    Collect money in a shared pool
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  variant={groupType === "splitwise" ? "default" : "outline"}
-                  className="flex flex-col items-center justify-center p-4 h-auto"
-                  onClick={() => setGroupType("splitwise")}
-                >
-                  <Divide className="w-6 h-6 mb-2" />
-                  <span className="font-medium">Splitwise</span>
-                  <span className="text-xs opacity-80">
-                    Split expenses evenly
-                  </span>
-                </Button>
+              <Label htmlFor="poolAmount">Initial Pool Amount (₹)</Label>
+              <div className="relative">
+                <Coins className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="poolAmount"
+                  type="number"
+                  value={poolAmount}
+                  onChange={(e) => setPoolAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="pl-10"
+                />
               </div>
+              <p className="text-xs text-gray-500">
+                The starting balance for the group pool
+              </p>
             </div>
 
             {/* Release Type Selection */}

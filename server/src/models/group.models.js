@@ -30,9 +30,26 @@ const expenseSchema = new Schema({
     ref: "User",
     // required: true,
   },
+  paidBy: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
   date: {
     type: Date,
     default: Date.now,
+  },
+  category: {
+    type: String,
+    enum: ["Accommodation", "Food", "Activities", "Transport", "General"],
+    default: "General",
+  },
+  divisionMethod: {
+    type: String,
+    enum: ["even", "custom", "exclude"],
+  },
+  memberCharges: {
+    type: Map,
+    of: Number,
   },
 });
 

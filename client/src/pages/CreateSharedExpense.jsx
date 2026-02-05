@@ -1,463 +1,329 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Plus, X, User, IndianRupee, Copy, Divide } from 'lucide-react';
-import api from '@/api/axios';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Plus, 
+  X, 
+  Share2, 
+  Copy, 
+  CheckCircle2, 
+  Percent, 
+  UserPlus, 
+  IndianRupee,
+  Receipt,
+  Divide,
+  ArrowLeft
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import api from "@/api/axios";
 
-const CreateSharedExpense = () => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [totalAmount, setTotalAmount] = useState('');
-  const [creatorName, setCreatorName] = useState('');
-  const [creatorEmail, setCreatorEmail] = useState('');
-  const [participants, setParticipants] = useState([
-    { id: Date.now(), name: '', sharePercentage: '', shareAmount: '' }
-  ]);
-  const [equalSplit, setEqualSplit] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [shareLink, setShareLink] = useState('');
+export default function CreateSharedExpense() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [totalAmount, setTotalAmount] = useState("");
+  const [creatorName, setCreatorName] = useState("");
+  const [creatorEmail, setCreatorEmail] = useState("");
+  const [members, setMembers] = useState([{ name: "", percentage: "" }]);
+  const [loading, setLoading] = useState(false);
+  const [shareLink, setShareLink] = useState("");
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
 
-  const addParticipant = () => {
-    setParticipants([
-      ...participants,
-      { id: Date.now(), name: '', sharePercentage: '', shareAmount: '' }
-    ]);
+  const addMember = () => {
+    setMembers([...members, { name: "", percentage: "" }]);
   };
 
-  const removeParticipant = (id) => {
-    if (participants.length <= 1) return;
-    setParticipants(participants.filter(p => p.id !== id));
+  const removeMember = (index) => {
+    setMembers(members.filter((_, i) => i !== index));
   };
 
-  const updateParticipant = (id, field, value) => {
-    const updatedParticipants = participants.map(p => {
-      if (p.id === id) {
-        // Prevent negative values for percentage and amount
-        let sanitizedValue = value;
-        if (field === 'sharePercentage' || field === 'shareAmount') {
-          const numValue = parseFloat(value) || 0;
-          sanitizedValue = Math.max(0, numValue).toString(); // Ensure non-negative
-        }
-
-        const updated = { ...p, [field]: sanitizedValue };
-
-        // If updating percentage, calculate amount
-        if (field === 'sharePercentage' && totalAmount) {
-          const percentage = parseFloat(sanitizedValue) || 0;
-          updated.shareAmount = ((percentage / 100) * parseFloat(totalAmount)).toFixed(2);
-        }
-        // If updating amount, calculate percentage
-        else if (field === 'shareAmount' && totalAmount) {
-          const amount = parseFloat(sanitizedValue) || 0;
-          updated.sharePercentage = ((amount / parseFloat(totalAmount)) * 100).toFixed(2);
-        }
-
-        return updated;
-      }
-      return p;
-    });
-
-    setParticipants(updatedParticipants);
+  const updateMember = (index, field, value) => {
+    const newMembers = [...members];
+    newMembers[index][field] = value;
+    setMembers(newMembers);
   };
 
-  const calculateTotalPercentage = () => {
-    return participants.reduce((sum, p) => sum + (parseFloat(p.sharePercentage) || 0), 0);
+  const calculateAutoPercentage = () => {
+    // Including the creator
+    const totalPeople = members.length + 1;
+    const equalPart = (100 / totalPeople).toFixed(2);
+    setMembers(members.map(m => ({ ...m, percentage: equalPart })));
   };
 
-  const applyEqualSplit = () => {
-    if (!totalAmount || participants.length === 0) return;
-
-    const totalPeople = participants.length + 1; // +1 for the creator
-    const percentagePerPerson = Math.max(0, (100 / totalPeople)).toFixed(2);
-    const amountPerPerson = Math.max(0, (parseFloat(totalAmount) / totalPeople)).toFixed(2);
-
-    const updatedParticipants = participants.map(p => ({
-      ...p,
-      sharePercentage: percentagePerPerson,
-      shareAmount: amountPerPerson
-    }));
-
-    setParticipants(updatedParticipants);
-    setEqualSplit(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    // Validation
-    if (!title.trim()) {
-      setError('Title is required');
+  const handleCreateSplit = async () => {
+    if (!title || !totalAmount || !creatorName || !creatorEmail) {
+      alert("Please fill in all required fields");
       return;
     }
 
-    if (!totalAmount || parseFloat(totalAmount) <= 0) {
-      setError('Valid total amount is required');
-      return;
-    }
-
-    if (!creatorName.trim()) {
-      setError('Creator name is required');
-      return;
-    }
-
-    if (!creatorEmail.trim()) {
-      setError('Creator email is required');
-      return;
-    }
-
-    // Validate participants
-    for (const p of participants) {
-      if (!p.name.trim()) {
-        setError('All participants must have a name');
-        return;
-      }
-      if (!p.sharePercentage || parseFloat(p.sharePercentage) < 0) {
-        setError('All participants must have a non-negative share percentage');
-        return;
-      }
-    }
-
-    // Check if percentages sum to 100% and ensure creator percentage is not negative
-    const totalParticipantPercentage = calculateTotalPercentage();
-    const creatorPercentage = 100 - totalParticipantPercentage;
+    const participantPercentage = members.reduce((sum, m) => sum + parseFloat(m.percentage || 0), 0);
+    const creatorPercentage = 100 - participantPercentage;
 
     if (creatorPercentage < 0) {
-      setError('Total participant percentages exceed 100%. Please adjust percentages so the total does not exceed 100%.');
+      alert("Total percentage exceeds 100%");
       return;
     }
 
+    setLoading(true);
     try {
-      // Add creator as a participant
       const allParticipants = [
-        ...participants,
+        ...members.map(m => ({
+          name: m.name,
+          sharePercentage: parseFloat(m.percentage),
+          shareAmount: (parseFloat(totalAmount) * parseFloat(m.percentage)) / 100
+        })),
         {
-          name: creatorName.trim(),
-          sharePercentage: parseFloat(Math.max(0, creatorPercentage).toFixed(2)),
-          shareAmount: parseFloat(Math.max(0, (creatorPercentage / 100) * parseFloat(totalAmount)).toFixed(2))
+          name: creatorName,
+          sharePercentage: parseFloat(creatorPercentage.toFixed(2)),
+          shareAmount: parseFloat(((creatorPercentage / 100) * parseFloat(totalAmount)).toFixed(2))
         }
       ];
 
-      const expenseData = {
-        title: title.trim(),
-        description: description.trim(),
+      const response = await api.post("/shared-expenses/create", {
+        title,
+        description,
         totalAmount: parseFloat(totalAmount),
-        creatorName: creatorName.trim(),
-        creatorEmail: creatorEmail.trim(),
+        creatorName,
+        creatorEmail,
         participants: allParticipants
-      };
+      });
 
-      const response = await api.post('/shared-expenses/create', expenseData);
-
-      setSuccess(true);
-      setShareLink(`${window.location.origin}/shared-expense/${response.data.data.shareLink}`);
-    } catch (err) {
-      console.error('Error creating shared expense:', err);
-      setError(err.response?.data?.message || 'Failed to create shared expense');
+      const link = `${window.location.origin}/shared-expense/${response.data.data.shareLink}`;
+      setShareLink(link);
+    } catch (error) {
+      console.error("Error creating split:", error);
+      alert(error.response?.data?.message || "Failed to create split");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy link:', err);
-    }
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(shareLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-
-  if (success) {
-    return (
-      <div className="max-w-2xl mx-auto p-4">
-        <Card className="bg-green-900/20 border-green-500/30">
-          <CardHeader>
-            <CardTitle className="text-green-400 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-              Expense Created Successfully!
-            </CardTitle>
-            <CardDescription className="text-green-300">
-              Your expense details have been created and are ready to share
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-800/50 rounded-lg">
-                <p className="text-sm text-gray-300 mb-2">Share this link with others:</p>
-                <div className="flex gap-2">
-                  <Input
-                    readOnly
-                    value={shareLink}
-                    className="flex-1 bg-gray-700/50 text-gray-200"
-                  />
-                  <Button
-                    onClick={copyToClipboard}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {copied ? 'Copied!' : <Copy className="w-4 h-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => navigate('/')}
-                  variant="outline"
-                  className="flex-1 border-gray-600"
-                >
-                  Back Home
-                </Button>
-                <Button
-                  onClick={() => {
-                    setSuccess(false);
-                    setShareLink('');
-                    setTitle('');
-                    setDescription('');
-                    setTotalAmount('');
-                    setCreatorName('');
-                    setCreatorEmail('');
-                    setParticipants([{ id: Date.now(), name: '', email: '', sharePercentage: '', shareAmount: '' }]);
-                  }}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                >
-                  Create Another
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IndianRupee className="w-6 h-6" />
-            Create Shared Expense
-          </CardTitle>
-          <CardDescription>Split expenses with others and share the details</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-8">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-4"
+      >
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+           <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Split Bills</h1>
+          <p className="text-gray-400 mt-1">Create a shareable expense breakdown with anyone</p>
+        </div>
+      </motion.div>
+
+      {!shareLink ? (
+        <Card className="glass-card border-white/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl font-bold">
+              <Divide className="w-6 h-6 text-emerald-400" />
+              New Shared Expense
+            </CardTitle>
+            <CardDescription>Enter details and define how the bill is split</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            {/* General Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Expense Title *</Label>
-                <Input
-                  id="title"
+                <Label>Expense Title *</Label>
+                <Input 
+                  placeholder="e.g. Weekend Dinner" 
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Dinner, Rent, Groceries"
+                  className="bg-white/5 border-white/10 h-12"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="totalAmount">Total Amount (₹) *</Label>
-                <Input
-                  id="totalAmount"
-                  type="number"
-                  value={totalAmount}
-                  onChange={(e) => {
-                    setTotalAmount(e.target.value);
-                    // Recalculate amounts for all participants
-                    const updatedParticipants = participants.map(p => {
-                      if (e.target.value) {
-                        const percentage = parseFloat(p.sharePercentage) || 0;
-                        return {
-                          ...p,
-                          shareAmount: ((percentage / 100) * parseFloat(e.target.value)).toFixed(2)
-                        };
-                      }
-                      return p;
-                    });
-                    setParticipants(updatedParticipants);
-                  }}
-                  placeholder="0.00"
-                  min="0.01"
-                  step="0.01"
+                <Label>Total Amount *</Label>
+                <div className="relative">
+                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input 
+                    type="number"
+                    placeholder="0.00" 
+                    value={totalAmount}
+                    onChange={(e) => setTotalAmount(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10 h-12"
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label>Description</Label>
+                <Input 
+                  placeholder="What was this for?" 
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="bg-white/5 border-white/10 h-12"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe what this expense is for"
-              />
-            </div>
-
-            {/* Creator Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Creator Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
               <div className="space-y-2">
-                <Label htmlFor="creatorName">Your Name *</Label>
-                <Input
-                  id="creatorName"
+                <Label>Your Name (Creator) *</Label>
+                <Input 
+                  placeholder="Enter your name" 
                   value={creatorName}
                   onChange={(e) => setCreatorName(e.target.value)}
-                  placeholder="Your name"
+                  className="bg-white/5 border-white/10"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="creatorEmail">Your Email *</Label>
-                <Input
-                  id="creatorEmail"
+                <Label>Your Email *</Label>
+                <Input 
                   type="email"
+                  placeholder="your@email.com" 
                   value={creatorEmail}
                   onChange={(e) => setCreatorEmail(e.target.value)}
-                  placeholder="your@email.com"
+                  className="bg-white/5 border-white/10"
                 />
               </div>
             </div>
 
             {/* Participants */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <Label>Participants *</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={applyEqualSplit}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1"
-                  >
-                    <Divide className="w-4 h-4 mr-1" />
-                    Equal Split
-                  </Button>
-                  <Button type="button" onClick={addParticipant} variant="outline" size="sm">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Participant
-                  </Button>
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-emerald-400" />
+                  <h3 className="font-bold text-lg">Participants</h3>
                 </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={calculateAutoPercentage}
+                  className="text-xs border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10"
+                >
+                  Split Equally
+                </Button>
               </div>
 
-              <div className="space-y-3">
-                {participants.map((participant, index) => (
-                  <div key={participant.id} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-5">
-                      <Input
-                        value={participant.name}
-                        onChange={(e) => updateParticipant(participant.id, 'name', e.target.value)}
-                        placeholder="Name"
+              <div className="space-y-4">
+                {members.map((member, index) => (
+                  <motion.div 
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex gap-4 items-end"
+                  >
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs text-gray-500">Name</Label>
+                      <Input 
+                        placeholder="Participant Name" 
+                        value={member.name}
+                        onChange={(e) => updateMember(index, "name", e.target.value)}
+                        className="bg-white/5 border-white/10"
                       />
                     </div>
-                    <div className="col-span-3">
-                      <Input
-                        value={participant.sharePercentage}
-                        onChange={(e) => updateParticipant(participant.id, 'sharePercentage', e.target.value)}
-                        type="number"
-                        placeholder="%"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                      />
+                    <div className="w-24 space-y-1">
+                      <Label className="text-xs text-gray-500">Share %</Label>
+                      <div className="relative">
+                        <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+                        <Input 
+                          type="number"
+                          placeholder="0" 
+                          value={member.percentage}
+                          onChange={(e) => updateMember(index, "percentage", e.target.value)}
+                          className="bg-white/5 border-white/10 pr-8"
+                        />
+                      </div>
                     </div>
-                    <div className="col-span-3">
-                      <Input
-                        value={participant.shareAmount}
-                        onChange={(e) => updateParticipant(participant.id, 'shareAmount', e.target.value)}
-                        type="number"
-                        placeholder="₹"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      {participants.length > 1 && (
-                        <Button
-                          type="button"
-                          onClick={() => removeParticipant(participant.id)}
-                          variant="outline"
-                          size="icon"
-                          className="h-9 w-9"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => removeMember(index)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-400/10 mb-0.5"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </motion.div>
                 ))}
 
-                {/* Creator row */}
-                <div className="grid grid-cols-12 gap-2 items-end bg-gray-800/20 p-3 rounded-lg">
-                  <div className="col-span-5">
-                    <Input
-                      value={creatorName}
-                      readOnly
-                      placeholder="Creator (you)"
-                      className="bg-gray-700/30"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <Input
-                      value={Math.max(0, 100 - calculateTotalPercentage()).toFixed(2)}
-                      readOnly
-                      placeholder="%"
-                      className="bg-gray-700/30"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <Input
-                      value={Math.max(0, ((100 - calculateTotalPercentage()) / 100 * parseFloat(totalAmount || 0))).toFixed(2)}
-                      readOnly
-                      placeholder="₹"
-                      className="bg-gray-700/30"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <div className="h-9 w-9 flex items-center justify-center text-gray-500">
-                      <User className="w-4 h-4" />
-                    </div>
-                  </div>
-                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={addMember}
+                  className="w-full h-12 border-dashed border-white/10 hover:border-emerald-500/30 hover:bg-white/5"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Person
+                </Button>
+              </div>
 
-                <div className="flex justify-between items-center pt-2">
-                  <div className="text-sm text-gray-500">
-                    Total Percentage: <span className={Math.abs(100 - (100 - calculateTotalPercentage())) < 0.01 ? 'text-green-500' : 'text-red-500'}>
-                      100%
-                    </span>
-                    <br />
-                    <span className="text-xs">
-                      Participants: {calculateTotalPercentage()}%, Creator: {(100 - calculateTotalPercentage()).toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Total Amount: ₹{totalAmount || '0.00'}
-                  </div>
-                </div>
+              {/* Creator auto-calculation display */}
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex justify-between items-center text-sm">
+                <span className="text-gray-400 font-medium">Your Remaining Share ({creatorName || 'You'}):</span>
+                <span className={`font-bold ${(100 - members.reduce((s, m) => s + parseFloat(m.percentage || 0), 0)) < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                  {(100 - members.reduce((s, m) => s + parseFloat(m.percentage || 0), 0)).toFixed(2)}%
+                </span>
               </div>
             </div>
 
-            {error && (
-              <div className="p-3 bg-red-500/20 text-red-300 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">
-              Create Shared Expense
+            <Button 
+              onClick={handleCreateSplit}
+              disabled={loading}
+              className="w-full h-14 text-black font-bold text-xl rounded-2xl"
+              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+            >
+              {loading ? "Creating..." : "Create & Generate Link"}
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <motion.div
+           initial={{ opacity: 0, scale: 0.9 }}
+           animate={{ opacity: 1, scale: 1 }}
+        >
+          <Card className="glass-card border-emerald-500/20 bg-emerald-500/5">
+            <CardContent className="p-10 text-center space-y-6">
+              <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold">Split Created Successfully!</h2>
+                <p className="text-gray-400 text-lg">Your shared expense link is ready to be sent.</p>
+              </div>
+              
+              <div className="flex gap-2 p-3 rounded-2xl bg-black/40 border border-white/10 mt-8">
+                <Input 
+                  value={shareLink} 
+                  readOnly 
+                  className="bg-transparent border-none focus-visible:ring-0 font-mono text-sm h-10"
+                />
+                <Button onClick={copyToClipboard} className="shrink-0 bg-emerald-600 hover:bg-emerald-500 px-6">
+                  {copied ? <CheckCircle2 className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
+                  {copied ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => { setShareLink(""); setTitle(""); setTotalAmount(""); setMembers([{ name: "", percentage: "" }]); }}
+                  className="flex-1 h-12 border-white/10 text-lg font-semibold"
+                >
+                  Create Another
+                </Button>
+                <Button 
+                  className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-500 text-lg font-semibold"
+                  onClick={() => window.open(shareLink, '_blank')}
+                >
+                  Preview Page
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
     </div>
   );
-};
-
-export default CreateSharedExpense;
+}

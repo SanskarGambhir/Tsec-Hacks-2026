@@ -32,7 +32,7 @@ function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/invite/:token" element={<InviteHandler />} />
         <Route path="/group-invite/:token" element={<GroupInviteHandler />} />
-        <Route path="/wallet" element={<Wallet />} />
+        
         <Route path="/chat/:groupId" element={<GroupChat />} />
         <Route path="/socket-test" element={<SocketTestComponent />} />
         <Route path="/join-group" element={<JoinGroup />} />
@@ -44,6 +44,7 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/groups" element={<Groups />} />
+          <Route path="/wallet" element={<Wallet />} />
           <Route path="/groups/create" element={<CreateGroup />} />
           <Route path="/groups/:groupId" element={<GroupDetailPage />} />
           <Route path="/friends" element={<FriendsPage />} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import toast, { Toaster } from "react-hot-toast";
 import api from "../api/axios";
 import {
   connectSocket,
@@ -58,6 +59,8 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import GroupPaymentModal from "./GroupPaymentModal";
+import ExpenseDetailsModal from "./ExpenseDetailsModal";
+import MemberActionsModal from "./MemberActionsModal";
 import { getFriends } from "../api/friends";
 import {
   sendGroupInviteToFriend,
@@ -80,6 +83,14 @@ const GroupDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+
+  const userData = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUser = userData?.data?.user || userData;
+  const currentUserId = currentUser?._id;
+
+  console.log(currentUserId, "CURRENT USER ID");
+
+  console.log(group?.owner?._id, "OWNER ID");
 
   // Interaction State
   const [newRule, setNewRule] = useState("");
@@ -105,6 +116,11 @@ const GroupDetailPage = () => {
   // Group Invitation State
   const [showInviteDialog, setShowInviteDialog] = useState(false);
 
+  // Member Actions Modal State
+  const [showMemberActionsModal, setShowMemberActionsModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedMemberBalance, setSelectedMemberBalance] = useState(0);
+
   // Friend selection states
   const [addMethod, setAddMethod] = useState("friends"); // 'friends' or 'whatsapp'
   const [friends, setFriends] = useState([]);
@@ -121,10 +137,15 @@ const GroupDetailPage = () => {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [leavingGroup, setLeavingGroup] = useState(false);
 
+  // Expense details state
+  const [selectedExpense, setSelectedExpense] = useState(null);
+
+  // Pending invites state
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [loadingInvites, setLoadingInvites] = useState(false);
+
   // Get current user
-  const userData = JSON.parse(localStorage.getItem("user") || "{}");
-  const currentUser = userData?.data?.user || userData;
-  const currentUserId = currentUser?._id;
+
 
   useEffect(() => {
     const fetchGroupDetails = async () => {
@@ -145,6 +166,7 @@ const GroupDetailPage = () => {
 
     fetchGroupDetails();
     fetchTransactions();
+    fetchPendingInvites();
 
     // Define handlers for cleanup
     const handleRuleAdded = (data) => {
@@ -285,6 +307,22 @@ const GroupDetailPage = () => {
       }
     } catch (err) {
       console.error("Failed to fetch transactions:", err);
+    }
+  };
+
+  const fetchPendingInvites = async () => {
+    try {
+      setLoadingInvites(true);
+      const res = await api.get(`/groups/${groupId}/pending-invites`, {
+        withCredentials: true,
+      });
+      if (res.data.data?.invites) {
+        setPendingInvites(res.data.data.invites);
+      }
+    } catch (err) {
+      console.error("Failed to fetch pending invites:", err);
+    } finally {
+      setLoadingInvites(false);
     }
   };
 
@@ -582,7 +620,8 @@ const GroupDetailPage = () => {
 
       setSelectedFriends([]);
       setShowAddMember(false);
-      alert(`Successfully sent ${selectedFriends.length} invite(s)!`);
+      toast.success(`Successfully sent ${selectedFriends.length} invite(s)!`);
+      fetchPendingInvites(); // Refresh pending invites
     } catch (error) {
       console.error("Error sending friend invites:", error);
       setInviteError(error.response?.data?.message || "Failed to send invites");
@@ -606,6 +645,8 @@ const GroupDetailPage = () => {
 
       setPhoneInviteSuccess(true);
       setPhoneNumber("");
+      toast.success("WhatsApp invite sent successfully!");
+      fetchPendingInvites(); // Refresh pending invites
 
       setTimeout(() => {
         setPhoneInviteSuccess(false);
@@ -670,6 +711,38 @@ const GroupDetailPage = () => {
     }
   };
 
+  // Function to handle member actions (take credits or add funds)
+  const handleMemberAction = async (actionData) => {
+    try {
+      let response;
+
+      if (actionData.actionType === 'takeCredits') {
+        // Withdraw credits from member's balance
+        response = await api.post(`/members/${groupId}/withdraw-credits`, {
+          memberId: actionData.memberId,
+          amount: actionData.amount
+        }, { withCredentials: true });
+      } else if (actionData.actionType === 'addFunds') {
+        const response = await api.post(
+          `/groups/${groupId}/add-funds`,
+          { amount: actionData.amount },
+          { withCredentials: true }
+        );
+
+      }
+
+      console.log('Member action processed successfully:', response.data);
+
+      // Refresh the group data to reflect the changes
+      const refreshedResponse = await api.get(`/groups/${groupId}`);
+      setGroup(refreshedResponse.data.data);
+    } catch (err) {
+      console.error('Error processing member action:', err);
+      throw err; // Re-throw to be caught by the modal
+    }
+  };
+
+
   // Check if the group is a regular split group
   const isRegularSplitGroup = group?.rules?.some(
     (rule) => rule.ruleType === "regular_split",
@@ -714,6 +787,8 @@ const GroupDetailPage = () => {
   }
 
   if (!group) return null;
+
+
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -809,13 +884,6 @@ const GroupDetailPage = () => {
               </DialogContent>
             </Dialog>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-white/10 hover:bg-white/5"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
           {isRegularSplitGroup && (
             <Button
               size="sm"
@@ -827,15 +895,17 @@ const GroupDetailPage = () => {
               Add Expense
             </Button>
           )}
-          <Button
-            size="sm"
-            className="text-black"
-            style={{ background: "linear-gradient(90deg, #60a5fa, #3b82f6)" }}
-            onClick={() => setShowGroupPaymentModal(true)}
-          >
-            <Wallet className="w-4 h-4 mr-1" />
-            Pay from Group
-          </Button>
+          {group.owner?._id === currentUserId && (
+            <Button
+              size="sm"
+              className="text-black"
+              style={{ background: "linear-gradient(90deg, #60a5fa, #3b82f6)" }}
+              onClick={() => setShowGroupPaymentModal(true)}
+            >
+              <Wallet className="w-4 h-4 mr-1" />
+              Pay from Group
+            </Button>
+          )}
         </div>
       </motion.div>
 
@@ -931,8 +1001,32 @@ const GroupDetailPage = () => {
                   <DollarSign className="w-5 h-5 text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Your Share</p>
-                  <p className="text-xl font-bold text-emerald-400">--</p>
+                  <p className="text-sm text-gray-400">Your Balance</p>
+                  <p className={`text-xl font-bold ${(() => {
+                    const userBalance = group.wallet?.memberBalances?.find(
+                      (balance) => balance.user.toString() === currentUserId?.toString()
+                    );
+                    const balanceAmount = userBalance ? userBalance.balance : 0;
+                    return balanceAmount >= 0 ? 'text-emerald-400' : 'text-red-400';
+                  })()
+                    }`}>
+                    {(() => {
+                      const userBalance = group.wallet?.memberBalances?.find(
+                        (balance) => balance.user.toString() === currentUserId?.toString()
+                      );
+                      const balanceAmount = userBalance ? userBalance.balance : 0;
+                      return `${balanceAmount >= 0 ? '+' : '-'}₹${Math.abs(balanceAmount).toFixed(2)}`;
+                    })()}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {(() => {
+                      const userBalance = group.wallet?.memberBalances?.find(
+                        (balance) => balance.user.toString() === currentUserId?.toString()
+                      );
+                      const balanceAmount = userBalance ? userBalance.balance : 0;
+                      return balanceAmount >= 0 ? 'Available in pool' : 'Owed to pool';
+                    })()}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -1005,74 +1099,133 @@ const GroupDetailPage = () => {
                     <p className="text-sm">No transactions found</p>
                   </div>
                 ) : (
-                  transactions.map((tx, idx) => (
-                    <motion.div
-                      key={tx._id || idx}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="group p-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                            tx.type === "DEPOSIT"
-                              ? "bg-emerald-500/10"
-                              : "bg-red-500/10"
-                          }`}
-                        >
-                          {tx.type === "DEPOSIT" ? (
-                            <ArrowDownRight className="w-5 h-5 text-emerald-400" />
-                          ) : (
-                            <ArrowUpRight className="w-5 h-5 text-red-400" />
-                          )}
-                        </div>
+                  transactions.map((tx, idx) => {
+                    const getTransactionIcon = () => {
+                      switch (tx.type) {
+                        case "DEPOSIT":
+                          return <ArrowDownRight className="w-5 h-5 text-emerald-400" />;
+                        case "WITHDRAWAL":
+                          return <ArrowUpRight className="w-5 h-5 text-red-400" />;
+                        case "GROUP_PAYMENT":
+                          return <Receipt className="w-5 h-5 text-orange-400" />;
+                        default:
+                          return <DollarSign className="w-5 h-5 text-gray-400" />;
+                      }
+                    };
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="font-semibold text-sm text-gray-200">
-                              {tx.type === "DEPOSIT" ? "Deposit" : tx.type}
-                            </p>
-                            <p className="font-bold text-emerald-400">
-                              ₹{tx.amount?.toLocaleString()}
-                            </p>
+                    const getTransactionBgColor = () => {
+                      switch (tx.type) {
+                        case "DEPOSIT":
+                          return "bg-emerald-500/10";
+                        case "WITHDRAWAL":
+                          return "bg-red-500/10";
+                        case "GROUP_PAYMENT":
+                          return "bg-orange-500/10";
+                        default:
+                          return "bg-gray-500/10";
+                      }
+                    };
+
+                    const getTransactionLabel = () => {
+                      switch (tx.type) {
+                        case "DEPOSIT":
+                          return "Deposit";
+                        case "WITHDRAWAL":
+                          return "Withdrawal";
+                        case "GROUP_PAYMENT":
+                          return "Group Payment";
+                        default:
+                          return tx.type;
+                      }
+                    };
+
+                    const showUsername = tx.fromUser?.username || tx.fromUser?.email || "Unknown";
+
+                    return (
+                      <motion.div
+                        key={tx._id || idx}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="group p-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${getTransactionBgColor()}`}
+                          >
+                            {getTransactionIcon()}
                           </div>
 
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <Clock className="w-3 h-3" />
-                              <span>ID: {tx.intentId?.slice(0, 8)}...</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <div>
+                                <p className="font-semibold text-sm text-gray-200">
+                                  {getTransactionLabel()}
+                                </p>
+                                {tx.description && (
+                                  <p className="text-xs text-gray-400 truncate">
+                                    {tx.description}
+                                  </p>
+                                )}
+                                {tx.fromUser && tx.type !== "DEPOSIT" && (
+                                  <p className="text-xs text-gray-500 truncate">
+                                    by {showUsername}
+                                  </p>
+                                )}
+                              </div>
+                              <p className={`font-bold ${tx.type === "DEPOSIT"
+                                ? "text-emerald-400"
+                                : tx.type === "GROUP_PAYMENT" || tx.type === "WITHDRAWAL"
+                                  ? "text-orange-400"
+                                  : "text-gray-400"
+                                }`}>
+                                {tx.type === "DEPOSIT" ? "+" : "-"}₹{tx.amount?.toLocaleString()}
+                              </p>
                             </div>
-                            {getStatusBadge(tx.status)}
-                          </div>
 
-                          {tx.status === "PENDING" && (
-                            <div className="flex gap-2 mt-3">
-                              <Button
-                                size="sm"
-                                onClick={() => confirmTransaction(tx.intentId)}
-                                disabled={addingFunds}
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs h-8"
-                              >
-                                <CheckCircle2 className="w-3 h-3 mr-1" />
-                                Confirm
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => cancelTransaction(tx.intentId)}
-                                disabled={addingFunds}
-                                variant="destructive"
-                                className="flex-1 text-xs h-8"
-                              >
-                                <XCircle className="w-3 h-3 mr-1" />
-                                Cancel
-                              </Button>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <Clock className="w-3 h-3" />
+                                <span>
+                                  {new Date(tx.date).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                              {getStatusBadge(tx.status)}
                             </div>
-                          )}
+
+                            {tx.status === "PENDING" && tx.intentId && (
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  onClick={() => confirmTransaction(tx.intentId)}
+                                  disabled={addingFunds}
+                                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs h-8"
+                                >
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                  Confirm
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => cancelTransaction(tx.intentId)}
+                                  disabled={addingFunds}
+                                  variant="destructive"
+                                  className="flex-1 text-xs h-8"
+                                >
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                  Cancel
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))
+                      </motion.div>
+                    );
+                  })
                 )}
               </CardContent>
             </Card>
@@ -1182,7 +1335,8 @@ const GroupDetailPage = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                    onClick={() => setSelectedExpense(expense)}
                   >
                     <div
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium ${categoryColors[expense.category || "General"]}`}
@@ -1292,13 +1446,12 @@ const GroupDetailPage = () => {
                               <div
                                 key={friend._id}
                                 onClick={() => toggleFriendSelection(friend)}
-                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                                  selectedFriends.some(
-                                    (f) => f._id === friend._id,
-                                  )
-                                    ? "bg-emerald-500/20 border border-emerald-500/30"
-                                    : "bg-white/5 hover:bg-white/10 border border-transparent"
-                                }`}
+                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedFriends.some(
+                                  (f) => f._id === friend._id,
+                                )
+                                  ? "bg-emerald-500/20 border border-emerald-500/30"
+                                  : "bg-white/5 hover:bg-white/10 border border-transparent"
+                                  }`}
                               >
                                 <Avatar className="h-10 w-10">
                                   <AvatarImage src={friend.avatar} />
@@ -1317,8 +1470,8 @@ const GroupDetailPage = () => {
                                 {selectedFriends.some(
                                   (f) => f._id === friend._id,
                                 ) && (
-                                  <Check className="w-5 h-5 text-emerald-400" />
-                                )}
+                                    <Check className="w-5 h-5 text-emerald-400" />
+                                  )}
                               </div>
                             ))}
                         </div>
@@ -1447,13 +1600,16 @@ const GroupDetailPage = () => {
             <CardContent className="space-y-3">
               {group.members?.map((member, index) => {
                 // Find the member's balance in memberBalances
+
                 const memberBalance = group.wallet?.memberBalances?.find(
                   (balance) =>
                     balance.user.toString() === member._id.toString(),
                 );
-
+                const displayButton = member._id === currentUserId && memberBalance && memberBalance.balance <= 100;
                 const balanceAmount = memberBalance ? memberBalance.balance : 0;
                 const isPositive = balanceAmount >= 0;
+
+                console.log(displayButton, member.username, balanceAmount);
 
                 return (
                   <motion.div
@@ -1498,6 +1654,25 @@ const GroupDetailPage = () => {
                       <p className="text-xs text-gray-500">
                         {isPositive ? "Credit" : "Debt"}
                       </p>
+
+                      {/* Show action button if user has credit >= 100 */}
+                      {displayButton && (
+                        <div className="mt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs border-emerald-500/30 hover:bg-emerald-500/10"
+                            onClick={() => {
+                              // Set the selected member and open the modal
+                              setSelectedMember(member);
+                              setSelectedMemberBalance(balanceAmount);
+                              setShowMemberActionsModal(true);
+                            }}
+                          >
+                            Actions
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     {/* Placeholder for remove logic if user is owner */}
                     {/* <button
@@ -1508,6 +1683,94 @@ const GroupDetailPage = () => {
                   </motion.div>
                 );
               })}
+            </CardContent>
+          </Card>
+
+          {/* Pending Invites Section */}
+          <Card className="glass-card border-white/10 mt-6">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Mail className="w-5 h-5 text-blue-400" />
+                Pending Invites
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchPendingInvites}
+                className="text-gray-400 hover:text-emerald-400"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${loadingInvites ? "animate-spin" : ""}`}
+                />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loadingInvites ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                </div>
+              ) : pendingInvites.length === 0 ? (
+                <div className="text-center py-8">
+                  <Mail className="w-12 h-12 mx-auto text-gray-500 mb-3 opacity-20" />
+                  <p className="text-gray-400 text-sm">No pending invites</p>
+                </div>
+              ) : (
+                pendingInvites.map((invite, index) => (
+                  <motion.div
+                    key={invite._id || index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                      {invite.inviteType === "phone" ? (
+                        <Phone className="w-5 h-5 text-blue-400" />
+                      ) : (
+                        <Mail className="w-5 h-5 text-blue-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium truncate">
+                          {invite.inviteType === "phone"
+                            ? invite.phoneNumber
+                            : invite.recipient?.email || "Unknown"}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className="border-yellow-500/30 text-yellow-400 text-xs"
+                        >
+                          Pending
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>
+                          Invited by{" "}
+                          {invite.sender?.username || invite.sender?.email}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          {new Date(invite.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {invite.expiresAt && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Expires:{" "}
+                          {new Date(invite.expiresAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <Badge
+                        className={`${invite.inviteType === "phone" ? "bg-purple-500/20 text-purple-400 border-purple-500/20" : "bg-blue-500/20 text-blue-400 border-blue-500/20"}`}
+                      >
+                        {invite.inviteType === "phone" ? "WhatsApp" : "Friend"}
+                      </Badge>
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1583,7 +1846,18 @@ const GroupDetailPage = () => {
         <GroupPaymentModal
           group={group}
           onClose={() => setShowGroupPaymentModal(false)}
-          onSuccess={() => {}}
+          onSuccess={() => { }}
+        />
+      )}
+
+      {/* Member Actions Modal */}
+      {showMemberActionsModal && selectedMember && (
+        <MemberActionsModal
+          member={selectedMember}
+          balance={selectedMemberBalance}
+          groupId={groupId}
+          onClose={() => setShowMemberActionsModal(false)}
+          onAction={handleMemberAction}
         />
       )}
 
@@ -1622,6 +1896,40 @@ const GroupDetailPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Expense Details Modal */}
+      {selectedExpense && (
+        <ExpenseDetailsModal
+          expense={selectedExpense}
+          group={group}
+          onClose={() => setSelectedExpense(null)}
+        />
+      )}
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: "rgba(17, 24, 39, 0.95)",
+            color: "#fff",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+          },
+          success: {
+            iconTheme: {
+              primary: "#10b981",
+              secondary: "#fff",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#ef4444",
+              secondary: "#fff",
+            },
+          },
+        }}
+      />
     </div>
   );
 };

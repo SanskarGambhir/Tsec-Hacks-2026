@@ -16,7 +16,9 @@ export const connectSocket = (token = null) => {
   };
 
   // Use environment variable or default to localhost:8000
-  const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+  // Remove /api/v1/ suffix if present since socket.io connects to base URL
+  let SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+  SERVER_URL = SERVER_URL.replace(/\/api\/v1\/?$/, '');
 
   if (token) {
     options.auth = { token };
