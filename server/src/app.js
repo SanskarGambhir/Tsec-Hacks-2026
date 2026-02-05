@@ -22,11 +22,13 @@ const app = express();
 
 
 app.use(cors({
-  origin: "*",
+  origin: [
+    "https://tsec-hacks-2026-8j2o.vercel.app"
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Authorization", "Content-Type"],
-}))
+  allowedHeaders: ["Authorization", "Content-Type"]
+}));
 
 // Basic Configurations
 app.use(express.json({ limit: "16kb" })) // Accept json data
