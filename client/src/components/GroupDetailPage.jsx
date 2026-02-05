@@ -325,6 +325,7 @@ const GroupDetailPage = () => {
         setFundsMessage(
           "Proof submitted. Payment will settle at Decided Date.",
         );
+        localStorage.removeItem("pendingTimeLockedIntent");
         fetchTransactions();
       }
     } catch (err) {
@@ -336,20 +337,29 @@ const GroupDetailPage = () => {
   const cancelTransaction = async (intentId) => {
     try {
       setFundsMessage("Cancelling transaction...");
-      // TODO: Implement cancel endpoint
+
       await api.post(
         `/groups/${groupId}/cancel-deposit/${intentId}`,
         {},
         { withCredentials: true },
       );
+
       setFundsMessage("Transaction cancelled");
+
+      // Refresh group to update pendingFunds
+      const response = await api.get(`/groups/${groupId}`);
+      setGroup(response.data.data);
+
+      // Refresh transactions list
       fetchTransactions();
     } catch (err) {
       console.error(err);
-      setFundsMessage("Failed to cancel transaction");
+      setFundsMessage(
+        err.response?.data?.message || "Failed to cancel transaction",
+      );
     }
   };
-
+  1;
   const getStatusBadge = (status) => {
     switch (status?.toUpperCase()) {
       case "COMPLETED":

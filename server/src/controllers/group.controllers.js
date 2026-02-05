@@ -1116,6 +1116,61 @@ const completeGroupDeposit = asyncHandler(async (req, res) => {
   }
 });
 
+const cancelGroupDeposit = asyncHandler(async (req, res) => {
+  const { groupId, intentId } = req.params;
+  const userId = req.user._id;
+
+  // Verify user is member of group
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new ApiError(404, "Group not found");
+  }
+
+  const isMember =
+    group.members.some((m) => m.toString() === userId.toString()) ||
+    group.owner.toString() === userId.toString();
+
+  if (!isMember) {
+    throw new ApiError(403, "You are not a member of this group");
+  }
+
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (!groupWallet) {
+    throw new ApiError(404, "Group wallet not found");
+  }
+
+  // Find the transaction
+  const tx = await Transaction.findOne({
+    user: userId,
+    wallet: groupWallet._id,
+    intentId,
+    status: "PENDING",
+  });
+
+  if (!tx) {
+    throw new ApiError(404, "Pending transaction not found");
+  }
+
+  // Remove from pendingFunds for time_locked groups
+  if (group.releaseType === "time_locked" && group.pendingFunds >= tx.amount) {
+    group.pendingFunds -= tx.amount;
+    await group.save();
+  }
+
+  // Delete the transaction from database
+  await Transaction.findByIdAndDelete(tx._id);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { message: "Transaction cancelled and removed" },
+        "Transaction cancelled successfully",
+      ),
+    );
+});
+
 // Leave group
 const leaveGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
@@ -1181,5 +1236,6 @@ export {
   getGroupTransactions,
   checkGroupPayments,
   completeGroupDeposit,
+  cancelGroupDeposit,
   leaveGroup,
 };
