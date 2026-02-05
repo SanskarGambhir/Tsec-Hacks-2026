@@ -42,10 +42,10 @@ export const addNewWallet = async (req, res) => {
 export const getBalance = async (req, res) => {
   try {
     const userId = req.user._id;
-    
+
     // Fetch wallet from database
     const wallet = await UserWallet.findOne({ user: userId });
-    
+
     if (!wallet) {
       return res.status(404).json({
         success: false,
@@ -181,14 +181,31 @@ export const completeDeposit = async (req, res) => {
 
     return res.json({ success: true });
   } catch (error) {
-    console.log(error);   
+    console.log(error);
     console.error("Proof error:", error.message);
     return res.status(500).json({ error: error.message });
   }
 };
 export const getUserTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({})
+    const userId = req.user._id;
+
+    // Get user's wallet
+    const userWallet = await UserWallet.findOne({ user: userId });
+
+    if (!userWallet) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        transactions: [],
+      });
+    }
+
+    // Only fetch transactions from UserWallet, not GroupWallet
+    const transactions = await Transaction.find({
+      user: userId,
+      wallet: userWallet._id,
+    })
       .sort({ createdAt: -1 })
       .lean();
 
