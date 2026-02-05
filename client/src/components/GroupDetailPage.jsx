@@ -15,6 +15,8 @@ import {
   removeListener,
 } from "../lib/socket";
 import {
+  AlertTriangle,
+  X,
   ArrowLeft,
   Users,
   Wallet,
@@ -58,6 +60,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import { getSocket } from "../lib/socket";
 import GroupPaymentModal from "./GroupPaymentModal";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import MemberActionsModal from "./MemberActionsModal";
@@ -88,9 +91,9 @@ const GroupDetailPage = () => {
   const currentUser = userData?.data?.user || userData;
   const currentUserId = currentUser?._id;
 
-  console.log(currentUserId, "CURRENT USER ID");
+  // console.log(currentUserId, "CURRENT USER ID");
 
-  console.log(group?.owner?._id, "OWNER ID");
+  // console.log(group?.owner?._id, "OWNER ID");
 
   // Interaction State
   const [newRule, setNewRule] = useState("");
@@ -99,11 +102,12 @@ const GroupDetailPage = () => {
   const [addFundsAmount, setAddFundsAmount] = useState("");
   const [addingFunds, setAddingFunds] = useState(false);
   const [fundsMessage, setFundsMessage] = useState("");
+  const [socket, setSocket] = useState(null);
 
   // Member Management State
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
-
+  const [otherSocketId, setOtherSocketId] = useState(null);
   // Transaction State
   const [transactions, setTransactions] = useState([]);
   const [checkingPayments, setCheckingPayments] = useState(false);
@@ -144,18 +148,38 @@ const GroupDetailPage = () => {
   const [pendingInvites, setPendingInvites] = useState([]);
   const [loadingInvites, setLoadingInvites] = useState(false);
 
-  // Get current user
+  // Approval modal state
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [approvalData, setApprovalData] = useState(null);
 
+  // Get current user
+  useEffect(() => {
+    const sock = getSocket();
+
+    if (sock) {
+      const handleApprovalRequest = (data) => {
+        console.log("Approval request received:", data);
+        // Show approval modal instead of alert
+        console.log(data.socketId, "SOCKET ID FROM APPROVAL REQUEST");
+        setOtherSocketId(data.socketId);
+
+        setApprovalData(data);
+        setShowApprovalModal(true);
+      };
+
+      sock.on("approval_request", handleApprovalRequest);
+
+      return () => {
+        sock.off("approval_request", handleApprovalRequest);
+      };
+    }
+  }, [socket]);
 
   useEffect(() => {
     const fetchGroupDetails = async () => {
       try {
         const response = await api.get(`/groups/${groupId}`);
         setGroup(response.data.data);
-
-        // Connect to socket and join the group room
-        connectSocket();
-        socketJoinGroup(groupId);
       } catch (err) {
         console.error("Error fetching group details:", err);
         setError(err.response?.data?.message || "Failed to load group details");
@@ -163,6 +187,13 @@ const GroupDetailPage = () => {
         setLoading(false);
       }
     };
+
+    // Connect to socket and join the group room (only once)
+    if (!socket) {
+      const sock = connectSocket();
+      setSocket(sock);
+      socketJoinGroup(groupId);
+    }
 
     fetchGroupDetails();
     fetchTransactions();
@@ -716,32 +747,34 @@ const GroupDetailPage = () => {
     try {
       let response;
 
-      if (actionData.actionType === 'takeCredits') {
+      if (actionData.actionType === "takeCredits") {
         // Withdraw credits from member's balance
-        response = await api.post(`/members/${groupId}/withdraw-credits`, {
-          memberId: actionData.memberId,
-          amount: actionData.amount
-        }, { withCredentials: true });
-      } else if (actionData.actionType === 'addFunds') {
+        response = await api.post(
+          `/members/${groupId}/withdraw-credits`,
+          {
+            memberId: actionData.memberId,
+            amount: actionData.amount,
+          },
+          { withCredentials: true },
+        );
+      } else if (actionData.actionType === "addFunds") {
         const response = await api.post(
           `/groups/${groupId}/add-funds`,
           { amount: actionData.amount },
-          { withCredentials: true }
+          { withCredentials: true },
         );
-
       }
 
-      console.log('Member action processed successfully:', response.data);
+      console.log("Member action processed successfully:", response.data);
 
       // Refresh the group data to reflect the changes
       const refreshedResponse = await api.get(`/groups/${groupId}`);
       setGroup(refreshedResponse.data.data);
     } catch (err) {
-      console.error('Error processing member action:', err);
+      console.error("Error processing member action:", err);
       throw err; // Re-throw to be caught by the modal
     }
   };
-
 
   // Check if the group is a regular split group
   const isRegularSplitGroup = group?.rules?.some(
@@ -787,8 +820,6 @@ const GroupDetailPage = () => {
   }
 
   if (!group) return null;
-
-
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -1002,29 +1033,43 @@ const GroupDetailPage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Your Balance</p>
-                  <p className={`text-xl font-bold ${(() => {
-                    const userBalance = group.wallet?.memberBalances?.find(
-                      (balance) => balance.user.toString() === currentUserId?.toString()
-                    );
-                    const balanceAmount = userBalance ? userBalance.balance : 0;
-                    return balanceAmount >= 0 ? 'text-emerald-400' : 'text-red-400';
-                  })()
-                    }`}>
+                  <p
+                    className={`text-xl font-bold ${(() => {
+                      const userBalance = group.wallet?.memberBalances?.find(
+                        (balance) =>
+                          balance.user.toString() === currentUserId?.toString(),
+                      );
+                      const balanceAmount = userBalance
+                        ? userBalance.balance
+                        : 0;
+                      return balanceAmount >= 0
+                        ? "text-emerald-400"
+                        : "text-red-400";
+                    })()}`}
+                  >
                     {(() => {
                       const userBalance = group.wallet?.memberBalances?.find(
-                        (balance) => balance.user.toString() === currentUserId?.toString()
+                        (balance) =>
+                          balance.user.toString() === currentUserId?.toString(),
                       );
-                      const balanceAmount = userBalance ? userBalance.balance : 0;
-                      return `${balanceAmount >= 0 ? '+' : '-'}₹${Math.abs(balanceAmount).toFixed(2)}`;
+                      const balanceAmount = userBalance
+                        ? userBalance.balance
+                        : 0;
+                      return `${balanceAmount >= 0 ? "+" : "-"}₹${Math.abs(balanceAmount).toFixed(2)}`;
                     })()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     {(() => {
                       const userBalance = group.wallet?.memberBalances?.find(
-                        (balance) => balance.user.toString() === currentUserId?.toString()
+                        (balance) =>
+                          balance.user.toString() === currentUserId?.toString(),
                       );
-                      const balanceAmount = userBalance ? userBalance.balance : 0;
-                      return balanceAmount >= 0 ? 'Available in pool' : 'Owed to pool';
+                      const balanceAmount = userBalance
+                        ? userBalance.balance
+                        : 0;
+                      return balanceAmount >= 0
+                        ? "Available in pool"
+                        : "Owed to pool";
                     })()}
                   </p>
                 </div>
@@ -1103,13 +1148,21 @@ const GroupDetailPage = () => {
                     const getTransactionIcon = () => {
                       switch (tx.type) {
                         case "DEPOSIT":
-                          return <ArrowDownRight className="w-5 h-5 text-emerald-400" />;
+                          return (
+                            <ArrowDownRight className="w-5 h-5 text-emerald-400" />
+                          );
                         case "WITHDRAWAL":
-                          return <ArrowUpRight className="w-5 h-5 text-red-400" />;
+                          return (
+                            <ArrowUpRight className="w-5 h-5 text-red-400" />
+                          );
                         case "GROUP_PAYMENT":
-                          return <Receipt className="w-5 h-5 text-orange-400" />;
+                          return (
+                            <Receipt className="w-5 h-5 text-orange-400" />
+                          );
                         default:
-                          return <DollarSign className="w-5 h-5 text-gray-400" />;
+                          return (
+                            <DollarSign className="w-5 h-5 text-gray-400" />
+                          );
                       }
                     };
 
@@ -1139,7 +1192,8 @@ const GroupDetailPage = () => {
                       }
                     };
 
-                    const showUsername = tx.fromUser?.username || tx.fromUser?.email || "Unknown";
+                    const showUsername =
+                      tx.fromUser?.username || tx.fromUser?.email || "Unknown";
 
                     return (
                       <motion.div
@@ -1173,13 +1227,18 @@ const GroupDetailPage = () => {
                                   </p>
                                 )}
                               </div>
-                              <p className={`font-bold ${tx.type === "DEPOSIT"
-                                ? "text-emerald-400"
-                                : tx.type === "GROUP_PAYMENT" || tx.type === "WITHDRAWAL"
-                                  ? "text-orange-400"
-                                  : "text-gray-400"
-                                }`}>
-                                {tx.type === "DEPOSIT" ? "+" : "-"}₹{tx.amount?.toLocaleString()}
+                              <p
+                                className={`font-bold ${
+                                  tx.type === "DEPOSIT"
+                                    ? "text-emerald-400"
+                                    : tx.type === "GROUP_PAYMENT" ||
+                                        tx.type === "WITHDRAWAL"
+                                      ? "text-orange-400"
+                                      : "text-gray-400"
+                                }`}
+                              >
+                                {tx.type === "DEPOSIT" ? "+" : "-"}₹
+                                {tx.amount?.toLocaleString()}
                               </p>
                             </div>
 
@@ -1187,12 +1246,15 @@ const GroupDetailPage = () => {
                               <div className="flex items-center gap-2 text-xs text-gray-500">
                                 <Clock className="w-3 h-3" />
                                 <span>
-                                  {new Date(tx.date).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
+                                  {new Date(tx.date).toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )}
                                 </span>
                               </div>
                               {getStatusBadge(tx.status)}
@@ -1202,7 +1264,9 @@ const GroupDetailPage = () => {
                               <div className="flex gap-2 mt-3">
                                 <Button
                                   size="sm"
-                                  onClick={() => confirmTransaction(tx.intentId)}
+                                  onClick={() =>
+                                    confirmTransaction(tx.intentId)
+                                  }
                                   disabled={addingFunds}
                                   className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs h-8"
                                 >
@@ -1446,12 +1510,13 @@ const GroupDetailPage = () => {
                               <div
                                 key={friend._id}
                                 onClick={() => toggleFriendSelection(friend)}
-                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedFriends.some(
-                                  (f) => f._id === friend._id,
-                                )
-                                  ? "bg-emerald-500/20 border border-emerald-500/30"
-                                  : "bg-white/5 hover:bg-white/10 border border-transparent"
-                                  }`}
+                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                  selectedFriends.some(
+                                    (f) => f._id === friend._id,
+                                  )
+                                    ? "bg-emerald-500/20 border border-emerald-500/30"
+                                    : "bg-white/5 hover:bg-white/10 border border-transparent"
+                                }`}
                               >
                                 <Avatar className="h-10 w-10">
                                   <AvatarImage src={friend.avatar} />
@@ -1470,8 +1535,8 @@ const GroupDetailPage = () => {
                                 {selectedFriends.some(
                                   (f) => f._id === friend._id,
                                 ) && (
-                                    <Check className="w-5 h-5 text-emerald-400" />
-                                  )}
+                                  <Check className="w-5 h-5 text-emerald-400" />
+                                )}
                               </div>
                             ))}
                         </div>
@@ -1605,11 +1670,12 @@ const GroupDetailPage = () => {
                   (balance) =>
                     balance.user.toString() === member._id.toString(),
                 );
-                const displayButton = member._id === currentUserId && memberBalance && memberBalance.balance <= 100;
+                const displayButton =
+                  member._id === currentUserId &&
+                  memberBalance &&
+                  memberBalance.balance <= 100;
                 const balanceAmount = memberBalance ? memberBalance.balance : 0;
                 const isPositive = balanceAmount >= 0;
-
-                console.log(displayButton, member.username, balanceAmount);
 
                 return (
                   <motion.div
@@ -1846,7 +1912,7 @@ const GroupDetailPage = () => {
         <GroupPaymentModal
           group={group}
           onClose={() => setShowGroupPaymentModal(false)}
-          onSuccess={() => { }}
+          onSuccess={() => {}}
         />
       )}
 
@@ -1905,6 +1971,97 @@ const GroupDetailPage = () => {
           onClose={() => setSelectedExpense(null)}
         />
       )}
+
+      {/* High Expense Approval Modal */}
+      <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>
+        <DialogContent className="glass-card border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-yellow-400">
+              <AlertTriangle className="w-5 h-5" />
+              High Expense Approval Required
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-400">Amount:</span>
+                  <span className="font-bold text-yellow-400">
+                    ₹{approvalData?.amount}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-400">Description:</span>
+                  <span className="font-medium">
+                    {approvalData?.description}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-400">Group:</span>
+                  <span className="font-medium">{group?.name}</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300">
+              This expense exceeds 20% of the group wallet balance. Your
+              approval is required to proceed.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowApprovalModal(false);
+
+                  // Get socket instance and send rejection response back to requester
+                  const sock = getSocket();
+                  if (sock && approvalData?.requestedBy) {
+                    sock.emit("approvalResponse", {
+                      approved: false,
+                      targetSocketId: approvalData.requestedBy,
+                      expenseData: approvalData,
+                      groupId: group._id,
+                    });
+                    alert("Expense denied! Notifying requester...");
+                  } else {
+                    alert("Expense denied!");
+                  }
+
+                  setApprovalData(null);
+                }}
+                className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Deny
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowApprovalModal(false);
+
+                  // Get socket instance and send approval response back to requester
+                  const sock = getSocket();
+                  if (sock && approvalData?.requestedBy) {
+                    sock.emit("approvalResponse", {
+                      approved: true,
+                      targetSocketId: approvalData.requestedBy,
+                      expenseData: approvalData,
+                      groupId: group._id,
+                    });
+                    alert("Expense approved! Notifying requester...");
+                  } else {
+                    alert("Expense approved! Processing payment...");
+                  }
+
+                  setApprovalData(null);
+                }}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Accept
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Toast Notifications */}
       <Toaster
