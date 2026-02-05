@@ -52,7 +52,7 @@ const withdrawCredits = asyncHandler(async (req, res) => {
   groupWallet.memberBalances[memberBalanceIndex].balance += amount;
 
   // Add the withdrawn amount to the group pool
-  group.balance += amount;
+  groupWallet.balance += amount;
 
   // Add transaction record
   groupWallet.transactions.push({
