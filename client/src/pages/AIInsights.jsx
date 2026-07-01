@@ -118,7 +118,7 @@ export default function AIInsights() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-16"
+          className="text-center py-20"
         >
           <div className="w-20 h-20 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-4">
             <Sparkles className="w-10 h-10 text-yellow-400 animate-pulse" />
@@ -138,7 +138,7 @@ export default function AIInsights() {
             className="space-y-6"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
                 <Zap className="w-6 h-6 text-blue-400" />
               </div>
               <div>
@@ -157,7 +157,7 @@ export default function AIInsights() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-gray-300 leading-relaxed">
+                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-gray-300 leading-relaxed text-base">
                     {insights?.insights || "No insights available"}
                   </div>
                 </CardContent>
@@ -251,7 +251,7 @@ export default function AIInsights() {
             className="space-y-6"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
                 <Brain className="w-6 h-6 text-purple-400" />
               </div>
               <div>
@@ -272,7 +272,7 @@ export default function AIInsights() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-gray-300 leading-relaxed">
+                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-gray-300 leading-relaxed text-base">
                     {behavioral?.analysis || "No analysis available"}
                   </div>
                 </CardContent>
@@ -321,8 +321,8 @@ export default function AIInsights() {
                           transition={{ delay: idx * 0.05 }}
                           className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border"
                         >
-                          <span className="text-sm text-gray-300">{pattern.description}</span>
-                          <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">
+                          <span className="text-sm text-gray-300 font-medium">{pattern.description}</span>
+                          <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
                             {pattern.frequency}x
                           </Badge>
                         </motion.div>
@@ -361,7 +361,7 @@ export default function AIInsights() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-gray-300 leading-relaxed">
+                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-gray-300 leading-relaxed text-base">
                     {coach?.advice || "No recommendations available"}
                   </div>
                 </CardContent>
@@ -421,7 +421,7 @@ export default function AIInsights() {
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
                           <span>Current: ${opp.currentSpend.toFixed(2)}</span>
                           <span>
-                            Target: ${(opp.currentSpend - opp.potentialSavings).toFixed(2)}
+                            Target: ₹{(opp.currentSpend - opp.potentialSavings).toFixed(2)}
                           </span>
                         </div>
                       </motion.div>
@@ -465,10 +465,10 @@ export default function AIInsights() {
                           ${coach.potentialMonthlySavings.toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                        <span className="text-blue-400">New Target Spend</span>
-                        <span className="font-bold text-lg text-blue-400">
-                          ${(coach.totalCurrentSpend - coach.potentialMonthlySavings).toFixed(2)}
+                      <div className="flex justify-between items-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-colors">
+                        <span className="text-blue-400 font-medium">New Target Spend</span>
+                        <span className="font-bold text-xl text-blue-400">
+                          ₹{(coach.totalCurrentSpend - coach.potentialMonthlySavings).toFixed(2)}
                         </span>
                       </div>
                     </div>

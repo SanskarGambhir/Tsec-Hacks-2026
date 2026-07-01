@@ -1,33 +1,109 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { X, User, IndianRupee, Divide, Wallet, Scan } from 'lucide-react';
-import api from '@/api/axios';
-import BillScannerModal from '../pages/BillScanner';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { X, User, IndianRupee, Divide, Wallet, Scan } from "lucide-react";
+import api from "@/api/axios";
+import BillScannerModal from "../pages/BillScanner";
+import { getSocketId, getSocketsInRoom, getSocket } from "../lib/socket";
 
 const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
   const [showBillScanner, setShowBillScanner] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentDescription, setPaymentDescription] = useState('');
-  const [divisionMethod, setDivisionMethod] = useState('even'); // 'even', 'exclude', 'custom'
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDescription, setPaymentDescription] = useState("");
+  const [divisionMethod, setDivisionMethod] = useState("even"); // 'even', 'exclude', 'custom'
   const [excludedMembers, setExcludedMembers] = useState([]);
   const [customAmounts, setCustomAmounts] = useState({});
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [socketIds, setSocketIds] = useState([]);
+  const socket = getSocket();
 
   // Initialize custom amounts when members change
   useEffect(() => {
+    const groupId = group?._id;
+    // Inside your component
+    const socketId = getSocketId();
+    console.log("My socket ID:", socketId);
+    //Get all socket IDs in a group
+    const getSocketUpdates = async () => {
+      const socketIds = await getSocketsInRoom(groupId);
+      setSocketIds(socketIds);
+      console.log("Connected sockets:", socketIds);
+    };
+    getSocketUpdates();
     if (group?.members) {
       const initialCustomAmounts = {};
-      group.members.forEach(member => {
-        initialCustomAmounts[member._id] = '';
+      group.members.forEach((member) => {
+        initialCustomAmounts[member._id] = "";
       });
       setCustomAmounts(initialCustomAmounts);
     }
   }, [group]);
+
+  // Listen for approval response from other members
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleApprovalResponse = async (data) => {
+      const { approved, expenseData, groupId, approvedBy } = data;
+
+      console.log("Received approval response:", {
+        approved,
+        expenseData,
+        groupId,
+      });
+
+      if (approved) {
+        setLoading(true);
+        try {
+          // Prepare the expense data
+          const apiExpenseData = {
+            amount: parseFloat(expenseData.amount),
+            description: expenseData.description,
+            divisionMethod: "even", // Default to even split for approved expenses
+            groupId: expenseData.groupId,
+          };
+
+          // Call the API to process the approved payment
+          const response = await api.post(
+            `/group-payments/${groupId}/process-payment`,
+            apiExpenseData,
+            { withCredentials: true },
+          );
+
+          alert("Expense approved and processed successfully!");
+          onSuccess(response.data);
+          onClose();
+        } catch (err) {
+          console.error("Error processing approved payment:", err);
+          setError(
+            err.response?.data?.message || "Failed to process approved payment",
+          );
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        alert("Your expense request was denied by a group member.");
+        setError("Expense request was denied");
+        setLoading(false);
+      }
+    };
+
+    socket.on("approvalResponse", handleApprovalResponse);
+
+    return () => {
+      socket.off("approvalResponse", handleApprovalResponse);
+    };
+  }, [socket, onSuccess, onClose]);
 
   // If bill scanner is open, render it instead (AFTER all hooks)
   if (showBillScanner) {
@@ -42,7 +118,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
 
   const toggleExcludeMember = (memberId) => {
     if (excludedMembers.includes(memberId)) {
-      setExcludedMembers(excludedMembers.filter(id => id !== memberId));
+      setExcludedMembers(excludedMembers.filter((id) => id !== memberId));
     } else {
       setExcludedMembers([...excludedMembers, memberId]);
     }
@@ -51,33 +127,66 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
   const handleCustomAmountChange = (memberId, value) => {
     setCustomAmounts({
       ...customAmounts,
-      [memberId]: value
+      [memberId]: value,
     });
   };
 
   const calculateEvenSplit = () => {
     if (!paymentAmount || !group?.members) return 0;
 
-    const eligibleMembers = group.members.filter(member => !excludedMembers.includes(member._id));
+    const eligibleMembers = group.members.filter(
+      (member) => !excludedMembers.includes(member._id),
+    );
     return parseFloat(paymentAmount) / eligibleMembers.length;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       // Validation
       if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
-        setError('Payment amount is required and must be greater than 0');
+        setError("Payment amount is required and must be greater than 0");
         setLoading(false);
         return;
       }
 
       if (!paymentDescription.trim()) {
-        setError('Payment description is required');
+        setError("Payment description is required");
         setLoading(false);
+        return;
+      }
+
+      if (paymentAmount > 0.2 * group.wallet.balance) {
+        console.log("Expense Greater than 20% of wallet balance");
+        console.log(socketIds);
+
+        // Filter out current user's socket ID and get one random ID
+        const otherIds =
+          socketIds.socketIds?.filter((id) => id !== getSocketId()) || [];
+
+        if (otherIds.length > 0) {
+          // Pick one random socket ID from other members
+          const randomSocketId =
+            otherIds[Math.floor(Math.random() * otherIds.length)];
+
+          console.log("Sending alert to socket:", randomSocketId);
+
+          socket.emit("largeExpenseWarning", {
+            targetSocketId: randomSocketId,
+            message: `A large expense of ₹${paymentAmount} is being added which exceeds 20% of the group wallet balance.`,
+            amount: paymentAmount,
+            description: paymentDescription,
+            groupId: group._id,
+            socketId: getSocketId(),
+            timestamp: new Date(),
+          });
+        } else {
+          console.log("No other members online to notify");
+        }
+
         return;
       }
 
@@ -86,20 +195,25 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
         amount: parseFloat(paymentAmount),
         description: paymentDescription.trim(),
         divisionMethod,
-        groupId: group._id
+        groupId: group._id,
       };
 
-      if (divisionMethod === 'exclude') {
+      if (divisionMethod === "exclude") {
         expenseData.excludedMembers = excludedMembers;
-      } else if (divisionMethod === 'custom') {
+      } else if (divisionMethod === "custom") {
         // Validate custom amounts
-        const totalCustomAmount = Object.values(customAmounts).reduce((sum, val) => {
-          const numVal = parseFloat(val) || 0;
-          return sum + numVal;
-        }, 0);
+        const totalCustomAmount = Object.values(customAmounts).reduce(
+          (sum, val) => {
+            const numVal = parseFloat(val) || 0;
+            return sum + numVal;
+          },
+          0,
+        );
 
         if (Math.abs(totalCustomAmount - parseFloat(paymentAmount)) > 0.01) {
-          setError(`Custom amounts must sum to the payment amount (₹${paymentAmount}). Current total: ₹${totalCustomAmount.toFixed(2)})`);
+          setError(
+            `Custom amounts must sum to the payment amount (₹${paymentAmount}). Current total: ₹${totalCustomAmount.toFixed(2)})`,
+          );
           setLoading(false);
           return;
         }
@@ -108,21 +222,30 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
       }
 
       // Call the API to process the group payment
-      const response = await api.post(`/group-payments/${group._id}/process-payment`, expenseData, {
-        withCredentials: true
-      });
+      const response = await api.post(
+        `/group-payments/${group._id}/process-payment`,
+        expenseData,
+        {
+          withCredentials: true,
+        },
+      );
 
       onSuccess(response.data);
       onClose();
     } catch (err) {
-      console.error('Error processing group payment:', err);
-      setError(err.response?.data?.message || 'Failed to process group payment');
+      console.error("Error processing group payment:", err);
+      setError(
+        err.response?.data?.message || "Failed to process group payment",
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const evenSplitAmount = divisionMethod === 'even' || divisionMethod === 'exclude' ? calculateEvenSplit() : 0;
+  const evenSplitAmount =
+    divisionMethod === "even" || divisionMethod === "exclude"
+      ? calculateEvenSplit()
+      : 0;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -212,25 +335,25 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Button
                   type="button"
-                  variant={divisionMethod === 'even' ? 'default' : 'outline'}
-                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === 'even' ? 'bg-emerald-600 hover:bg-emerald-700' : 'border-gray-600'}`}
-                  onClick={() => setDivisionMethod('even')}
+                  variant={divisionMethod === "even" ? "default" : "outline"}
+                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === "even" ? "bg-emerald-600 hover:bg-emerald-700" : "border-gray-600"}`}
+                  onClick={() => setDivisionMethod("even")}
                 >
                   <span className="text-xs">Even Split</span>
                 </Button>
                 <Button
                   type="button"
-                  variant={divisionMethod === 'exclude' ? 'default' : 'outline'}
-                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === 'exclude' ? 'bg-emerald-600 hover:bg-emerald-700' : 'border-gray-600'}`}
-                  onClick={() => setDivisionMethod('exclude')}
+                  variant={divisionMethod === "exclude" ? "default" : "outline"}
+                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === "exclude" ? "bg-emerald-600 hover:bg-emerald-700" : "border-gray-600"}`}
+                  onClick={() => setDivisionMethod("exclude")}
                 >
                   <span className="text-xs">Exclude Some</span>
                 </Button>
                 <Button
                   type="button"
-                  variant={divisionMethod === 'custom' ? 'default' : 'outline'}
-                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === 'custom' ? 'bg-emerald-600 hover:bg-emerald-700' : 'border-gray-600'}`}
-                  onClick={() => setDivisionMethod('custom')}
+                  variant={divisionMethod === "custom" ? "default" : "outline"}
+                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === "custom" ? "bg-emerald-600 hover:bg-emerald-700" : "border-gray-600"}`}
+                  onClick={() => setDivisionMethod("custom")}
                 >
                   <span className="text-xs">Custom Amounts</span>
                 </Button>
@@ -238,7 +361,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
             </div>
 
             {/* Members List - for exclude and even split */}
-            {(divisionMethod === 'even' || divisionMethod === 'exclude') && (
+            {(divisionMethod === "even" || divisionMethod === "exclude") && (
               <div className="space-y-2">
                 <Label>Members to include/exclude</Label>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
@@ -274,7 +397,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                     </div>
                   ))}
                 </div>
-                {divisionMethod === 'even' && (
+                {divisionMethod === "even" && (
                   <div className="p-3 bg-gray-800/50 rounded-lg mt-2">
                     <p className="text-sm text-gray-300">
                       Each included member pays: ₹{evenSplitAmount.toFixed(2)}
@@ -285,7 +408,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
             )}
 
             {/* Custom Amounts */}
-            {divisionMethod === 'custom' && (
+            {divisionMethod === "custom" && (
               <div className="space-y-2">
                 <Label>Set custom amounts for each member</Label>
                 <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
@@ -295,13 +418,17 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                         <User className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{member.username || member.email}</p>
+                        <p className="font-medium truncate">
+                          {member.username || member.email}
+                        </p>
                       </div>
                       <div className="w-24 sm:w-32 flex-shrink-0">
                         <Input
                           type="number"
-                          value={customAmounts[member._id] || ''}
-                          onChange={(e) => handleCustomAmountChange(member._id, e.target.value)}
+                          value={customAmounts[member._id] || ""}
+                          onChange={(e) =>
+                            handleCustomAmountChange(member._id, e.target.value)
+                          }
                           placeholder="₹0.00"
                           min="0"
                           step="0.01"
@@ -335,7 +462,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                 disabled={loading}
               >
-                {loading ? 'Processing...' : 'Process Payment'}
+                {loading ? "Processing..." : "Process Payment"}
               </Button>
             </div>
           </form>

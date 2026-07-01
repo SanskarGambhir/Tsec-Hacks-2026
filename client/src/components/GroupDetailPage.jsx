@@ -15,6 +15,8 @@ import {
   removeListener,
 } from "../lib/socket";
 import {
+  AlertTriangle,
+  X,
   ArrowLeft,
   Users,
   Wallet,
@@ -41,6 +43,7 @@ import {
   MessageCircle,
   Check,
   LogOut,
+  Trash2,
 } from "lucide-react";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -49,6 +52,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Progress } from "./ui/progress";
 import {
@@ -58,6 +68,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import { getSocket } from "../lib/socket";
 import GroupPaymentModal from "./GroupPaymentModal";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import MemberActionsModal from "./MemberActionsModal";
@@ -66,6 +77,7 @@ import {
   sendGroupInviteToFriend,
   sendGroupInviteViaWhatsApp,
   leaveGroup,
+  removeRuleFromGroup,
 } from "../api/groups";
 
 const categoryColors = {
@@ -88,22 +100,25 @@ const GroupDetailPage = () => {
   const currentUser = userData?.data?.user || userData;
   const currentUserId = currentUser?._id;
 
-  console.log(currentUserId, "CURRENT USER ID");
+  // console.log(currentUserId, "CURRENT USER ID");
 
-  console.log(group?.owner?._id, "OWNER ID");
+  // console.log(group?.owner?._id, "OWNER ID");
+  console.log(group?.rules, "GROUP RULES");
 
   // Interaction State
-  const [newRule, setNewRule] = useState("");
+  const [selectedRule, setSelectedRule] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState([]); // Activity Feed
   const [addFundsAmount, setAddFundsAmount] = useState("");
   const [addingFunds, setAddingFunds] = useState(false);
   const [fundsMessage, setFundsMessage] = useState("");
+  const [socket, setSocket] = useState(null);
+  const [removingRule, setRemovingRule] = useState(null);
 
   // Member Management State
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
-
+  const [otherSocketId, setOtherSocketId] = useState(null);
   // Transaction State
   const [transactions, setTransactions] = useState([]);
   const [checkingPayments, setCheckingPayments] = useState(false);
@@ -144,18 +159,38 @@ const GroupDetailPage = () => {
   const [pendingInvites, setPendingInvites] = useState([]);
   const [loadingInvites, setLoadingInvites] = useState(false);
 
-  // Get current user
+  // Approval modal state
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [approvalData, setApprovalData] = useState(null);
 
+  // Get current user
+  useEffect(() => {
+    const sock = getSocket();
+
+    if (sock) {
+      const handleApprovalRequest = (data) => {
+        console.log("Approval request received:", data);
+        // Show approval modal instead of alert
+        console.log(data.socketId, "SOCKET ID FROM APPROVAL REQUEST");
+        setOtherSocketId(data.socketId);
+
+        setApprovalData(data);
+        setShowApprovalModal(true);
+      };
+
+      sock.on("approval_request", handleApprovalRequest);
+
+      return () => {
+        sock.off("approval_request", handleApprovalRequest);
+      };
+    }
+  }, [socket]);
 
   useEffect(() => {
     const fetchGroupDetails = async () => {
       try {
         const response = await api.get(`/groups/${groupId}`);
         setGroup(response.data.data);
-
-        // Connect to socket and join the group room
-        connectSocket();
-        socketJoinGroup(groupId);
       } catch (err) {
         console.error("Error fetching group details:", err);
         setError(err.response?.data?.message || "Failed to load group details");
@@ -163,6 +198,13 @@ const GroupDetailPage = () => {
         setLoading(false);
       }
     };
+
+    // Connect to socket and join the group room (only once)
+    if (!socket) {
+      const sock = connectSocket();
+      setSocket(sock);
+      socketJoinGroup(groupId);
+    }
 
     fetchGroupDetails();
     fetchTransactions();
@@ -363,6 +405,7 @@ const GroupDetailPage = () => {
         setFundsMessage(
           "Proof submitted. Payment will settle at Decided Date.",
         );
+        localStorage.removeItem("pendingTimeLockedIntent");
         fetchTransactions();
       }
     } catch (err) {
@@ -374,20 +417,29 @@ const GroupDetailPage = () => {
   const cancelTransaction = async (intentId) => {
     try {
       setFundsMessage("Cancelling transaction...");
-      // TODO: Implement cancel endpoint
+
       await api.post(
         `/groups/${groupId}/cancel-deposit/${intentId}`,
         {},
         { withCredentials: true },
       );
+
       setFundsMessage("Transaction cancelled");
+
+      // Refresh group to update pendingFunds
+      const response = await api.get(`/groups/${groupId}`);
+      setGroup(response.data.data);
+
+      // Refresh transactions list
       fetchTransactions();
     } catch (err) {
       console.error(err);
-      setFundsMessage("Failed to cancel transaction");
+      setFundsMessage(
+        err.response?.data?.message || "Failed to cancel transaction",
+      );
     }
   };
-
+  1;
   const getStatusBadge = (status) => {
     switch (status?.toUpperCase()) {
       case "COMPLETED":
@@ -413,20 +465,41 @@ const GroupDetailPage = () => {
   const handleAddRule = async (e) => {
     e.preventDefault();
 
-    if (!newRule.trim()) return;
+    if (!selectedRule) return;
+
+    const ruleData = RULE_OPTIONS.find(r => r.label === selectedRule);
+    if (!ruleData) return;
 
     try {
       await api.post(`/groups/${groupId}/rules`, {
-        ruleType: "custom",
-        ruleValue: newRule.trim(),
-        description: `Rule: ${newRule.trim()}`,
+        ruleType: ruleData.ruleType,
+        ruleValue: ruleData.ruleValue,
+        description: ruleData.description,
       });
 
-      setNewRule("");
-      // The rule will be reflected via socket update
+      setSelectedRule("");
+      toast.success("Rule added successfully!");
     } catch (err) {
       console.error("Error adding rule:", err);
-      alert(err.response?.data?.message || "Failed to add rule");
+      toast.error(err.response?.data?.message || "Failed to add rule");
+    }
+  };
+
+  const handleDeleteRule = async (ruleIndex) => {
+    if (!window.confirm("Are you sure you want to remove this rule?")) return;
+
+    setRemovingRule(ruleIndex);
+    try {
+      await removeRuleFromGroup(groupId, ruleIndex);
+      toast.success("Rule removed successfully!");
+      // Refresh group details
+      const response = await api.get(`/groups/${groupId}`);
+      setGroup(response.data.data);
+    } catch (err) {
+      console.error("Error deleting rule:", err);
+      toast.error(err.response?.data?.message || "Failed to delete rule");
+    } finally {
+      setRemovingRule(null);
     }
   };
 
@@ -646,7 +719,7 @@ const GroupDetailPage = () => {
       navigate("/groups");
     } catch (error) {
       console.error("Error leaving group:", error);
-      alert(error.response?.data?.message || "Failed to leave group");
+      toast.error(error.response?.data?.message || "Failed to leave group");
     } finally {
       setLeavingGroup(false);
       setShowLeaveDialog(false);
@@ -666,7 +739,7 @@ const GroupDetailPage = () => {
       console.log("Expense added successfully:", response.data);
     } catch (err) {
       console.error("Error adding expense:", err);
-      alert(err.response?.data?.message || "Failed to add expense");
+      toast.error(err.response?.data?.message || "Failed to add expense");
     }
   };
 
@@ -684,7 +757,7 @@ const GroupDetailPage = () => {
       setShowGroupPaymentModal(false);
     } catch (err) {
       console.error("Error processing group payment:", err);
-      alert(err.response?.data?.message || "Failed to process group payment");
+      toast.error(err.response?.data?.message || "Failed to process group payment");
     }
   };
 
@@ -693,36 +766,42 @@ const GroupDetailPage = () => {
     try {
       let response;
 
-      if (actionData.actionType === 'takeCredits') {
+      if (actionData.actionType === "takeCredits") {
         // Withdraw credits from member's balance
-        response = await api.post(`/members/${groupId}/withdraw-credits`, {
-          memberId: actionData.memberId,
-          amount: actionData.amount
-        }, { withCredentials: true });
-      } else if (actionData.actionType === 'addFunds') {
+        response = await api.post(
+          `/members/${groupId}/withdraw-credits`,
+          {
+            memberId: actionData.memberId,
+            amount: actionData.amount,
+          },
+          { withCredentials: true },
+        );
+      } else if (actionData.actionType === "addFunds") {
         const response = await api.post(
           `/groups/${groupId}/add-funds`,
           { amount: actionData.amount },
-          { withCredentials: true }
+          { withCredentials: true },
         );
-
       }
 
-      console.log('Member action processed successfully:', response.data);
+      console.log("Member action processed successfully:", response.data);
 
       // Refresh the group data to reflect the changes
       const refreshedResponse = await api.get(`/groups/${groupId}`);
       setGroup(refreshedResponse.data.data);
     } catch (err) {
-      console.error('Error processing member action:', err);
+      console.error("Error processing member action:", err);
       throw err; // Re-throw to be caught by the modal
     }
   };
 
-
   // Check if the group is a regular split group
   const isRegularSplitGroup = group?.rules?.some(
     (rule) => rule.ruleType === "regular_split",
+  );
+
+  const isAllPayEnabled = group?.rules?.some(
+    (rule) => rule.ruleType === "all_pay",
   );
 
   // Function to copy invitation link to clipboard
@@ -731,10 +810,10 @@ const GroupDetailPage = () => {
       // Generate the invitation link
       const link = `${window.location.origin}/join-group/${groupId}`;
       await navigator.clipboard.writeText(link);
-      alert("Invitation link copied to clipboard!");
+      toast.success("Invitation link copied to clipboard!");
     } catch (err) {
       console.error("Error copying link:", err);
-      alert("Failed to copy link");
+      toast.error("Failed to copy link");
     }
   };
 
@@ -764,8 +843,6 @@ const GroupDetailPage = () => {
   }
 
   if (!group) return null;
-
-
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -872,7 +949,7 @@ const GroupDetailPage = () => {
               Add Expense
             </Button>
           )}
-          {group.owner?._id === currentUserId && (
+          {(group.owner?._id === currentUserId || isAllPayEnabled) && (
             <Button
               size="sm"
               className="text-primary-foreground"
@@ -989,19 +1066,27 @@ const GroupDetailPage = () => {
                     }`}>
                     {(() => {
                       const userBalance = group.wallet?.memberBalances?.find(
-                        (balance) => balance.user.toString() === currentUserId?.toString()
+                        (balance) =>
+                          balance.user.toString() === currentUserId?.toString(),
                       );
-                      const balanceAmount = userBalance ? userBalance.balance : 0;
-                      return `${balanceAmount >= 0 ? '+' : '-'}₹${Math.abs(balanceAmount).toFixed(2)}`;
+                      const balanceAmount = userBalance
+                        ? userBalance.balance
+                        : 0;
+                      return `${balanceAmount >= 0 ? "+" : "-"}₹${Math.abs(balanceAmount).toFixed(2)}`;
                     })()}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {(() => {
                       const userBalance = group.wallet?.memberBalances?.find(
-                        (balance) => balance.user.toString() === currentUserId?.toString()
+                        (balance) =>
+                          balance.user.toString() === currentUserId?.toString(),
                       );
-                      const balanceAmount = userBalance ? userBalance.balance : 0;
-                      return balanceAmount >= 0 ? 'Available in pool' : 'Owed to pool';
+                      const balanceAmount = userBalance
+                        ? userBalance.balance
+                        : 0;
+                      return balanceAmount >= 0
+                        ? "Available in pool"
+                        : "Owed to pool";
                     })()}
                   </p>
                 </div>
@@ -1084,7 +1169,9 @@ const GroupDetailPage = () => {
                         case "WITHDRAWAL":
                           return <ArrowUpRight className="w-5 h-5 text-destructive" />;
                         case "GROUP_PAYMENT":
-                          return <Receipt className="w-5 h-5 text-orange-400" />;
+                          return (
+                            <Receipt className="w-5 h-5 text-orange-400" />
+                          );
                         default:
                           return <DollarSign className="w-5 h-5 text-muted-foreground" />;
                       }
@@ -1116,7 +1203,8 @@ const GroupDetailPage = () => {
                       }
                     };
 
-                    const showUsername = tx.fromUser?.username || tx.fromUser?.email || "Unknown";
+                    const showUsername =
+                      tx.fromUser?.username || tx.fromUser?.email || "Unknown";
 
                     return (
                       <motion.div
@@ -1126,17 +1214,17 @@ const GroupDetailPage = () => {
                         transition={{ delay: idx * 0.05 }}
                         className="group p-3 rounded-xl bg-secondary border border-border hover:border-primary/20 transition-all"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
                           <div
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${getTransactionBgColor()}`}
+                            className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 ${getTransactionBgColor()}`}
                           >
                             {getTransactionIcon()}
                           </div>
 
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <div>
-                                <p className="font-semibold text-sm text-gray-200">
+                          <div className="flex-1 min-w-0 w-full">
+                            <div className="flex items-start justify-between mb-1 gap-2">
+                              <div className="min-w-0">
+                                <p className="font-bold text-sm md:text-base text-gray-200 truncate">
                                   {getTransactionLabel()}
                                 </p>
                                 {tx.description && (
@@ -1164,24 +1252,31 @@ const GroupDetailPage = () => {
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Clock className="w-3 h-3" />
                                 <span>
-                                  {new Date(tx.date).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
+                                  {new Date(tx.date).toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )}
                                 </span>
                               </div>
-                              {getStatusBadge(tx.status)}
+                              <div className="scale-90 md:scale-100 origin-right">
+                                {getStatusBadge(tx.status)}
+                              </div>
                             </div>
 
                             {tx.status === "PENDING" && tx.intentId && (
-                              <div className="flex gap-2 mt-3">
+                              <div className="flex flex-row gap-2 mt-4">
                                 <Button
                                   size="sm"
-                                  onClick={() => confirmTransaction(tx.intentId)}
+                                  onClick={() =>
+                                    confirmTransaction(tx.intentId)
+                                  }
                                   disabled={addingFunds}
-                                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs h-8"
+                                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-[10px] md:text-xs h-8 rounded-lg"
                                 >
                                   <CheckCircle2 className="w-3 h-3 mr-1" />
                                   Confirm
@@ -1191,7 +1286,7 @@ const GroupDetailPage = () => {
                                   onClick={() => cancelTransaction(tx.intentId)}
                                   disabled={addingFunds}
                                   variant="destructive"
-                                  className="flex-1 text-xs h-8"
+                                  className="flex-1 text-[10px] md:text-xs h-8 rounded-lg"
                                 >
                                   <XCircle className="w-3 h-3 mr-1" />
                                   Cancel
@@ -1582,11 +1677,12 @@ const GroupDetailPage = () => {
                   (balance) =>
                     balance.user.toString() === member._id.toString(),
                 );
-                const displayButton = member._id === currentUserId && memberBalance && memberBalance.balance <= 100;
+                const displayButton =
+                  member._id === currentUserId &&
+                  memberBalance &&
+                  memberBalance.balance <= 100;
                 const balanceAmount = memberBalance ? memberBalance.balance : 0;
                 const isPositive = balanceAmount >= 0;
-
-                console.log(displayButton, member.username, balanceAmount);
 
                 return (
                   <motion.div
@@ -1756,7 +1852,7 @@ const GroupDetailPage = () => {
         <TabsContent value="rules" className="mt-6">
           <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Group Rules</CardTitle>
+              <CardTitle className="text-lg font-bold">Group Rules</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add Rule Form */}
@@ -1770,9 +1866,10 @@ const GroupDetailPage = () => {
                 />
                 <Button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  disabled={!selectedRule}
+                  className="bg-emerald-600 hover:bg-emerald-700 h-11 px-8 w-full sm:w-auto"
                 >
-                  Add
+                  Apply Rule
                 </Button>
               </form>
 
@@ -1882,6 +1979,97 @@ const GroupDetailPage = () => {
           onClose={() => setSelectedExpense(null)}
         />
       )}
+
+      {/* High Expense Approval Modal */}
+      <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>
+        <DialogContent className="glass-card border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-yellow-400">
+              <AlertTriangle className="w-5 h-5" />
+              High Expense Approval Required
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-400">Amount:</span>
+                  <span className="font-bold text-yellow-400">
+                    ₹{approvalData?.amount}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-400">Description:</span>
+                  <span className="font-medium">
+                    {approvalData?.description}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-400">Group:</span>
+                  <span className="font-medium">{group?.name}</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300">
+              This expense exceeds 20% of the group wallet balance. Your
+              approval is required to proceed.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowApprovalModal(false);
+
+                  // Get socket instance and send rejection response back to requester
+                  const sock = getSocket();
+                  if (sock && approvalData?.requestedBy) {
+                    sock.emit("approvalResponse", {
+                      approved: false,
+                      targetSocketId: approvalData.requestedBy,
+                      expenseData: approvalData,
+                      groupId: group._id,
+                    });
+                    alert("Expense denied! Notifying requester...");
+                  } else {
+                    alert("Expense denied!");
+                  }
+
+                  setApprovalData(null);
+                }}
+                className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Deny
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowApprovalModal(false);
+
+                  // Get socket instance and send approval response back to requester
+                  const sock = getSocket();
+                  if (sock && approvalData?.requestedBy) {
+                    sock.emit("approvalResponse", {
+                      approved: true,
+                      targetSocketId: approvalData.requestedBy,
+                      expenseData: approvalData,
+                      groupId: group._id,
+                    });
+                    alert("Expense approved! Notifying requester...");
+                  } else {
+                    alert("Expense approved! Processing payment...");
+                  }
+
+                  setApprovalData(null);
+                }}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Accept
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Toast Notifications */}
       <Toaster

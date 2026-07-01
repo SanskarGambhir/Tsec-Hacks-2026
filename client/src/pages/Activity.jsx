@@ -300,7 +300,7 @@ export default function ActivityPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-16"
+          className="text-center py-20"
         >
           <div className="w-20 h-20 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-4">
             <ActivityIcon className="w-10 h-10 text-muted-foreground animate-spin" />
@@ -534,7 +534,7 @@ export default function ActivityPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setActiveFilter(filter)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
               activeFilter === filter
                 ? "bg-primary/10 text-primary border border-primary/20"
                 : "bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -574,12 +574,12 @@ export default function ActivityPage() {
                       className="flex items-center gap-4 p-4 rounded-xl hover:bg-secondary transition-colors"
                     >
                       <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconColor}`}
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${iconColor}`}
                       >
                         <IconComponent className="w-6 h-6" />
                       </div>
 
-                      <Avatar className="w-10 h-10 hidden sm:flex">
+                      <Avatar className="w-10 h-10 hidden sm:flex shrink-0">
                         <AvatarImage
                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user.email}`}
                         />
@@ -592,8 +592,8 @@ export default function ActivityPage() {
                       </Avatar>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium truncate">{activity.title}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-white truncate">{activity.title}</p>
                           <Badge
                             variant="secondary"
                             className="bg-secondary text-muted-foreground border-0 text-xs hidden sm:inline-flex"
@@ -609,13 +609,13 @@ export default function ActivityPage() {
                       <div className="text-right">
                         {activity.amount && (
                           <p
-                            className={`font-semibold ${
+                            className={`font-bold text-base ${
                               activity.type === "expense"
                                 ? "text-destructive"
                                 : "text-primary"
                             }`}
                           >
-                            {activity.type === "expense" ? "-" : "+"}$
+                            {activity.type === "expense" ? "-" : "+"}₹
                             {activity.amount.toFixed(2)}
                           </p>
                         )}
@@ -639,7 +639,7 @@ export default function ActivityPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-16"
+          className="text-center py-20"
         >
           <div className="w-20 h-20 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-4">
             <ActivityIcon className="w-10 h-10 text-muted-foreground" />
