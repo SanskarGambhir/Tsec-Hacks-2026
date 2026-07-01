@@ -52,9 +52,6 @@ app.use("/api/v1/credit-withdrawals", creditWithdrawalRouter);
 app.use("/api/v1/user", userProfileRouter);
 app.use("/api/v1/activity", activityRouter);
 app.use("/api/v1/ai-insights", aiInsightsRouter);
-app.use("/api/v1/credit-withdrawals", creditWithdrawalRouter);
-app.use("/api/v1/user", userProfileRouter);
-app.use("/api/v1/activity", activityRouter);
 
 
 app.get('/', (req, res) => {

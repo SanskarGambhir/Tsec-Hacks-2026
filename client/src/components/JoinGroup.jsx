@@ -63,7 +63,7 @@ const JoinGroup = () => {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 px-4 rounded-md text-white font-medium ${loading
+          className={`w-full py-2 px-4 rounded-md text-foreground font-medium ${loading
             ? 'bg-gray-400 cursor-not-allowed'
             : 'bg-blue-500 hover:bg-blue-600'
             }`}
@@ -73,13 +73,13 @@ const JoinGroup = () => {
       </form>
 
       {message && (
-        <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-md">
+        <div className="mt-4 p-3 bg-green-100 text-primary rounded-md">
           {message}
         </div>
       )}
 
       {error && (
-        <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
+        <div className="mt-4 p-3 bg-red-100 text-destructive rounded-md">
           {error}
         </div>
       )}

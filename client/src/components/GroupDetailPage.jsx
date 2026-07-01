@@ -72,8 +72,8 @@ const categoryColors = {
   Accommodation: "bg-blue-500/20 text-blue-400",
   Food: "bg-orange-500/20 text-orange-400",
   Activities: "bg-purple-500/20 text-purple-400",
-  Transport: "bg-green-500/20 text-green-400",
-  General: "bg-gray-500/20 text-gray-400",
+  Transport: "bg-primary/10 text-primary",
+  General: "bg-gray-500/20 text-muted-foreground",
 };
 
 const GroupDetailPage = () => {
@@ -393,7 +393,7 @@ const GroupDetailPage = () => {
       case "COMPLETED":
       case "SUCCESS":
         return (
-          <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/20">
+          <Badge className="bg-primary/10 text-primary border-primary/20">
             Completed
           </Badge>
         );
@@ -465,69 +465,56 @@ const GroupDetailPage = () => {
       setFundsMessage("");
 
       if (releaseType === "time_locked") {
-        console.log("Creating time-locked payment intent");
-        const unlockDate = group.unlockDate;
-        console.log("Unlock Date:", unlockDate);
-
-        // Convert unlock date to Unix timestamp
-        const timeLockUntil = Math.floor(
-          new Date(unlockDate).getTime() / 1000,
-        ).toString();
-        const paymentIntentResponse = await axios.post(
-          "https://api.fmm.finternetlab.io/api/v1/payment-intents",
-          {
-            amount: addFundsAmount,
-            currency: "USDC",
-            type: "DELIVERY_VS_PAYMENT",
-            settlementMethod: "OFF_RAMP_MOCK",
-            settlementDestination: "bank_account_123",
-            metadata: {
-              releaseType: "TIME_LOCKED",
-              timeLockUntil: timeLockUntil,
-            },
+        setFundsMessage("Initializing payment...");
+        
+        // 1. Get Razorpay Order from group endpoint
+        const orderRes = await api.post(`/groups/${groupId}/pay`, { amount: Number(addFundsAmount) }, { withCredentials: true });
+        const order = orderRes.data.data.order;
+        
+        // 2. Open Razorpay Checkout
+        const options = {
+          key: "rzp_test_YourTestKeyIdHere", // MUST match backend
+          amount: order.amount,
+          currency: "INR",
+          name: "Cooper Groups",
+          description: "Time-locked group contribution",
+          order_id: order.id,
+          handler: async function (response) {
+            try {
+              setFundsMessage("Verifying payment...");
+              // Verify the payment
+              await api.post(`/groups/${groupId}/complete-deposit/${order.id}`, {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }, { withCredentials: true });
+              
+              setFundsMessage("Payment successful!");
+              setAddFundsAmount("");
+              setTimeout(() => fetchTransactions(), 1000);
+            } catch (err) {
+              console.error(err);
+              setFundsMessage("Payment verification failed.");
+            }
           },
+          theme: { color: "#22c55e" }
+        };
 
-          {
-            headers: {
-              "X-API-Key": "sk_hackathon_5d3da8cd5d11aa58990e3edd273b1dd6",
-              "Content-Type": "application/json",
-            },
-          },
-        );
-
-        // Create payment intent with time-lock metadata
-
-        console.log("Payment Intent Response:", paymentIntentResponse.data);
-        const intentId = paymentIntentResponse.data.data.id;
-        localStorage.setItem("pendingTimeLockedIntent", intentId);
-        window.open(paymentIntentResponse.data.data.paymentUrl);
-
-        // Create transaction record with intentId
-        const res = await api.post(
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", function (response) {
+          setFundsMessage("Payment failed or cancelled.");
+        });
+        rzp.open();
+        
+        // Register the intent with the group so it knows about it
+        await api.post(
           `/groups/${groupId}/add-funds`,
           {
             amount: Number(addFundsAmount),
-            intentId: intentId,
+            intentId: order.id,
           },
-          { withCredentials: true },
+          { withCredentials: true }
         );
-
-        // Update the group data
-        setGroup((prevGroup) => ({
-          ...prevGroup,
-          pool: res.data.data.groupPool,
-          pendingFunds: res.data.data.pendingFunds,
-          wallet: {
-            ...prevGroup.wallet,
-            balance: res.data.data.groupWalletBalance,
-          },
-        }));
-
-        setFundsMessage("Payment intent created. Please confirm payment.");
-        setAddFundsAmount("");
-
-        // Fetch transactions to show the newly created one
-        setTimeout(() => fetchTransactions(), 1000);
 
         return; // Exit early for time_locked flow
       }
@@ -792,7 +779,7 @@ const GroupDetailPage = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate(-1)}
-          className="w-fit p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+          className="w-fit p-2 rounded-xl bg-secondary hover:bg-secondary transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </motion.button>
@@ -804,7 +791,7 @@ const GroupDetailPage = () => {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold truncate">{group.name}</h1>
-            <p className="text-gray-400 text-sm">{group.description}</p>
+            <p className="text-muted-foreground text-sm">{group.description}</p>
           </div>
         </div>
 
@@ -812,7 +799,7 @@ const GroupDetailPage = () => {
           <Button
             variant="outline"
             size="sm"
-            className="border-white/10 hover:bg-white/5"
+            className="border-border hover:bg-secondary"
             onClick={() => setShowInviteDialog(true)}
           >
             <Link className="w-4 h-4" />
@@ -823,24 +810,24 @@ const GroupDetailPage = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-red-500/50 hover:bg-red-500/10 text-red-400 hover:text-red-300"
+                  className="border-red-500/50 hover:bg-destructive/10 text-destructive hover:text-destructive"
                 >
                   <LogOut className="w-4 h-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="glass-card border-white/10">
+              <DialogContent className="border-border">
                 <DialogHeader>
                   <DialogTitle>Leave Group</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <p className="text-gray-300">
                     Are you sure you want to leave{" "}
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-foreground">
                       {group.name}
                     </span>
                     ?
                   </p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     You will need to be invited again to rejoin this group.
                   </p>
                   <div className="flex gap-2 justify-end pt-4">
@@ -848,14 +835,14 @@ const GroupDetailPage = () => {
                       variant="outline"
                       onClick={() => setShowLeaveDialog(false)}
                       disabled={leavingGroup}
-                      className="border-white/10"
+                      className="border-border"
                     >
                       Cancel
                     </Button>
                     <Button
                       onClick={handleLeaveGroup}
                       disabled={leavingGroup}
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                      className="bg-red-600 hover:bg-red-700 text-foreground"
                     >
                       {leavingGroup ? (
                         <>
@@ -877,7 +864,7 @@ const GroupDetailPage = () => {
           {isRegularSplitGroup && (
             <Button
               size="sm"
-              className="text-black"
+              className="text-primary-foreground"
               style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
               onClick={() => setShowExpenseModal(true)}
             >
@@ -888,7 +875,7 @@ const GroupDetailPage = () => {
           {group.owner?._id === currentUserId && (
             <Button
               size="sm"
-              className="text-black"
+              className="text-primary-foreground"
               style={{ background: "linear-gradient(90deg, #60a5fa, #3b82f6)" }}
               onClick={() => setShowGroupPaymentModal(true)}
             >
@@ -906,15 +893,15 @@ const GroupDetailPage = () => {
         transition={{ delay: 0.1 }}
         className="grid grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Pool Balance</p>
-                <p className="text-xl font-bold text-emerald-400">
+                <p className="text-sm text-muted-foreground">Pool Balance</p>
+                <p className="text-xl font-bold text-primary">
                   ₹{group.wallet?.balance?.toFixed(2) || "0.00"}
                 </p>
               </div>
@@ -922,14 +909,14 @@ const GroupDetailPage = () => {
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
                 <Receipt className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Total Expenses</p>
+                <p className="text-sm text-muted-foreground">Total Expenses</p>
                 <p className="text-xl font-bold">
                   {/* Calculate total expenses if possible, else placeholder */}
                   {group.expenses?.length || 0}
@@ -939,14 +926,14 @@ const GroupDetailPage = () => {
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
                 <Users className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Members</p>
+                <p className="text-sm text-muted-foreground">Members</p>
                 <p className="text-xl font-bold">
                   {group.members?.length || 0}
                 </p>
@@ -956,19 +943,19 @@ const GroupDetailPage = () => {
         </Card>
 
         {group.releaseType === "time_locked" ? (
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
                   <Clock className="w-5 h-5 text-yellow-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-gray-400">Pending Funds</p>
+                  <p className="text-sm text-muted-foreground">Pending Funds</p>
                   <p className="text-xl font-bold text-yellow-400">
                     ₹{group.pendingFunds?.toFixed(2) || "0.00"}
                   </p>
                   {group.unlockDate && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Unlocks:{" "}
                       {new Date(group.unlockDate).toLocaleDateString("en-US", {
                         month: "short",
@@ -984,20 +971,20 @@ const GroupDetailPage = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
                   <DollarSign className="w-5 h-5 text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Your Balance</p>
+                  <p className="text-sm text-muted-foreground">Your Balance</p>
                   <p className={`text-xl font-bold ${(() => {
                     const userBalance = group.wallet?.memberBalances?.find(
                       (balance) => balance.user.toString() === currentUserId?.toString()
                     );
                     const balanceAmount = userBalance ? userBalance.balance : 0;
-                    return balanceAmount >= 0 ? 'text-emerald-400' : 'text-red-400';
+                    return balanceAmount >= 0 ? 'text-primary' : 'text-destructive';
                   })()
                     }`}>
                     {(() => {
@@ -1008,7 +995,7 @@ const GroupDetailPage = () => {
                       return `${balanceAmount >= 0 ? '+' : '-'}₹${Math.abs(balanceAmount).toFixed(2)}`;
                     })()}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {(() => {
                       const userBalance = group.wallet?.memberBalances?.find(
                         (balance) => balance.user.toString() === currentUserId?.toString()
@@ -1026,34 +1013,34 @@ const GroupDetailPage = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full justify-start bg-white/5 border border-white/10 p-1 rounded-xl overflow-x-auto">
+        <TabsList className="w-full justify-start bg-secondary border border-border p-1 rounded-xl overflow-x-auto">
           <TabsTrigger
             value="overview"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Overview
           </TabsTrigger>
           <TabsTrigger
             value="chat"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Chat
           </TabsTrigger>
           <TabsTrigger
             value="expenses"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Expenses
           </TabsTrigger>
           <TabsTrigger
             value="members"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Members
           </TabsTrigger>
           <TabsTrigger
             value="rules"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Rules
           </TabsTrigger>
@@ -1063,17 +1050,17 @@ const GroupDetailPage = () => {
         <TabsContent value="overview" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Recent Activity - Transactions */}
-            <Card className="glass-card border-white/10">
+            <Card className="border-border">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <History className="w-5 h-5 text-emerald-400" />
+                  <History className="w-5 h-5 text-primary" />
                   Recent Transactions
                 </CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={fetchTransactions}
-                  className="text-gray-400 hover:text-emerald-400"
+                  className="text-muted-foreground hover:text-primary"
                 >
                   <RefreshCw
                     className={`w-4 h-4 ${checkingPayments ? "animate-spin" : ""}`}
@@ -1082,8 +1069,8 @@ const GroupDetailPage = () => {
               </CardHeader>
               <CardContent className="space-y-3 max-h-[400px] overflow-y-auto">
                 {transactions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-gray-500 space-y-3">
-                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
                       <History className="w-6 h-6 opacity-20" />
                     </div>
                     <p className="text-sm">No transactions found</p>
@@ -1093,22 +1080,22 @@ const GroupDetailPage = () => {
                     const getTransactionIcon = () => {
                       switch (tx.type) {
                         case "DEPOSIT":
-                          return <ArrowDownRight className="w-5 h-5 text-emerald-400" />;
+                          return <ArrowDownRight className="w-5 h-5 text-primary" />;
                         case "WITHDRAWAL":
-                          return <ArrowUpRight className="w-5 h-5 text-red-400" />;
+                          return <ArrowUpRight className="w-5 h-5 text-destructive" />;
                         case "GROUP_PAYMENT":
                           return <Receipt className="w-5 h-5 text-orange-400" />;
                         default:
-                          return <DollarSign className="w-5 h-5 text-gray-400" />;
+                          return <DollarSign className="w-5 h-5 text-muted-foreground" />;
                       }
                     };
 
                     const getTransactionBgColor = () => {
                       switch (tx.type) {
                         case "DEPOSIT":
-                          return "bg-emerald-500/10";
+                          return "bg-primary/10";
                         case "WITHDRAWAL":
-                          return "bg-red-500/10";
+                          return "bg-destructive/10";
                         case "GROUP_PAYMENT":
                           return "bg-orange-500/10";
                         default:
@@ -1137,7 +1124,7 @@ const GroupDetailPage = () => {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.05 }}
-                        className="group p-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-all"
+                        className="group p-3 rounded-xl bg-secondary border border-border hover:border-primary/20 transition-all"
                       >
                         <div className="flex items-center gap-3">
                           <div
@@ -1153,28 +1140,28 @@ const GroupDetailPage = () => {
                                   {getTransactionLabel()}
                                 </p>
                                 {tx.description && (
-                                  <p className="text-xs text-gray-400 truncate">
+                                  <p className="text-xs text-muted-foreground truncate">
                                     {tx.description}
                                   </p>
                                 )}
                                 {tx.fromUser && tx.type !== "DEPOSIT" && (
-                                  <p className="text-xs text-gray-500 truncate">
+                                  <p className="text-xs text-muted-foreground truncate">
                                     by {showUsername}
                                   </p>
                                 )}
                               </div>
                               <p className={`font-bold ${tx.type === "DEPOSIT"
-                                ? "text-emerald-400"
+                                ? "text-primary"
                                 : tx.type === "GROUP_PAYMENT" || tx.type === "WITHDRAWAL"
                                   ? "text-orange-400"
-                                  : "text-gray-400"
+                                  : "text-muted-foreground"
                                 }`}>
                                 {tx.type === "DEPOSIT" ? "+" : "-"}₹{tx.amount?.toLocaleString()}
                               </p>
                             </div>
 
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Clock className="w-3 h-3" />
                                 <span>
                                   {new Date(tx.date).toLocaleDateString("en-US", {
@@ -1221,7 +1208,7 @@ const GroupDetailPage = () => {
             </Card>
 
             {/* Add Funds Section */}
-            <Card className="glass-card border-white/10 h-fit">
+            <Card className="border-border h-fit">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Add Funds</CardTitle>
               </CardHeader>
@@ -1232,10 +1219,10 @@ const GroupDetailPage = () => {
                     value={addFundsAmount}
                     onChange={(e) => setAddFundsAmount(e.target.value)}
                     placeholder="Amount (₹)"
-                    className="flex-1 bg-white/5 border-white/10"
+                    className="flex-1 bg-secondary border-border"
                   />
                   <Button
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-green-600 hover:bg-green-700 text-foreground"
                     onClick={handleAddFunds}
                     disabled={addingFunds}
                   >
@@ -1244,7 +1231,7 @@ const GroupDetailPage = () => {
                 </div>
                 {fundsMessage && (
                   <p
-                    className={`mt-2 text-sm font-medium ${fundsMessage.includes("successfully") ? "text-green-400" : "text-red-400"}`}
+                    className={`mt-2 text-sm font-medium ${fundsMessage.includes("successfully") ? "text-primary" : "text-destructive"}`}
                   >
                     {fundsMessage}
                   </p>
@@ -1256,10 +1243,10 @@ const GroupDetailPage = () => {
 
         {/* Chat Tab */}
         <TabsContent value="chat" className="mt-6">
-          <Card className="glass-card border-white/10 flex flex-col h-[600px]">
-            <CardHeader className="border-b border-white/10">
+          <Card className="border-border flex flex-col h-[600px]">
+            <CardHeader className="border-b border-border">
               <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-emerald-400" />
+                <MessageSquare className="w-5 h-5 text-primary" />
                 Group Chat
               </CardTitle>
             </CardHeader>
@@ -1273,10 +1260,10 @@ const GroupDetailPage = () => {
                       className={`flex flex-col ${isSystem ? "items-center" : "items-start"}`}
                     >
                       <div
-                        className={`p-3 rounded-lg max-w-[80%] ${isSystem ? "bg-white/5 text-center text-xs" : "bg-emerald-500/20 border border-emerald-500/20"}`}
+                        className={`p-3 rounded-lg max-w-[80%] ${isSystem ? "bg-secondary text-center text-xs" : "bg-primary/10 border border-primary/20"}`}
                       >
                         {!isSystem && (
-                          <p className="text-xs font-bold text-emerald-400 mb-1">
+                          <p className="text-xs font-bold text-primary mb-1">
                             {message.sender?.username || message.sender?.email}
                           </p>
                         )}
@@ -1284,24 +1271,24 @@ const GroupDetailPage = () => {
                           {message.content}
                         </p>
                       </div>
-                      <span className="text-[10px] text-gray-500 mt-1">
+                      <span className="text-[10px] text-muted-foreground mt-1">
                         {new Date(message.timestamp).toLocaleString()}
                       </span>
                     </div>
                   );
                 })
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-500">
+                <div className="h-full flex items-center justify-center text-muted-foreground">
                   No messages yet. Start the conversation!
                 </div>
               )}
             </CardContent>
-            <div className="p-4 border-t border-white/10 flex gap-2">
+            <div className="p-4 border-t border-border flex gap-2">
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="bg-white/5 border-white/10"
+                className="bg-secondary border-border"
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
               />
               <Button
@@ -1316,7 +1303,7 @@ const GroupDetailPage = () => {
 
         {/* Expenses Tab */}
         <TabsContent value="expenses" className="mt-6">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardContent className="p-4 space-y-3">
               {group.expenses?.length > 0 ? (
                 [...group.expenses].reverse().map((expense, index) => (
@@ -1325,7 +1312,7 @@ const GroupDetailPage = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="flex items-center gap-4 p-4 rounded-xl bg-secondary hover:bg-secondary transition-colors cursor-pointer"
                     onClick={() => setSelectedExpense(expense)}
                   >
                     <div
@@ -1337,7 +1324,7 @@ const GroupDetailPage = () => {
                       <p className="font-medium truncate">
                         {expense.description}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {new Date(expense.date).toLocaleDateString()}
                       </p>
                     </div>
@@ -1349,7 +1336,7 @@ const GroupDetailPage = () => {
                   </motion.div>
                 ))
               ) : (
-                <p className="text-center py-8 text-gray-500">
+                <p className="text-center py-8 text-muted-foreground">
                   No expenses recorded yet.
                 </p>
               )}
@@ -1359,14 +1346,14 @@ const GroupDetailPage = () => {
 
         {/* Members Tab */}
         <TabsContent value="members" className="mt-6">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg">Group Members</CardTitle>
               <Dialog open={showAddMember} onOpenChange={handleDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
                     size="sm"
-                    className="text-black"
+                    className="text-primary-foreground"
                     style={{
                       background: "linear-gradient(90deg, #4ade80, #22c55e)",
                     }}
@@ -1375,7 +1362,7 @@ const GroupDetailPage = () => {
                     Add Member
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="glass-card border-white/10 max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="border-border max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Member</DialogTitle>
                   </DialogHeader>
@@ -1386,17 +1373,17 @@ const GroupDetailPage = () => {
                     onValueChange={setAddMethod}
                     className="w-full mt-4"
                   >
-                    <TabsList className="grid w-full grid-cols-2 bg-white/5">
+                    <TabsList className="grid w-full grid-cols-2 bg-secondary">
                       <TabsTrigger
                         value="friends"
-                        className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400"
+                        className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                       >
                         <Users className="w-4 h-4 mr-2" />
                         Friends
                       </TabsTrigger>
                       <TabsTrigger
                         value="whatsapp"
-                        className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400"
+                        className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                       >
                         <MessageCircle className="w-4 h-4 mr-2" />
                         WhatsApp
@@ -1406,20 +1393,20 @@ const GroupDetailPage = () => {
                     {/* Friends Tab */}
                     <TabsContent value="friends" className="space-y-4 mt-4">
                       {inviteError && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                        <div className="p-3 rounded-lg bg-destructive/10 border border-red-500/20 text-destructive text-sm">
                           {inviteError}
                         </div>
                       )}
 
                       {friendsLoading ? (
                         <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
                         </div>
                       ) : friends.length === 0 ? (
                         <div className="text-center py-8">
-                          <Users className="w-12 h-12 mx-auto text-gray-500 mb-3" />
-                          <p className="text-gray-400">No friends found</p>
-                          <p className="text-sm text-gray-500 mt-1">
+                          <Users className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                          <p className="text-muted-foreground">No friends found</p>
+                          <p className="text-sm text-muted-foreground mt-1">
                             Add friends first to invite them to groups
                           </p>
                         </div>
@@ -1439,13 +1426,13 @@ const GroupDetailPage = () => {
                                 className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedFriends.some(
                                   (f) => f._id === friend._id,
                                 )
-                                  ? "bg-emerald-500/20 border border-emerald-500/30"
-                                  : "bg-white/5 hover:bg-white/10 border border-transparent"
+                                  ? "bg-primary/10 border border-primary/20"
+                                  : "bg-secondary hover:bg-secondary border border-transparent"
                                   }`}
                               >
                                 <Avatar className="h-10 w-10">
                                   <AvatarImage src={friend.avatar} />
-                                  <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white">
+                                  <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-foreground">
                                     {friend.username?.[0]?.toUpperCase() || "?"}
                                   </AvatarFallback>
                                 </Avatar>
@@ -1453,25 +1440,25 @@ const GroupDetailPage = () => {
                                   <p className="font-medium truncate">
                                     {friend.username}
                                   </p>
-                                  <p className="text-sm text-gray-400 truncate">
+                                  <p className="text-sm text-muted-foreground truncate">
                                     {friend.email}
                                   </p>
                                 </div>
                                 {selectedFriends.some(
                                   (f) => f._id === friend._id,
                                 ) && (
-                                    <Check className="w-5 h-5 text-emerald-400" />
+                                    <Check className="w-5 h-5 text-primary" />
                                   )}
                               </div>
                             ))}
                         </div>
                       )}
 
-                      <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+                      <div className="flex gap-2 justify-end pt-4 border-t border-border">
                         <Button
                           variant="outline"
                           onClick={() => setShowAddMember(false)}
-                          className="border-white/10"
+                          className="border-border"
                         >
                           Cancel
                         </Button>
@@ -1480,7 +1467,7 @@ const GroupDetailPage = () => {
                           disabled={
                             selectedFriends.length === 0 || friendsLoading
                           }
-                          className="text-black"
+                          className="text-primary-foreground"
                           style={{
                             background:
                               "linear-gradient(90deg, #4ade80, #22c55e)",
@@ -1501,7 +1488,7 @@ const GroupDetailPage = () => {
                     {/* WhatsApp Tab */}
                     <TabsContent value="whatsapp" className="space-y-4 mt-4">
                       {inviteError && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                        <div className="p-3 rounded-lg bg-destructive/10 border border-red-500/20 text-destructive text-sm">
                           {inviteError}
                         </div>
                       )}
@@ -1512,14 +1499,14 @@ const GroupDetailPage = () => {
                           animate={{ opacity: 1, scale: 1 }}
                           className="text-center py-8 space-y-3"
                         >
-                          <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
-                            <Check className="w-8 h-8 text-emerald-400" />
+                          <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                            <Check className="w-8 h-8 text-primary" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">
                               Invite Sent!
                             </h3>
-                            <p className="text-sm text-gray-400 mt-1">
+                            <p className="text-sm text-muted-foreground mt-1">
                               WhatsApp invitation has been sent
                             </p>
                           </div>
@@ -1531,13 +1518,13 @@ const GroupDetailPage = () => {
                               Enter Phone Number
                             </Label>
                             <div className="relative">
-                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                               <Input
                                 type="tel"
                                 placeholder="+91 9876543210"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
-                                className="pl-11 h-12 bg-white/5 border-white/10"
+                                className="pl-11 h-12 bg-secondary border-border"
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
                                     handleSendWhatsAppInvite();
@@ -1545,23 +1532,23 @@ const GroupDetailPage = () => {
                                 }}
                               />
                             </div>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               Include country code (e.g., +91 for India)
                             </p>
                           </div>
 
-                          <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+                          <div className="flex gap-2 justify-end pt-4 border-t border-border">
                             <Button
                               variant="outline"
                               onClick={() => setShowAddMember(false)}
-                              className="border-white/10"
+                              className="border-border"
                             >
                               Cancel
                             </Button>
                             <Button
                               onClick={handleSendWhatsAppInvite}
                               disabled={phoneLoading || !phoneNumber.trim()}
-                              className="text-black"
+                              className="text-primary-foreground"
                               style={{
                                 background:
                                   "linear-gradient(90deg, #4ade80, #22c55e)",
@@ -1607,14 +1594,14 @@ const GroupDetailPage = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5"
+                    className="flex items-center gap-4 p-4 rounded-xl bg-secondary"
                   >
                     <Avatar className="w-12 h-12">
                       <AvatarImage
                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
                       />
                       <AvatarFallback
-                        className="text-black font-bold"
+                        className="text-primary-foreground font-bold"
                         style={{
                           background:
                             "linear-gradient(135deg, #4ade80, #22c55e)",
@@ -1632,16 +1619,16 @@ const GroupDetailPage = () => {
                           <Crown className="w-4 h-4 text-yellow-500" />
                         )}
                       </div>
-                      <p className="text-sm text-gray-400">{member.email}</p>
+                      <p className="text-sm text-muted-foreground">{member.email}</p>
                     </div>
                     <div className="text-right">
                       <p
-                        className={`text-sm font-medium ${isPositive ? "text-emerald-400" : "text-red-400"}`}
+                        className={`text-sm font-medium ${isPositive ? "text-primary" : "text-destructive"}`}
                       >
                         {isPositive ? "+" : "-"}₹
                         {Math.abs(balanceAmount).toFixed(2)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {isPositive ? "Credit" : "Debt"}
                       </p>
 
@@ -1651,7 +1638,7 @@ const GroupDetailPage = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs border-emerald-500/30 hover:bg-emerald-500/10"
+                            className="text-xs border-primary/20 hover:bg-primary/10"
                             onClick={() => {
                               // Set the selected member and open the modal
                               setSelectedMember(member);
@@ -1666,7 +1653,7 @@ const GroupDetailPage = () => {
                     </div>
                     {/* Placeholder for remove logic if user is owner */}
                     {/* <button
-                        className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                       >
                         <UserMinus className="w-4 h-4" />
                       </button> */}
@@ -1677,7 +1664,7 @@ const GroupDetailPage = () => {
           </Card>
 
           {/* Pending Invites Section */}
-          <Card className="glass-card border-white/10 mt-6">
+          <Card className="border-border mt-6">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Mail className="w-5 h-5 text-blue-400" />
@@ -1687,7 +1674,7 @@ const GroupDetailPage = () => {
                 variant="ghost"
                 size="sm"
                 onClick={fetchPendingInvites}
-                className="text-gray-400 hover:text-emerald-400"
+                className="text-muted-foreground hover:text-primary"
               >
                 <RefreshCw
                   className={`w-4 h-4 ${loadingInvites ? "animate-spin" : ""}`}
@@ -1697,12 +1684,12 @@ const GroupDetailPage = () => {
             <CardContent className="space-y-3">
               {loadingInvites ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               ) : pendingInvites.length === 0 ? (
                 <div className="text-center py-8">
-                  <Mail className="w-12 h-12 mx-auto text-gray-500 mb-3 opacity-20" />
-                  <p className="text-gray-400 text-sm">No pending invites</p>
+                  <Mail className="w-12 h-12 mx-auto text-muted-foreground mb-3 opacity-20" />
+                  <p className="text-muted-foreground text-sm">No pending invites</p>
                 </div>
               ) : (
                 pendingInvites.map((invite, index) => (
@@ -1711,7 +1698,7 @@ const GroupDetailPage = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10"
+                    className="flex items-center gap-4 p-4 rounded-xl bg-secondary border border-border"
                   >
                     <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
                       {invite.inviteType === "phone" ? (
@@ -1734,7 +1721,7 @@ const GroupDetailPage = () => {
                           Pending
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>
                           Invited by{" "}
                           {invite.sender?.username || invite.sender?.email}
@@ -1745,7 +1732,7 @@ const GroupDetailPage = () => {
                         </span>
                       </div>
                       {invite.expiresAt && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Expires:{" "}
                           {new Date(invite.expiresAt).toLocaleDateString()}
                         </p>
@@ -1767,7 +1754,7 @@ const GroupDetailPage = () => {
 
         {/* Rules Tab */}
         <TabsContent value="rules" className="mt-6">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Group Rules</CardTitle>
             </CardHeader>
@@ -1779,7 +1766,7 @@ const GroupDetailPage = () => {
                   value={newRule}
                   onChange={(e) => setNewRule(e.target.value)}
                   placeholder="Add a new rule..."
-                  className="flex-1 bg-white/5 border-white/10"
+                  className="flex-1 bg-secondary border-border"
                 />
                 <Button
                   type="submit"
@@ -1796,10 +1783,10 @@ const GroupDetailPage = () => {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-white/5"
+                    className="flex items-start gap-3 p-4 rounded-xl bg-secondary"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
-                      <span className="text-emerald-400 font-bold text-sm">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-primary font-bold text-sm">
                         {index + 1}
                       </span>
                     </div>
@@ -1807,12 +1794,12 @@ const GroupDetailPage = () => {
                       <p className="text-gray-200 font-medium">
                         {rule.ruleType}
                       </p>
-                      <p className="text-gray-400 text-sm">{rule.ruleValue}</p>
+                      <p className="text-muted-foreground text-sm">{rule.ruleValue}</p>
                     </div>
                   </motion.div>
                 ))}
                 {(!group.rules || group.rules.length === 0) && (
-                  <p className="text-gray-500 italic text-center">
+                  <p className="text-muted-foreground italic text-center">
                     No rules set yet.
                   </p>
                 )}
@@ -1853,10 +1840,10 @@ const GroupDetailPage = () => {
 
       {/* Invitation Link Dialog */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-        <DialogContent className="glass-card border-white/10 max-w-md">
+        <DialogContent className="border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Link className="w-5 h-5 text-emerald-400" />
+              <Link className="w-5 h-5 text-primary" />
               Invite Members
             </DialogTitle>
           </DialogHeader>
@@ -1879,7 +1866,7 @@ const GroupDetailPage = () => {
                 </Button>
               </div>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Anyone with this link can join your group. Make sure to share it
               securely.
             </p>

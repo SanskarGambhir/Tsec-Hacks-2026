@@ -65,18 +65,18 @@ export default function WalletPage() {
       >
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">My Wallet</h1>
-          <p className="text-gray-400 mt-1">Manage your funds and transactions</p>
+          <p className="text-muted-foreground mt-1">Manage your funds and transactions</p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="border-white/10 hover:bg-white/5"
+            className="border-border hover:bg-secondary"
           >
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
           <Button 
-            className="text-black"
+            className="text-primary-foreground"
             style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -91,20 +91,20 @@ export default function WalletPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="glass-card border-white/10 overflow-hidden relative">
+        <Card className="border-border overflow-hidden relative">
           {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-green-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
           <CardContent className="p-6 lg:p-8 relative">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <Wallet className="w-5 h-5" />
                   <span>Total Balance</span>
                   <button
                     onClick={() => setShowBalance(!showBalance)}
-                    className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                    className="p-1 hover:bg-secondary rounded-lg transition-colors"
                   >
                     {showBalance ? (
                       <EyeOff className="w-4 h-4" />
@@ -116,7 +116,7 @@ export default function WalletPage() {
                 <div className="text-4xl lg:text-5xl font-bold">
                   {showBalance ? (
                     <>
-                      <span className="text-gray-400">$</span>
+                      <span className="text-muted-foreground">$</span>
                       {balance.toLocaleString("en-US", {
                         minimumFractionDigits: 2,
                       })}
@@ -126,7 +126,7 @@ export default function WalletPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1 text-emerald-400 text-sm">
+                  <div className="flex items-center gap-1 text-primary text-sm">
                     <ArrowUpRight className="w-4 h-4" />
                     <span>+$2,340 this month</span>
                   </div>
@@ -134,17 +134,17 @@ export default function WalletPage() {
               </div>
 
               <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5">
-                  <span className="text-sm text-gray-400">Wallet ID:</span>
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-secondary">
+                  <span className="text-sm text-muted-foreground">Wallet ID:</span>
                   <code className="text-sm font-mono">{walletId}</code>
                   <button
                     onClick={handleCopy}
-                    className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                    className="p-1 hover:bg-secondary rounded-lg transition-colors"
                   >
                     {copied ? (
-                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      <CheckCircle className="w-4 h-4 text-primary" />
                     ) : (
-                      <Copy className="w-4 h-4 text-gray-400" />
+                      <Copy className="w-4 h-4 text-muted-foreground" />
                     )}
                   </button>
                 </div>
@@ -152,7 +152,7 @@ export default function WalletPage() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-primary/10 text-primary hover:bg-primary/10 transition-colors"
                   >
                     <Send className="w-4 h-4" />
                     <span className="font-medium">Send</span>
@@ -180,15 +180,15 @@ export default function WalletPage() {
         className="grid grid-cols-2 lg:grid-cols-4 gap-4"
       >
         <motion.div variants={item}>
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                  <ArrowUpRight className="w-5 h-5 text-emerald-400" />
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <ArrowUpRight className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Income</p>
-                  <p className="text-lg font-bold text-emerald-400">$4,500</p>
+                  <p className="text-sm text-muted-foreground">Income</p>
+                  <p className="text-lg font-bold text-primary">$4,500</p>
                 </div>
               </div>
             </CardContent>
@@ -196,15 +196,15 @@ export default function WalletPage() {
         </motion.div>
 
         <motion.div variants={item}>
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                  <ArrowDownRight className="w-5 h-5 text-red-400" />
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                  <ArrowDownRight className="w-5 h-5 text-destructive" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Expenses</p>
-                  <p className="text-lg font-bold text-red-400">$2,160</p>
+                  <p className="text-sm text-muted-foreground">Expenses</p>
+                  <p className="text-lg font-bold text-destructive">$2,160</p>
                 </div>
               </div>
             </CardContent>
@@ -212,14 +212,14 @@ export default function WalletPage() {
         </motion.div>
 
         <motion.div variants={item}>
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
                   <CreditCard className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Linked Cards</p>
+                  <p className="text-sm text-muted-foreground">Linked Cards</p>
                   <p className="text-lg font-bold">{linkedCards.length}</p>
                 </div>
               </div>
@@ -228,14 +228,14 @@ export default function WalletPage() {
         </motion.div>
 
         <motion.div variants={item}>
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
                   <Wallet className="w-5 h-5 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Pool Funds</p>
+                  <p className="text-sm text-muted-foreground">Pool Funds</p>
                   <p className="text-lg font-bold">$3,890</p>
                 </div>
               </div>
@@ -246,16 +246,16 @@ export default function WalletPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="transactions" className="w-full">
-        <TabsList className="w-full justify-start bg-white/5 border border-white/10 p-1 rounded-xl">
+        <TabsList className="w-full justify-start bg-secondary border border-border p-1 rounded-xl">
           <TabsTrigger
             value="transactions"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Transactions
           </TabsTrigger>
           <TabsTrigger
             value="cards"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Linked Cards
           </TabsTrigger>
@@ -263,7 +263,7 @@ export default function WalletPage() {
 
         {/* Transactions Tab */}
         <TabsContent value="transactions" className="mt-6">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardContent className="p-4 space-y-3">
               {transactions.map((transaction, index) => (
                 <motion.div
@@ -271,24 +271,24 @@ export default function WalletPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-4 p-4 rounded-xl bg-secondary hover:bg-secondary transition-colors"
                 >
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                       transaction.type === "credit"
-                        ? "bg-emerald-500/20"
-                        : "bg-red-500/20"
+                        ? "bg-primary/10"
+                        : "bg-destructive/10"
                     }`}
                   >
                     {transaction.type === "credit" ? (
-                      <ArrowDownRight className="w-6 h-6 text-emerald-400" />
+                      <ArrowDownRight className="w-6 h-6 text-primary" />
                     ) : (
-                      <ArrowUpRight className="w-6 h-6 text-red-400" />
+                      <ArrowUpRight className="w-6 h-6 text-destructive" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{transaction.title}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {transaction.group} • {transaction.date}
                     </p>
                   </div>
@@ -296,8 +296,8 @@ export default function WalletPage() {
                     <p
                       className={`text-lg font-bold ${
                         transaction.type === "credit"
-                          ? "text-emerald-400"
-                          : "text-red-400"
+                          ? "text-primary"
+                          : "text-destructive"
                       }`}
                     >
                       {transaction.type === "credit" ? "+" : "-"}$
@@ -306,7 +306,7 @@ export default function WalletPage() {
                     <p
                       className={`text-xs ${
                         transaction.status === "completed"
-                          ? "text-emerald-400"
+                          ? "text-primary"
                           : "text-yellow-400"
                       }`}
                     >
@@ -329,28 +329,28 @@ export default function WalletPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="glass-card border-white/10 overflow-hidden">
+                <Card className="border-border overflow-hidden">
                   <CardContent className="p-6 relative">
                     <div className="absolute top-4 right-4">
                       {card.type === "visa" ? (
-                        <span className="text-2xl font-bold italic text-white/50">
+                        <span className="text-2xl font-bold italic text-foreground/50">
                           VISA
                         </span>
                       ) : (
-                        <span className="text-xl font-bold text-white/50">
+                        <span className="text-xl font-bold text-foreground/50">
                           MC
                         </span>
                       )}
                     </div>
                     <div className="space-y-6">
-                      <CreditCard className="w-10 h-10 text-emerald-400" />
+                      <CreditCard className="w-10 h-10 text-primary" />
                       <div className="space-y-1">
                         <p className="text-2xl font-mono tracking-wider">
                           •••• •••• •••• {card.last4}
                         </p>
-                        <p className="text-sm text-gray-400">{card.name}</p>
+                        <p className="text-sm text-muted-foreground">{card.name}</p>
                       </div>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-muted-foreground">
                         Expires {card.expiry}
                       </p>
                     </div>
@@ -366,13 +366,13 @@ export default function WalletPage() {
               transition={{ delay: 0.2 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="h-full rounded-2xl border-2 border-dashed border-white/10 hover:border-emerald-500/50 flex flex-col items-center justify-center gap-3 transition-colors"
+              className="h-full rounded-2xl border-2 border-dashed border-border hover:border-primary/20 flex flex-col items-center justify-center gap-3 transition-colors"
               style={{ minHeight: "200px" }}
             >
-              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
-                <Plus className="w-6 h-6 text-gray-400" />
+              <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
+                <Plus className="w-6 h-6 text-muted-foreground" />
               </div>
-              <span className="font-medium text-gray-400">Add New Card</span>
+              <span className="font-medium text-muted-foreground">Add New Card</span>
             </motion.button>
           </div>
         </TabsContent>

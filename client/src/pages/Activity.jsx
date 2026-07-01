@@ -124,12 +124,12 @@ const defaultActivities = [
 ];
 
 const activityIcons = {
-  expense: { icon: Receipt, color: "bg-red-500/20 text-red-400" },
-  payment: { icon: Check, color: "bg-emerald-500/20 text-emerald-400" },
+  expense: { icon: Receipt, color: "bg-destructive/10 text-destructive" },
+  payment: { icon: Check, color: "bg-primary/10 text-primary" },
   member: { icon: Users, color: "bg-blue-500/20 text-blue-400" },
   pool: { icon: TrendingUp, color: "bg-purple-500/20 text-purple-400" },
   message: { icon: Clock, color: "bg-yellow-500/20 text-yellow-400" },
-  settlement: { icon: Check, color: "bg-emerald-500/20 text-emerald-400" },
+  settlement: { icon: Check, color: "bg-primary/10 text-primary" },
 };
 
 const filters = ["All", "Expenses", "Payments", "Members", "Pool"];
@@ -289,7 +289,7 @@ export default function ActivityPage() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400"
+          className="p-4 rounded-xl bg-destructive/10 border border-red-500/30 text-destructive"
         >
           {error}
         </motion.div>
@@ -302,11 +302,11 @@ export default function ActivityPage() {
           animate={{ opacity: 1 }}
           className="text-center py-16"
         >
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-            <ActivityIcon className="w-10 h-10 text-gray-500 animate-spin" />
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-4">
+            <ActivityIcon className="w-10 h-10 text-muted-foreground animate-spin" />
           </div>
           <h3 className="text-xl font-semibold mb-2">Loading activities</h3>
-          <p className="text-gray-400">Please wait...</p>
+          <p className="text-muted-foreground">Please wait...</p>
         </motion.div>
       )}
       <motion.div
@@ -316,11 +316,11 @@ export default function ActivityPage() {
       >
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">Activity</h1>
-          <p className="text-gray-400 mt-1">Track all your group activities</p>
+          <p className="text-muted-foreground mt-1">Track all your group activities</p>
         </div>
         <button
           onClick={() => setShowDateFilter(!showDateFilter)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors w-fit"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary border border-border hover:bg-secondary transition-colors w-fit"
         >
           <Calendar className="w-4 h-4" />
           <span>This Month</span>
@@ -335,56 +335,56 @@ export default function ActivityPage() {
         transition={{ delay: 0.1 }}
         className="grid grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
                 <ActivityIcon className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Total Activities</p>
+                <p className="text-sm text-muted-foreground">Total Activities</p>
                 <p className="text-xl font-bold">{stats.totalActivities}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                <Receipt className="w-5 h-5 text-red-400" />
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <Receipt className="w-5 h-5 text-destructive" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Expenses</p>
+                <p className="text-sm text-muted-foreground">Expenses</p>
                 <p className="text-xl font-bold">{stats.expenses}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                <Check className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Check className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Settlements</p>
+                <p className="text-sm text-muted-foreground">Settlements</p>
                 <p className="text-xl font-bold">{stats.payments}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Pool Updates</p>
+                <p className="text-sm text-muted-foreground">Pool Updates</p>
                 <p className="text-xl font-bold">{stats.poolActivities}</p>
               </div>
             </div>
@@ -401,7 +401,7 @@ export default function ActivityPage() {
           className="grid grid-cols-1 lg:grid-cols-2 gap-6"
         >
           {/* Activity Trend Chart */}
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-blue-400" />
@@ -434,7 +434,7 @@ export default function ActivityPage() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-muted-foreground">
                   No trend data available
                 </div>
               )}
@@ -442,10 +442,10 @@ export default function ActivityPage() {
           </Card>
 
           {/* Activity Type Distribution */}
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-green-400" />
+                <Receipt className="w-5 h-5 text-primary" />
                 Activity Distribution
               </CardTitle>
             </CardHeader>
@@ -478,7 +478,7 @@ export default function ActivityPage() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-muted-foreground">
                   No distribution data available
                 </div>
               )}
@@ -486,7 +486,7 @@ export default function ActivityPage() {
           </Card>
 
           {/* Activity by Type Bar Chart */}
-          <Card className="glass-card border-white/10 lg:col-span-2">
+          <Card className="border-border lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-purple-400" />
@@ -512,7 +512,7 @@ export default function ActivityPage() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-muted-foreground">
                   No data available
                 </div>
               )}
@@ -536,8 +536,8 @@ export default function ActivityPage() {
             onClick={() => setActiveFilter(filter)}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
               activeFilter === filter
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                : "bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10"
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
             }`}
           >
             {filter}
@@ -555,10 +555,10 @@ export default function ActivityPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 * groupIndex }}
           >
-            <h3 className="text-sm font-medium text-gray-400 mb-3 px-1">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3 px-1">
               {formatDate(date)}
             </h3>
-            <Card className="glass-card border-white/10">
+            <Card className="border-border">
               <CardContent className="p-2">
                 {dayActivities.map((activity, index) => {
                   const iconData = activityIcons[activity.type] || activityIcons.expense;
@@ -571,7 +571,7 @@ export default function ActivityPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.05 * index }}
-                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors"
+                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-secondary transition-colors"
                     >
                       <div
                         className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconColor}`}
@@ -584,7 +584,7 @@ export default function ActivityPage() {
                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user.email}`}
                         />
                         <AvatarFallback 
-                          className="text-black text-sm"
+                          className="text-primary-foreground text-sm"
                           style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
                         >
                           {activity.user.avatar}
@@ -596,12 +596,12 @@ export default function ActivityPage() {
                           <p className="font-medium truncate">{activity.title}</p>
                           <Badge
                             variant="secondary"
-                            className="bg-white/10 text-gray-400 border-0 text-xs hidden sm:inline-flex"
+                            className="bg-secondary text-muted-foreground border-0 text-xs hidden sm:inline-flex"
                           >
                             {activity.group}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-sm text-muted-foreground truncate">
                           {activity.description}
                         </p>
                       </div>
@@ -611,15 +611,15 @@ export default function ActivityPage() {
                           <p
                             className={`font-semibold ${
                               activity.type === "expense"
-                                ? "text-red-400"
-                                : "text-emerald-400"
+                                ? "text-destructive"
+                                : "text-primary"
                             }`}
                           >
                             {activity.type === "expense" ? "-" : "+"}$
                             {activity.amount.toFixed(2)}
                           </p>
                         )}
-                        <p className="text-xs text-gray-500 flex items-center justify-end gap-1">
+                        <p className="text-xs text-muted-foreground flex items-center justify-end gap-1">
                           <Clock className="w-3 h-3" />
                           {activity.time}
                         </p>
@@ -641,11 +641,11 @@ export default function ActivityPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center py-16"
         >
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-            <ActivityIcon className="w-10 h-10 text-gray-500" />
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-4">
+            <ActivityIcon className="w-10 h-10 text-muted-foreground" />
           </div>
           <h3 className="text-xl font-semibold mb-2">No activities found</h3>
-          <p className="text-gray-400">
+          <p className="text-muted-foreground">
             No activities match your current filter
           </p>
         </motion.div>

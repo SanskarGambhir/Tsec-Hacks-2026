@@ -40,7 +40,7 @@ export default function BillSplit() {
   return (
     <div className="space-y-6">
 
-      <Card className="glass-card border-white/10">
+      <Card className="border-border">
         <CardHeader>
           <CardTitle>Bill Item Assignment</CardTitle>
         </CardHeader>
@@ -48,11 +48,11 @@ export default function BillSplit() {
         <CardContent className="space-y-6">
 
           {items.map((item, index) => (
-            <div key={index} className="bg-white/5 p-4 rounded-xl">
+            <div key={index} className="bg-secondary p-4 rounded-xl">
 
               <div className="flex justify-between mb-3">
                 <span className="font-semibold">{item.name}</span>
-                <span className="text-emerald-400">₹{item.price}</span>
+                <span className="text-primary">₹{item.price}</span>
               </div>
 
               <div className="space-y-2">
@@ -67,7 +67,7 @@ export default function BillSplit() {
                       Array.from(e.target.selectedOptions, option => option.value)
                     )
                   }
-                  className="w-full p-2 rounded bg-black/40 border border-white/10"
+                  className="w-full p-2 rounded border border-border"
                 >
                   {members.map((member) => (
                     <option key={member} value={member}>
@@ -76,7 +76,7 @@ export default function BillSplit() {
                   ))}
                 </select>
 
-                <label className="flex items-center gap-2 text-sm text-gray-400">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={item.isShared}
@@ -91,7 +91,7 @@ export default function BillSplit() {
 
           <button
             onClick={handleCalculate}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-green-500 text-black font-semibold"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-green-500 text-primary-foreground font-semibold"
           >
             Calculate Split
           </button>
@@ -100,7 +100,7 @@ export default function BillSplit() {
       </Card>
 
       {balances && (
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardHeader>
             <CardTitle>Split Result</CardTitle>
           </CardHeader>
@@ -109,10 +109,10 @@ export default function BillSplit() {
             {Object.entries(balances).map(([member, amount]) => (
               <div
                 key={member}
-                className="flex justify-between p-3 bg-white/5 rounded-xl"
+                className="flex justify-between p-3 bg-secondary rounded-xl"
               >
                 <span>{member}</span>
-                <span className="text-emerald-400 font-semibold">
+                <span className="text-primary font-semibold">
                   ₹{amount}
                 </span>
               </div>

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Group } from "../models/group.models.js";
 import { GroupWallet } from "../models/groupWallet.models.js";
 import { UserWallet } from "../models/wallet.models.js";
@@ -9,9 +10,7 @@ import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { getIO } from "../socket.js";
 import { sendWhatsApp } from "../utils/twilio.js";
-import axios from "axios";
-
-const createGroup = asyncHandler(async (req, res) => {
+import { razorpayInstance } from "../utils/razorpay.js";const createGroup = asyncHandler(async (req, res) => {
   const {
     name,
     description,
@@ -1228,87 +1227,12 @@ const getGroupTransactions = asyncHandler(async (req, res) => {
 });
 
 const checkGroupPayments = asyncHandler(async (req, res) => {
-  const { groupId } = req.params;
-  const userId = req.user._id;
-
-  // Verify user is member of group
-  const group = await Group.findById(groupId);
-  if (!group) {
-    throw new ApiError(404, "Group not found");
-  }
-
-  const isMember =
-    group.members.some((m) => m.toString() === userId.toString()) ||
-    group.owner.toString() === userId.toString();
-
-  if (!isMember) {
-    throw new ApiError(403, "You are not a member of this group");
-  }
-
-  const groupWallet = await GroupWallet.findOne({ group: groupId });
-  if (!groupWallet) {
-    return res
-      .status(200)
-      .json(new ApiResponse(200, { updated: [], count: 0 }, "No wallet found"));
-  }
-
-  const pending = await Transaction.find({
-    user: userId,
-    wallet: groupWallet._id,
-    status: "PENDING",
-  });
-
-  const updated = [];
-
-  for (const tx of pending) {
-    try {
-      const response = await axios.get(
-        `https://api.fmm.finternetlab.io/v1/payment-intents/${tx.intentId}`,
-        {
-          headers: {
-            "X-API-Key": "sk_hackathon_5d3da8cd5d11aa58990e3edd273b1dd6",
-          },
-        },
-      );
-
-      const apiStatus = response.data.data?.status;
-
-      if (apiStatus === "COMPLETED" || apiStatus === "SUCCESS") {
-        tx.status = "COMPLETED";
-        tx.paymentStatus = apiStatus;
-        await tx.save();
-
-        // Update group wallet balance
-        groupWallet.balance += tx.amount;
-        await groupWallet.save();
-
-        // Update group pool and move from pending to pool
-        group.pool += tx.amount;
-        if (group.pendingFunds >= tx.amount) {
-          group.pendingFunds -= tx.amount;
-        }
-        await group.save();
-
-        updated.push(tx);
-      }
-    } catch (error) {
-      console.error(`Failed to check intent ${tx.intentId}:`, error.message);
-    }
-  }
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { updated, count: updated.length },
-        "Payment check completed",
-      ),
-    );
+  // Deprecated with Razorpay
+  return res.status(200).json(new ApiResponse(200, { updated: [], count: 0 }, "Use completeGroupDeposit for Razorpay"));
 });
-
 const completeGroupDeposit = asyncHandler(async (req, res) => {
   const { groupId, intentId } = req.params;
+  const { razorpay_payment_id, razorpay_signature } = req.body;
   const userId = req.user._id;
 
   // Verify user is member of group
@@ -1341,31 +1265,37 @@ const completeGroupDeposit = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Pending transaction not found");
   }
 
-  try {
-    // Submit delivery proof to Finternet API
-    const proofResponse = await axios.post(
-      `https://api.fmm.finternetlab.io/v1/payment-intents/${intentId}/delivery-proof`,
-      {
-        proof: {
-          type: "DELIVERY_CONFIRMATION",
-          hash: `proof_${Date.now()}`,
-          metadata: {
-            groupId: groupId,
-            userId: userId.toString(),
-          },
-        },
-      },
-      {
-        headers: {
-          "X-API-Key": "sk_hackathon_5d3da8cd5d11aa58990e3edd273b1dd6",
-          "Content-Type": "application/json",
-        },
-      },
-    );
+  if (!razorpay_payment_id || !razorpay_signature) {
+    throw new ApiError(400, "Missing Razorpay verification data");
+  }
 
-    tx.proofHash =
-      proofResponse.data.data?.proof?.hash || `proof_${Date.now()}`;
+  try {
+    const body = intentId + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      throw new ApiError(400, "Invalid payment signature");
+    }
+
+    // Mark as completed
+    tx.status = "COMPLETED";
+    tx.paymentStatus = "SUCCESS";
+    tx.proofHash = razorpay_payment_id;
     await tx.save();
+
+    // Update group wallet balance
+    groupWallet.balance += tx.amount;
+    await groupWallet.save();
+
+    // Update group pool and move from pending to pool
+    group.pool += tx.amount;
+    if (group.pendingFunds >= tx.amount) {
+      group.pendingFunds -= tx.amount;
+    }
+    await group.save();
 
     return res
       .status(200)
@@ -1373,16 +1303,35 @@ const completeGroupDeposit = asyncHandler(async (req, res) => {
         new ApiResponse(
           200,
           { transaction: tx },
-          "Proof submitted successfully",
+          "Payment verified successfully",
         ),
       );
   } catch (error) {
-    console.error(
-      "Proof submission error:",
-      error.response?.data || error.message,
-    );
-    throw new ApiError(500, "Failed to submit delivery proof");
+    console.error("Proof verification error:", error);
+    throw new ApiError(500, "Failed to verify payment signature");
   }
+});
+const groupPaymentIntent = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const { amount } = req.body;
+
+  if (!amount || Number(amount) <= 0) {
+    throw new ApiError(400, "Valid amount is required");
+  }
+
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (!groupWallet) {
+    throw new ApiError(404, "Group wallet not found");
+  }
+
+  const amountInPaise = Math.round(Number(amount) * 100);
+  const order = await razorpayInstance.orders.create({
+    amount: amountInPaise,
+    currency: "INR",
+    receipt: `grp_${groupId.substring(0, 5)}_${Date.now()}`
+  });
+
+  return res.status(200).json(new ApiResponse(200, { order, intentId: order.id }, "Order created"));
 });
 
 // Leave group
@@ -1489,6 +1438,7 @@ export {
   getGroupTransactions,
   checkGroupPayments,
   completeGroupDeposit,
+  groupPaymentIntent,
   leaveGroup,
   getGroupPendingInvites,
 };

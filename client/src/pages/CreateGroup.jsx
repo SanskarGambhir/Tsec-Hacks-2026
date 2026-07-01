@@ -305,7 +305,7 @@ export default function CreateGroup() {
             <div className="space-y-2">
               <Label htmlFor="poolAmount">Initial Pool Amount (₹)</Label>
               <div className="relative">
-                <Coins className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Coins className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="poolAmount"
                   type="number"
@@ -315,7 +315,7 @@ export default function CreateGroup() {
                   className="pl-10"
                 />
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 The starting balance for the group pool
               </p>
             </div>
@@ -371,7 +371,7 @@ export default function CreateGroup() {
                   min={new Date().toISOString().slice(0, 16)}
                   required
                 />
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Funds will be locked until this date
                 </p>
               </div>
@@ -432,7 +432,7 @@ export default function CreateGroup() {
                               milestones.filter((m) => m.id !== milestone.id),
                             )
                           }
-                          className="text-red-500 hover:text-red-700"
+                          className="text-destructive hover:text-destructive"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -440,7 +440,7 @@ export default function CreateGroup() {
                     ))}
                   </div>
                 )}
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Funds are released when milestones are completed
                 </p>
               </div>
@@ -461,7 +461,7 @@ export default function CreateGroup() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Add Members</Label>
-                <p className="text-sm text-gray-500">Invite friends to join your group</p>
+                <p className="text-sm text-muted-foreground">Invite friends to join your group</p>
                 
                 {/* Add Member Dialog */}
                 <Dialog open={showAddMemberDialog} onOpenChange={handleDialogOpen}>
@@ -474,7 +474,7 @@ export default function CreateGroup() {
                   <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2 text-xl">
-                        <UserPlus className="w-6 h-6 text-emerald-500" />
+                        <UserPlus className="w-6 h-6 text-primary" />
                         Add Members
                       </DialogTitle>
                     </DialogHeader>
@@ -496,7 +496,7 @@ export default function CreateGroup() {
                       <TabsContent value="friends" className="space-y-4">
                         {friendsLoading ? (
                           <div className="flex items-center justify-center py-12">
-                            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
                           </div>
                         ) : friends.length > 0 ? (
                           <>
@@ -519,19 +519,19 @@ export default function CreateGroup() {
                                   >
                                     <Avatar className="w-10 h-10">
                                       <AvatarImage src={friend.avatar?.url} />
-                                      <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-green-500 text-white">
+                                      <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-green-500 text-foreground">
                                         {friend.username?.[0]?.toUpperCase() || "F"}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium truncate">{friend.username}</p>
-                                      <p className="text-sm text-gray-500 truncate">{friend.email}</p>
+                                      <p className="text-sm text-muted-foreground truncate">{friend.email}</p>
                                     </div>
                                     {isAlreadyAdded ? (
                                       <Badge variant="secondary">Added</Badge>
                                     ) : isSelected ? (
                                       <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                                        <Check className="w-4 h-4 text-white" />
+                                        <Check className="w-4 h-4 text-foreground" />
                                       </div>
                                     ) : (
                                       <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
@@ -553,7 +553,7 @@ export default function CreateGroup() {
                             )}
                           </>
                         ) : (
-                          <div className="text-center py-12 text-gray-500">
+                          <div className="text-center py-12 text-muted-foreground">
                             <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                             <p>No friends yet</p>
                             <p className="text-sm mt-1">Add friends first from the Friends page</p>
@@ -566,21 +566,21 @@ export default function CreateGroup() {
                         {phoneInviteSuccess ? (
                           <div className="text-center py-12">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
-                              <Check className="w-8 h-8 text-emerald-500" />
+                              <Check className="w-8 h-8 text-primary" />
                             </div>
                             <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-muted-foreground">
                               WhatsApp invite has been sent successfully
                             </p>
                           </div>
                         ) : (
                           <>
                             <div className="space-y-2">
-                              <p className="text-sm text-gray-500">
+                              <p className="text-sm text-muted-foreground">
                                 Send a WhatsApp invite to join the group
                               </p>
                               <div className="relative">
-                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                 <Input
                                   type="tel"
                                   placeholder="+91 1234567890"
@@ -640,26 +640,26 @@ export default function CreateGroup() {
                           <>
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={member.avatar?.url} />
-                              <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-green-500 text-white text-sm">
+                              <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-green-500 text-foreground text-sm">
                                 {member.username?.[0]?.toUpperCase() || "F"}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{member.username}</p>
-                              <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                              <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                             </div>
-                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+                            <Badge variant="secondary" className="bg-emerald-100 text-primary">
                               Friend
                             </Badge>
                           </>
                         ) : member.type === "invited" ? (
                           <>
                             <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                              <MessageCircle className="w-4 h-4 text-green-600" />
+                              <MessageCircle className="w-4 h-4 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{member.phone}</p>
-                              <p className="text-xs text-gray-500">WhatsApp invite sent</p>
+                              <p className="text-xs text-muted-foreground">WhatsApp invite sent</p>
                             </div>
                             <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">
                               Pending
@@ -679,7 +679,7 @@ export default function CreateGroup() {
                         <button
                           type="button"
                           onClick={() => handleRemoveMember(member)}
-                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                          className="p-1 text-destructive hover:text-destructive hover:bg-red-50 rounded-full transition-colors"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -692,14 +692,14 @@ export default function CreateGroup() {
 
             {/* Error Message */}
             {error && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-md text-sm">
+              <div className="p-3 bg-red-100 text-destructive rounded-md text-sm">
                 {error}
               </div>
             )}
 
             {/* Success Message */}
             {success && (
-              <div className="p-3 bg-green-100 text-green-700 rounded-md text-sm">
+              <div className="p-3 bg-green-100 text-primary rounded-md text-sm">
                 Group created successfully! Redirecting...
               </div>
             )}

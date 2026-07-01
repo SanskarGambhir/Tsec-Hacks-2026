@@ -125,7 +125,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
   const evenSplitAmount = divisionMethod === 'even' || divisionMethod === 'exclude' ? calculateEvenSplit() : 0;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <Card className="w-full max-w-2xl bg-gray-900 border-gray-700 my-8 max-h-[90vh] flex flex-col">
         <CardHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -142,7 +142,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-gray-400 hover:text-white"
+              className="text-muted-foreground hover:text-foreground"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -150,14 +150,14 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
         </CardHeader>
         <CardContent className="overflow-y-auto flex-1">
           {/* Scan Bill Option */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-xl">
+          <div className="mb-6 p-4 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-primary/20 rounded-xl">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
               <div className="flex-1">
                 <h3 className="font-semibold flex items-center gap-2">
-                  <Scan className="w-5 h-5 text-emerald-400" />
+                  <Scan className="w-5 h-5 text-primary" />
                   Scan Bill with AI
                 </h3>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Upload and automatically split a bill using AI
                 </p>
               </div>
@@ -176,7 +176,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
               <span className="w-full border-t border-gray-700" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gray-900 px-2 text-gray-500">Or enter manually</span>
+              <span className="bg-gray-900 px-2 text-muted-foreground">Or enter manually</span>
             </div>
           </div>
 
@@ -246,24 +246,24 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                     <div
                       key={member._id}
                       className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${excludedMembers.includes(member._id)
-                        ? 'bg-red-500/20 border border-red-500/30'
+                        ? 'bg-destructive/10 border border-red-500/30'
                         : 'bg-gray-800/50 hover:bg-gray-800'
                         }`}
                       onClick={() => toggleExcludeMember(member._id)}
                     >
-                      <div className="w-10 h-10 flex-shrink-0 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                        <User className="w-5 h-5 text-emerald-400" />
+                      <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{member.username || member.email}</p>
                         {divisionMethod === 'even' && !excludedMembers.includes(member._id) && (
-                          <p className="text-sm text-gray-400">₹{evenSplitAmount.toFixed(2)}</p>
+                          <p className="text-sm text-muted-foreground">₹{evenSplitAmount.toFixed(2)}</p>
                         )}
                       </div>
                       <div className="flex-shrink-0">
                         {excludedMembers.includes(member._id) ? (
                           <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
-                            <X className="w-3 h-3 text-white" />
+                            <X className="w-3 h-3 text-foreground" />
                           </div>
                         ) : (
                           <div className="w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center">
@@ -291,8 +291,8 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                 <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
                   {group?.members?.map((member) => (
                     <div key={member._id} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg">
-                      <div className="w-10 h-10 flex-shrink-0 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                        <User className="w-5 h-5 text-emerald-400" />
+                      <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{member.username || member.email}</p>
@@ -315,7 +315,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
             )}
 
             {error && (
-              <div className="p-3 bg-red-500/20 text-red-300 rounded-lg text-sm">
+              <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
                 {error}
               </div>
             )}

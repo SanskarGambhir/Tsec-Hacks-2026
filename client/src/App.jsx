@@ -49,7 +49,6 @@ function App() {
           <Route path="/groups/create" element={<CreateGroup />} />
           <Route path="/groups/:groupId" element={<GroupDetailPage />} />
           <Route path="/friends" element={<FriendsPage />} />
-          <Route path="/wallet" element={<Wallet />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/ai-insights" element={<AIInsights />} />
           <Route path="/profile" element={<Profile />} />

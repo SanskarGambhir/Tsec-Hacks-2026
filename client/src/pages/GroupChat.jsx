@@ -143,7 +143,7 @@ const GroupChat = () => {
       <header className="bg-primary text-primary-foreground p-4 shadow-md">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-xl font-bold">{group.name}</h1>
-          <Button onClick={handleGoBack} variant="secondary" className="text-white">
+          <Button onClick={handleGoBack} variant="secondary" className="text-foreground">
             Back to Groups
           </Button>
         </div>

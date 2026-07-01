@@ -63,18 +63,18 @@ const MemberActionsModal = ({ member, balance, groupId, onClose, onAction }) => 
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="glass-card border-white/10 max-w-md">
+      <DialogContent className="border-border max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-emerald-400" />
+            <Wallet className="w-5 h-5 text-primary" />
             Actions for {member.username || member.email}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-4">
           <div className="p-4 bg-gray-800/50 rounded-lg">
             <p className="text-sm text-gray-300 mb-1">Current Balance</p>
-            <p className="text-xl font-bold text-emerald-400">₹{balance.toFixed(2)}</p>
-            <p className="text-xs text-gray-500">Available for withdrawal</p>
+            <p className="text-xl font-bold text-primary">₹{balance.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Available for withdrawal</p>
           </div>
 
           <div className="space-y-3">
@@ -105,14 +105,14 @@ const MemberActionsModal = ({ member, balance, groupId, onClose, onAction }) => 
             <div className="space-y-2">
               <Label htmlFor="amount">Amount (₹)</Label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   id="amount"
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="Enter amount"
-                  className="pl-10 h-12 bg-white/5 border-white/10"
+                  className="pl-10 h-12 bg-secondary border-border"
                   min="0.01"
                   step="0.01"
                 />
@@ -121,7 +121,7 @@ const MemberActionsModal = ({ member, balance, groupId, onClose, onAction }) => 
           )}
 
           {error && (
-            <div className="p-3 bg-red-500/20 text-red-300 rounded-lg text-sm">
+            <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
               {error}
             </div>
           )}

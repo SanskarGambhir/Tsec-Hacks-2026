@@ -83,11 +83,11 @@ function GroupInvites() {
   if (invites.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
-        <Users className="h-16 w-16 text-gray-400 mb-4" />
+        <Users className="h-16 w-16 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold text-gray-700 mb-2">
           No Pending Invites
         </h3>
-        <p className="text-gray-500">
+        <p className="text-muted-foreground">
           You don't have any group invites at the moment.
         </p>
       </div>
@@ -110,7 +110,7 @@ function GroupInvites() {
                 <div className="flex items-start gap-4">
                   {/* Group Avatar */}
                   <Avatar className="h-14 w-14 border-2 border-purple-500">
-                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-lg font-bold">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-foreground text-lg font-bold">
                       {invite.group?.name?.charAt(0) || "G"}
                     </AvatarFallback>
                   </Avatar>
@@ -140,7 +140,7 @@ function GroupInvites() {
                     </div>
 
                     {/* Group Info */}
-                    <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                    <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
                         <span>{invite.group?.members?.length || 0} members</span>

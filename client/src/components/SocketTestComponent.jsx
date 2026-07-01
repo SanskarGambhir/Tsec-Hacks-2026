@@ -164,14 +164,14 @@ const SocketTestComponent = () => {
           <button
             onClick={handleJoinGroup}
             disabled={!groupId.trim()}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-blue-500 text-foreground rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Join Group
           </button>
           <button
             onClick={handleLeaveGroup}
             disabled={!groupId.trim()}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-red-500 text-foreground rounded-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Leave Group
           </button>
@@ -191,7 +191,7 @@ const SocketTestComponent = () => {
             <button
               onClick={handleAddRule}
               disabled={!groupId.trim() || !newRule.trim()}
-              className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-purple-500 text-foreground rounded-md hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add Rule
             </button>
@@ -212,7 +212,7 @@ const SocketTestComponent = () => {
             <button
               onClick={handleMemberJoin}
               disabled={!groupId.trim() || !newUser.trim()}
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-green-500 text-foreground rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add Member
             </button>
@@ -233,7 +233,7 @@ const SocketTestComponent = () => {
             <button
               onClick={handleSendMessage}
               disabled={!groupId.trim() || !newMessage.trim()}
-              className="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-indigo-500 text-foreground rounded-md hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Send Message
             </button>
@@ -245,11 +245,11 @@ const SocketTestComponent = () => {
         <h3 className="text-lg font-semibold mb-2">Messages:</h3>
         <div className="border border-gray-200 rounded-md p-4 h-64 overflow-y-auto bg-gray-50">
           {messages.length === 0 ? (
-            <p className="text-gray-500 italic">No messages yet...</p>
+            <p className="text-muted-foreground italic">No messages yet...</p>
           ) : (
             messages.map((msg) => (
               <div key={msg.id} className="py-1 border-b border-gray-100 last:border-b-0">
-                <span className="text-xs text-gray-500 mr-2">[{msg.timestamp}]</span>
+                <span className="text-xs text-muted-foreground mr-2">[{msg.timestamp}]</span>
                 <span>{msg.text}</span>
               </div>
             ))

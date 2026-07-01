@@ -96,7 +96,7 @@ export default function AIInsights() {
             <Sparkles className="w-8 h-8 text-yellow-400" />
             AI Insights & Analysis
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             Powered by Gemini - Get personalized spending insights
           </p>
         </div>
@@ -107,7 +107,7 @@ export default function AIInsights() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400"
+          className="p-4 rounded-xl bg-destructive/10 border border-red-500/30 text-destructive"
         >
           {error}
         </motion.div>
@@ -120,11 +120,11 @@ export default function AIInsights() {
           animate={{ opacity: 1 }}
           className="text-center py-16"
         >
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-4">
             <Sparkles className="w-10 h-10 text-yellow-400 animate-pulse" />
           </div>
           <h3 className="text-xl font-semibold mb-2">Analyzing your data</h3>
-          <p className="text-gray-400">AI is processing your spending patterns...</p>
+          <p className="text-muted-foreground">AI is processing your spending patterns...</p>
         </motion.div>
       )}
 
@@ -143,13 +143,13 @@ export default function AIInsights() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Expense Insights</h2>
-                <p className="text-gray-400">AI-powered analysis of your spending patterns</p>
+                <p className="text-muted-foreground">AI-powered analysis of your spending patterns</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Insights Text */}
-              <Card className="glass-card border-white/10 lg:col-span-2">
+              <Card className="border-border lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Brain className="w-5 h-5 text-blue-400" />
@@ -165,7 +165,7 @@ export default function AIInsights() {
 
               {/* Category Breakdown Chart */}
               {insights?.summary?.categories && insights.summary.categories.length > 0 && (
-                <Card className="glass-card border-white/10">
+                <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="text-lg">Spending by Category</CardTitle>
                   </CardHeader>
@@ -202,37 +202,37 @@ export default function AIInsights() {
 
               {/* Summary Stats */}
               {insights?.summary && (
-                <Card className="glass-card border-white/10">
+                <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="text-lg">Summary</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                        <span className="text-gray-400">Total Spending</span>
+                      <div className="flex justify-between items-center pb-2 border-b border-border">
+                        <span className="text-muted-foreground">Total Spending</span>
                         <span className="font-bold text-lg">
                           ${insights.summary.totalExpense?.toFixed(2) || 0}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                        <span className="text-gray-400">Transactions</span>
+                      <div className="flex justify-between items-center pb-2 border-b border-border">
+                        <span className="text-muted-foreground">Transactions</span>
                         <span className="font-bold">{insights.summary.transactionCount || 0}</span>
                       </div>
-                      <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                        <span className="text-gray-400">Average Spend</span>
+                      <div className="flex justify-between items-center pb-2 border-b border-border">
+                        <span className="text-muted-foreground">Average Spend</span>
                         <span className="font-bold">
                           ${insights.summary.avgExpense?.toFixed(2) || 0}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                        <span className="text-gray-400">Highest</span>
-                        <span className="font-bold text-red-400">
+                      <div className="flex justify-between items-center pb-2 border-b border-border">
+                        <span className="text-muted-foreground">Highest</span>
+                        <span className="font-bold text-destructive">
                           ${insights.summary.maxExpense?.toFixed(2) || 0}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-400">Lowest</span>
-                        <span className="font-bold text-green-400">
+                        <span className="text-muted-foreground">Lowest</span>
+                        <span className="font-bold text-primary">
                           ${insights.summary.minExpense?.toFixed(2) || 0}
                         </span>
                       </div>
@@ -256,7 +256,7 @@ export default function AIInsights() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Behavioral Analysis</h2>
-                <p className="text-gray-400">
+                <p className="text-muted-foreground">
                   Emotions & patterns behind your spending habits
                 </p>
               </div>
@@ -264,7 +264,7 @@ export default function AIInsights() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Analysis Text */}
-              <Card className="glass-card border-white/10 lg:col-span-2">
+              <Card className="border-border lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-purple-400" />
@@ -280,7 +280,7 @@ export default function AIInsights() {
 
               {/* Category Breakdown */}
               {behavioral?.categoryBreakdown && behavioral.categoryBreakdown.length > 0 && (
-                <Card className="glass-card border-white/10">
+                <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="text-lg">Spending Distribution</CardTitle>
                   </CardHeader>
@@ -307,7 +307,7 @@ export default function AIInsights() {
 
               {/* Top Patterns */}
               {behavioral?.patterns && behavioral.patterns.length > 0 && (
-                <Card className="glass-card border-white/10">
+                <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="text-lg">Top Spending Patterns</CardTitle>
                   </CardHeader>
@@ -319,7 +319,7 @@ export default function AIInsights() {
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: idx * 0.05 }}
-                          className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                          className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border"
                         >
                           <span className="text-sm text-gray-300">{pattern.description}</span>
                           <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">
@@ -342,21 +342,21 @@ export default function AIInsights() {
             className="space-y-6"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                <Target className="w-6 h-6 text-green-400" />
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Target className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Spending Coach</h2>
-                <p className="text-gray-400">Personalized recommendations to optimize your spending</p>
+                <p className="text-muted-foreground">Personalized recommendations to optimize your spending</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Advice Text */}
-              <Card className="glass-card border-white/10 lg:col-span-2">
+              <Card className="border-border lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-400" />
+                    <CheckCircle className="w-5 h-5 text-primary" />
                     Personalized Recommendations
                   </CardTitle>
                 </CardHeader>
@@ -369,7 +369,7 @@ export default function AIInsights() {
 
               {/* Savings Opportunities Chart */}
               {coach?.recommendations && coach.recommendations.length > 0 && (
-                <Card className="glass-card border-white/10">
+                <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="text-lg">Top Spending Categories</CardTitle>
                   </CardHeader>
@@ -396,7 +396,7 @@ export default function AIInsights() {
 
               {/* Potential Savings */}
               {coach?.savingsOpportunities && coach.savingsOpportunities.length > 0 && (
-                <Card className="glass-card border-white/10">
+                <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <TrendingDown className="w-5 h-5 text-yellow-400" />
@@ -410,15 +410,15 @@ export default function AIInsights() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.05 }}
-                        className="p-3 bg-white/5 rounded-lg border border-green-500/20"
+                        className="p-3 bg-secondary rounded-lg border border-primary/20"
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold text-green-400">{opp.category}</span>
-                          <Badge className="bg-green-500/20 text-green-300">
+                          <span className="font-semibold text-primary">{opp.category}</span>
+                          <Badge className="bg-primary/10 text-primary">
                             Save ${opp.potentialSavings.toFixed(2)}
                           </Badge>
                         </div>
-                        <div className="flex items-center justify-between text-sm text-gray-400">
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
                           <span>Current: ${opp.currentSpend.toFixed(2)}</span>
                           <span>
                             Target: ${(opp.currentSpend - opp.potentialSavings).toFixed(2)}
@@ -430,10 +430,10 @@ export default function AIInsights() {
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="mt-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg"
+                        className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg"
                       >
-                        <p className="text-sm text-gray-400 mb-1">Total Monthly Savings Potential</p>
-                        <p className="text-2xl font-bold text-green-400">
+                        <p className="text-sm text-muted-foreground mb-1">Total Monthly Savings Potential</p>
+                        <p className="text-2xl font-bold text-primary">
                           ${coach.potentialMonthlySavings.toFixed(2)}
                         </p>
                       </motion.div>
@@ -444,7 +444,7 @@ export default function AIInsights() {
 
               {/* Summary */}
               {coach?.totalCurrentSpend && (
-                <Card className="glass-card border-white/10">
+                <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <DollarSign className="w-5 h-5 text-blue-400" />
@@ -453,15 +453,15 @@ export default function AIInsights() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                        <span className="text-gray-400">Current Monthly Spend</span>
+                      <div className="flex justify-between items-center p-3 bg-secondary rounded-lg">
+                        <span className="text-muted-foreground">Current Monthly Spend</span>
                         <span className="font-bold text-lg">
                           ${coach.totalCurrentSpend.toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                        <span className="text-green-400">Potential Savings</span>
-                        <span className="font-bold text-lg text-green-400">
+                      <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+                        <span className="text-primary">Potential Savings</span>
+                        <span className="font-bold text-lg text-primary">
                           ${coach.potentialMonthlySavings.toFixed(2)}
                         </span>
                       </div>

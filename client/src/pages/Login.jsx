@@ -100,14 +100,14 @@ export default function Login() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-8 space-y-6">
 
             <div className="text-center">
               <h2 className="text-2xl font-bold">
-                Welcome Back <span className="text-emerald-400">👋</span>
+                Welcome Back <span className="text-primary">👋</span>
               </h2>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-muted-foreground text-sm mt-1">
                 Login to manage your shared expenses
               </p>
             </div>
@@ -119,7 +119,7 @@ export default function Login() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-secondary border border-border rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
               />
 
               <input
@@ -127,7 +127,7 @@ export default function Login() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-secondary border border-border rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
               />
 
               {showOTP && (
@@ -138,7 +138,7 @@ export default function Login() {
                     placeholder="Enter OTP"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-secondary border border-border rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
                   />
 
                   <button
@@ -150,14 +150,14 @@ export default function Login() {
                   </button>
 
                   {countdown > 0 ? (
-                    <p className="text-center text-gray-400 text-sm">
+                    <p className="text-center text-muted-foreground text-sm">
                       Resend OTP in {countdown}s
                     </p>
                   ) : (
                     <button
                       type="button"
                       onClick={handleResendOTP}
-                      className="text-emerald-400 text-sm w-full text-center"
+                      className="text-primary text-sm w-full text-center"
                     >
                       Resend OTP
                     </button>
@@ -168,7 +168,7 @@ export default function Login() {
               <button
                 onClick={handleLogin}
                 disabled={loading}
-                className="w-full py-3 rounded-xl font-semibold text-black"
+                className="w-full py-3 rounded-xl font-semibold text-primary-foreground"
                 style={{ background: "linear-gradient(90deg,#4ade80,#22c55e)" }}
               >
                 {loading ? "Logging In..." : "Login"}
@@ -176,9 +176,9 @@ export default function Login() {
 
             </div>
 
-            <p className="text-center text-gray-400 text-sm">
+            <p className="text-center text-muted-foreground text-sm">
               Don’t have an account?{" "}
-              <Link to="/signup" className="text-emerald-400 hover:text-emerald-300">
+              <Link to="/signup" className="text-primary hover:text-primary">
                 Sign Up
               </Link>
             </p>

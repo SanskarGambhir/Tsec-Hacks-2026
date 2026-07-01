@@ -34,22 +34,22 @@ export default function InviteHandler() {
         <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center"
           style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
         >
-          <UserPlus className="w-10 h-10 text-black" />
+          <UserPlus className="w-10 h-10 text-primary-foreground" />
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-white">You're Invited!</h1>
-          <p className="text-gray-400">
+          <h1 className="text-3xl font-bold text-foreground">You're Invited!</h1>
+          <p className="text-muted-foreground">
             Someone wants to connect with you on Cooper
           </p>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-emerald-400">
+        <div className="flex items-center justify-center gap-2 text-primary">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span>Redirecting to signup...</span>
         </div>
 
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           You'll be redirected to create an account or login
         </p>
       </motion.div>

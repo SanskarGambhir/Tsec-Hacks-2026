@@ -73,7 +73,7 @@ const categoryColors = {
   Accommodation: "bg-blue-500/20 text-blue-400",
   Food: "bg-orange-500/20 text-orange-400",
   Activities: "bg-purple-500/20 text-purple-400",
-  Transport: "bg-green-500/20 text-green-400",
+  Transport: "bg-primary/10 text-primary",
 };
 
 export default function GroupDetails() {
@@ -232,7 +232,7 @@ export default function GroupDetails() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate(-1)}
-          className="w-fit p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+          className="w-fit p-2 rounded-xl bg-secondary hover:bg-secondary transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </motion.button>
@@ -246,7 +246,7 @@ export default function GroupDetails() {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold truncate">{groupData.name}</h1>
-            <p className="text-gray-400 text-sm">{groupData.description}</p>
+            <p className="text-muted-foreground text-sm">{groupData.description}</p>
           </div>
         </div>
 
@@ -254,13 +254,13 @@ export default function GroupDetails() {
           <Button
             variant="outline"
             size="sm"
-            className="border-white/10 hover:bg-white/5"
+            className="border-border hover:bg-secondary"
           >
             <Settings className="w-4 h-4" />
           </Button>
           <Button
             size="sm"
-            className="text-black"
+            className="text-primary-foreground"
             style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
           >
             <Plus className="w-4 h-4 mr-1" />
@@ -276,15 +276,15 @@ export default function GroupDetails() {
         transition={{ delay: 0.1 }}
         className="grid grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Pool Balance</p>
-                <p className="text-xl font-bold text-emerald-400">
+                <p className="text-sm text-muted-foreground">Pool Balance</p>
+                <p className="text-xl font-bold text-primary">
                   ${groupData.poolBalance}
                 </p>
               </div>
@@ -292,43 +292,43 @@ export default function GroupDetails() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
                 <Receipt className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Total Expenses</p>
+                <p className="text-sm text-muted-foreground">Total Expenses</p>
                 <p className="text-xl font-bold">${groupData.totalExpenses}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
                 <Users className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Members</p>
+                <p className="text-sm text-muted-foreground">Members</p>
                 <p className="text-xl font-bold">{members.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Your Share</p>
-                <p className="text-xl font-bold text-emerald-400">+$240</p>
+                <p className="text-sm text-muted-foreground">Your Share</p>
+                <p className="text-xl font-bold text-primary">+$240</p>
               </div>
             </div>
           </CardContent>
@@ -337,34 +337,34 @@ export default function GroupDetails() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full justify-start bg-white/5 border border-white/10 p-1 rounded-xl overflow-x-auto">
+        <TabsList className="w-full justify-start bg-secondary border border-border p-1 rounded-xl overflow-x-auto">
           <TabsTrigger
             value="overview"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Overview
           </TabsTrigger>
           <TabsTrigger
             value="expenses"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Expenses
           </TabsTrigger>
           <TabsTrigger
             value="members"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Members
           </TabsTrigger>
           <TabsTrigger
             value="rules"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Rules
           </TabsTrigger>
           <TabsTrigger
             value="analytics"
-            className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 rounded-lg"
+            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
           >
             Analytics
           </TabsTrigger>
@@ -374,7 +374,7 @@ export default function GroupDetails() {
         <TabsContent value="overview" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Recent Expenses */}
-            <Card className="glass-card border-white/10">
+            <Card className="border-border">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Recent Expenses</CardTitle>
               </CardHeader>
@@ -382,7 +382,7 @@ export default function GroupDetails() {
                 {groupData.expenses.slice(0, 4).map((expense) => (
                   <div
                     key={expense.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-secondary"
                   >
                     <div
                       className={`px-2 py-1 rounded-lg text-xs font-medium ${categoryColors[expense.category]
@@ -392,11 +392,11 @@ export default function GroupDetails() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{expense.title}</p>
-                      <p className="text-xs text-gray-500">by {expense.paidBy}</p>
+                      <p className="text-xs text-muted-foreground">by {expense.paidBy}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">${expense.amount}</p>
-                      <p className="text-xs text-gray-500">{expense.date}</p>
+                      <p className="text-xs text-muted-foreground">{expense.date}</p>
                     </div>
                   </div>
                 ))}
@@ -404,7 +404,7 @@ export default function GroupDetails() {
             </Card>
 
             {/* Member Balances */}
-            <Card className="glass-card border-white/10">
+            <Card className="border-border">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Member Balances</CardTitle>
               </CardHeader>
@@ -412,14 +412,14 @@ export default function GroupDetails() {
                 {members.slice(0, 4).map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-secondary"
                   >
                     <Avatar className="w-10 h-10">
                       <AvatarImage
                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
                       />
                       <AvatarFallback
-                        className="text-black"
+                        className="text-primary-foreground"
                         style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
                       >
                         {member.avatar}
@@ -427,13 +427,13 @@ export default function GroupDetails() {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{member.name}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Contributed: ${member.contributed}
                       </p>
                     </div>
                     <div className="text-right">
                       <p
-                        className={`font-semibold text-sm ${member.owed > 0 ? "text-red-400" : "text-emerald-400"
+                        className={`font-semibold text-sm ${member.owed > 0 ? "text-destructive" : "text-primary"
                           }`}
                       >
                         {member.owed > 0 ? `-$${member.owed}` : "Settled"}
@@ -448,7 +448,7 @@ export default function GroupDetails() {
 
         {/* Expenses Tab */}
         <TabsContent value="expenses" className="mt-6">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardContent className="p-4 space-y-3">
               {groupData.expenses.map((expense, index) => (
                 <motion.div
@@ -456,7 +456,7 @@ export default function GroupDetails() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-4 p-4 rounded-xl bg-secondary hover:bg-secondary transition-colors"
                 >
                   <div
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium ${categoryColors[expense.category]
@@ -466,7 +466,7 @@ export default function GroupDetails() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{expense.title}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Paid by {expense.paidBy} • {expense.date}
                     </p>
                   </div>
@@ -481,38 +481,38 @@ export default function GroupDetails() {
 
         {/* Members Tab */}
         <TabsContent value="members" className="mt-6">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg">Group Members</CardTitle>
               <Dialog open={showAddMember} onOpenChange={handleDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
                     size="sm"
-                    className="text-black"
+                    className="text-primary-foreground"
                     style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
                   >
                     <UserPlus className="w-4 h-4 mr-1" />
                     Add Member
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="glass-card border-white/10 max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="border-border max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Member</DialogTitle>
                   </DialogHeader>
 
                   {/* Tabs for Friend/WhatsApp */}
                   <Tabs value={addMethod} onValueChange={setAddMethod} className="w-full mt-4">
-                    <TabsList className="grid w-full grid-cols-2 bg-white/5">
+                    <TabsList className="grid w-full grid-cols-2 bg-secondary">
                       <TabsTrigger
                         value="friends"
-                        className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400"
+                        className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                       >
                         <Users className="w-4 h-4 mr-2" />
                         Friends
                       </TabsTrigger>
                       <TabsTrigger
                         value="whatsapp"
-                        className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400"
+                        className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                       >
                         <MessageCircle className="w-4 h-4 mr-2" />
                         WhatsApp
@@ -522,20 +522,20 @@ export default function GroupDetails() {
                     {/* Friends Tab */}
                     <TabsContent value="friends" className="space-y-4 mt-4">
                       {error && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                        <div className="p-3 rounded-lg bg-destructive/10 border border-red-500/20 text-destructive text-sm">
                           {error}
                         </div>
                       )}
 
                       {friendsLoading ? (
                         <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
                         </div>
                       ) : friends.length === 0 ? (
                         <div className="text-center py-8">
-                          <Users className="w-12 h-12 mx-auto text-gray-500 mb-3" />
-                          <p className="text-gray-400">No friends found</p>
-                          <p className="text-sm text-gray-500 mt-1">
+                          <Users className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                          <p className="text-muted-foreground">No friends found</p>
+                          <p className="text-sm text-muted-foreground mt-1">
                             Add friends first to invite them to groups
                           </p>
                         </div>
@@ -549,40 +549,40 @@ export default function GroupDetails() {
                                 onClick={() => toggleFriendSelection(friend)}
                                 className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
                                   selectedFriends.some(f => f._id === friend._id)
-                                    ? "bg-emerald-500/20 border border-emerald-500/30"
-                                    : "bg-white/5 hover:bg-white/10 border border-transparent"
+                                    ? "bg-primary/10 border border-primary/20"
+                                    : "bg-secondary hover:bg-secondary border border-transparent"
                                 }`}
                               >
                                 <Avatar className="h-10 w-10">
                                   <AvatarImage src={friend.avatar} />
-                                  <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white">
+                                  <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-foreground">
                                     {friend.username?.[0]?.toUpperCase() || "?"}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium truncate">{friend.username}</p>
-                                  <p className="text-sm text-gray-400 truncate">{friend.email}</p>
+                                  <p className="text-sm text-muted-foreground truncate">{friend.email}</p>
                                 </div>
                                 {selectedFriends.some(f => f._id === friend._id) && (
-                                  <Check className="w-5 h-5 text-emerald-400" />
+                                  <Check className="w-5 h-5 text-primary" />
                                 )}
                               </div>
                             ))}
                         </div>
                       )}
 
-                      <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+                      <div className="flex gap-2 justify-end pt-4 border-t border-border">
                         <Button
                           variant="outline"
                           onClick={() => setShowAddMember(false)}
-                          className="border-white/10"
+                          className="border-border"
                         >
                           Cancel
                         </Button>
                         <Button
                           onClick={handleInviteSelectedFriends}
                           disabled={selectedFriends.length === 0 || friendsLoading}
-                          className="text-black"
+                          className="text-primary-foreground"
                           style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
                         >
                           {friendsLoading ? (
@@ -600,7 +600,7 @@ export default function GroupDetails() {
                     {/* WhatsApp Tab */}
                     <TabsContent value="whatsapp" className="space-y-4 mt-4">
                       {error && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                        <div className="p-3 rounded-lg bg-destructive/10 border border-red-500/20 text-destructive text-sm">
                           {error}
                         </div>
                       )}
@@ -611,12 +611,12 @@ export default function GroupDetails() {
                           animate={{ opacity: 1, scale: 1 }}
                           className="text-center py-8 space-y-3"
                         >
-                          <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
-                            <Check className="w-8 h-8 text-emerald-400" />
+                          <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                            <Check className="w-8 h-8 text-primary" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">Invite Sent!</h3>
-                            <p className="text-sm text-gray-400 mt-1">
+                            <p className="text-sm text-muted-foreground mt-1">
                               WhatsApp invitation has been sent
                             </p>
                           </div>
@@ -628,13 +628,13 @@ export default function GroupDetails() {
                               Enter Phone Number
                             </Label>
                             <div className="relative">
-                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                               <Input
                                 type="tel"
                                 placeholder="+91 9876543210"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
-                                className="pl-11 h-12 bg-white/5 border-white/10"
+                                className="pl-11 h-12 bg-secondary border-border"
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
                                     handleSendWhatsAppInvite();
@@ -642,23 +642,23 @@ export default function GroupDetails() {
                                 }}
                               />
                             </div>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               Include country code (e.g., +91 for India)
                             </p>
                           </div>
 
-                          <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+                          <div className="flex gap-2 justify-end pt-4 border-t border-border">
                             <Button
                               variant="outline"
                               onClick={() => setShowAddMember(false)}
-                              className="border-white/10"
+                              className="border-border"
                             >
                               Cancel
                             </Button>
                             <Button
                               onClick={handleSendWhatsAppInvite}
                               disabled={phoneLoading || !phoneNumber.trim()}
-                              className="text-black"
+                              className="text-primary-foreground"
                               style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
                             >
                               {phoneLoading ? (
@@ -688,14 +688,14 @@ export default function GroupDetails() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-white/5"
+                  className="flex items-center gap-4 p-4 rounded-xl bg-secondary"
                 >
                   <Avatar className="w-12 h-12">
                     <AvatarImage
                       src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
                     />
                     <AvatarFallback
-                      className="text-black font-bold"
+                      className="text-primary-foreground font-bold"
                       style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
                     >
                       {member.avatar}
@@ -713,16 +713,16 @@ export default function GroupDetails() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-gray-400">{member.email}</p>
+                    <p className="text-sm text-muted-foreground">{member.email}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">${member.contributed}</p>
-                    <p className="text-xs text-gray-500">contributed</p>
+                    <p className="text-xs text-muted-foreground">contributed</p>
                   </div>
                   {member.role !== "admin" && (
                     <button
                       onClick={() => handleRemoveMember(member.id)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                     >
                       <UserMinus className="w-4 h-4" />
                     </button>
@@ -735,7 +735,7 @@ export default function GroupDetails() {
 
         {/* Rules Tab */}
         <TabsContent value="rules" className="mt-6">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="text-lg">Group Rules</CardTitle>
             </CardHeader>
@@ -746,10 +746,10 @@ export default function GroupDetails() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="flex items-start gap-3 p-4 rounded-xl bg-white/5"
+                  className="flex items-start gap-3 p-4 rounded-xl bg-secondary"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
-                    <span className="text-emerald-400 font-bold text-sm">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-primary font-bold text-sm">
                       {index + 1}
                     </span>
                   </div>
@@ -763,7 +763,7 @@ export default function GroupDetails() {
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
-            <Card className="glass-card border-white/10">
+            <Card className="border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Spending by Category</CardTitle>
               </CardHeader>
@@ -776,19 +776,19 @@ export default function GroupDetails() {
                 }).map(([category, amount]) => (
                   <div key={category} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">{category}</span>
+                      <span className="text-muted-foreground">{category}</span>
                       <span className="font-medium">${amount}</span>
                     </div>
                     <Progress
                       value={(amount / groupData.totalExpenses) * 100}
-                      className="h-2 bg-white/10"
+                      className="h-2 bg-secondary"
                     />
                   </div>
                 ))}
               </CardContent>
             </Card>
 
-            <Card className="glass-card border-white/10">
+            <Card className="border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Contribution Summary</CardTitle>
               </CardHeader>
@@ -796,12 +796,12 @@ export default function GroupDetails() {
                 {members.map((member) => (
                   <div key={member.id} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">{member.name}</span>
+                      <span className="text-muted-foreground">{member.name}</span>
                       <span className="font-medium">${member.contributed}</span>
                     </div>
                     <Progress
                       value={(member.contributed / 500) * 100}
-                      className="h-2 bg-white/10"
+                      className="h-2 bg-secondary"
                     />
                   </div>
                 ))}
