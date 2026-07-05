@@ -83,8 +83,8 @@ const MemberActionsModal = ({ member, balance, groupId, onClose, onAction }) => 
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-4">
-          <div className="p-4 bg-gray-800/50 rounded-lg">
-            <p className="text-sm text-gray-300 mb-1">Current Balance</p>
+          <div className="p-4 bg-secondary rounded-lg">
+            <p className="text-sm text-foreground mb-1">Current Balance</p>
             <p className="text-xl font-bold text-primary">₹{balance.toFixed(2)}</p>
             <p className="text-xs text-muted-foreground">Available for withdrawal</p>
           </div>
@@ -100,30 +100,30 @@ const MemberActionsModal = ({ member, balance, groupId, onClose, onAction }) => 
               >
                 {/* Action Type Selection */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Action Type</Label>
+                  <Label className="text-sm font-bold text-muted-foreground uppercase tracking-widest px-1">Action Type</Label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setActionType('takeCredits')}
                       className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group ${
                         actionType === 'takeCredits' 
-                        ? 'bg-emerald-500/20 border-emerald-500/50 shadow-lg shadow-emerald-500/10' 
-                        : 'bg-white/5 border-white/10 hover:border-emerald-500/30'
+                        ? 'bg-primary/20 border-primary/50 shadow-lg shadow-emerald-500/10' 
+                        : 'bg-secondary border-border hover:border-primary/30'
                       }`}
                     >
-                      <CreditCard className={`w-6 h-6 mb-2 transition-colors ${actionType === 'takeCredits' ? 'text-emerald-400' : 'text-gray-500 group-hover:text-emerald-400'}`} />
-                      <span className={`text-sm font-bold ${actionType === 'takeCredits' ? 'text-white' : 'text-gray-400'}`}>Take Credits</span>
+                      <CreditCard className={`w-6 h-6 mb-2 transition-colors ${actionType === 'takeCredits' ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
+                      <span className={`text-sm font-bold ${actionType === 'takeCredits' ? 'text-foreground' : 'text-muted-foreground'}`}>Take Credits</span>
                     </button>
                     
                     <button
                       onClick={() => setActionType('addFunds')}
                       className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group ${
                         actionType === 'addFunds' 
-                        ? 'bg-blue-500/20 border-blue-500/50 shadow-lg shadow-blue-500/10' 
-                        : 'bg-white/5 border-white/10 hover:border-blue-500/30'
+                        ? 'bg-primary/20 border-primary/50 shadow-lg shadow-blue-500/10' 
+                        : 'bg-secondary border-border hover:border-primary/30'
                       }`}
                     >
-                      <ArrowDownUp className={`w-6 h-6 mb-2 transition-colors ${actionType === 'addFunds' ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400'}`} />
-                      <span className={`text-sm font-bold ${actionType === 'addFunds' ? 'text-white' : 'text-gray-400'}`}>Add Funds</span>
+                      <ArrowDownUp className={`w-6 h-6 mb-2 transition-colors ${actionType === 'addFunds' ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
+                      <span className={`text-sm font-bold ${actionType === 'addFunds' ? 'text-foreground' : 'text-muted-foreground'}`}>Add Funds</span>
                     </button>
                   </div>
                 </div>
@@ -169,12 +169,12 @@ const MemberActionsModal = ({ member, balance, groupId, onClose, onAction }) => 
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl space-y-3">
+                <div className="p-4 bg-yellow-500/10 border border-amber-200 rounded-xl space-y-3">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
                     <div>
-                      <h4 className="text-sm font-semibold text-yellow-500">Terms & Conditions</h4>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <h4 className="text-sm font-semibold text-amber-600">Terms & Conditions</h4>
+                      <p className="text-xs text-muted-foreground mt-1">
                         By withdrawing credits, you agree that this action cannot be undone. 
                         The selected amount will be transferred.
                       </p>
@@ -185,9 +185,9 @@ const MemberActionsModal = ({ member, balance, groupId, onClose, onAction }) => 
                       type="checkbox" 
                       checked={agreed}
                       onChange={(e) => setAgreed(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-yellow-500 focus:ring-yellow-500"
+                      className="w-4 h-4 rounded border-border bg-secondary text-amber-600 focus:ring-yellow-500"
                     />
-                    <span className="text-sm text-gray-300">I agree to the terms and conditions</span>
+                    <span className="text-sm text-foreground">I agree to the terms and conditions</span>
                   </label>
                 </div>
 
@@ -195,7 +195,7 @@ const MemberActionsModal = ({ member, balance, groupId, onClose, onAction }) => 
                   <Button
                     variant="ghost"
                     onClick={() => setShowTerms(false)}
-                    className="flex-1 h-12 rounded-xl text-gray-400 hover:text-white"
+                    className="flex-1 h-12 rounded-xl text-muted-foreground hover:text-foreground"
                     disabled={loading}
                   >
                     Back

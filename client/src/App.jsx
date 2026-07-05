@@ -4,7 +4,6 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Wallet from "./pages/Walllet";
 import GroupChat from "./pages/GroupChat";
-import SocketTestComponent from "./components/SocketTestComponent";
 import JoinGroup from "./components/JoinGroup";
 import GroupDetailPage from "./components/GroupDetailPage";
 import Groups from "./pages/Groups";
@@ -15,12 +14,10 @@ import Profile from "./pages/Profile";
 import FriendsPage from "./pages/FriendsPage";
 import InviteHandler from "./pages/InviteHandler";
 import GroupInviteHandler from "./pages/GroupInviteHandler";
-import BillScanner from "./pages/BillScanner";
 import Dashboard from "./pages/Dashboard";
 import SplitwiseSync from "./pages/SplitwiseSync";
 import CreateSharedExpense from "./pages/CreateSharedExpense";
 import ViewSharedExpense from "./pages/ViewSharedExpense";
-import "./App.css";
 
 function App() {
   return (
@@ -33,12 +30,9 @@ function App() {
         <Route path="/invite/:token" element={<InviteHandler />} />
         <Route path="/group-invite/:token" element={<GroupInviteHandler />} />
 
+        {/* Standalone pages with own headers */}
         <Route path="/chat/:groupId" element={<GroupChat />} />
-        <Route path="/socket-test" element={<SocketTestComponent />} />
-        <Route path="/join-group" element={<JoinGroup />} />
-        <Route path="/group/:groupId" element={<GroupDetailPage />} />
         <Route path="/shared-expense/:shareLink" element={<ViewSharedExpense />} />
-        <Route path="/split-bills" element={<CreateSharedExpense />} />
 
         {/* App Routes with Layout */}
         <Route element={<MainLayout />}>
@@ -51,8 +45,9 @@ function App() {
           <Route path="/activity" element={<Activity />} />
           <Route path="/ai-insights" element={<AIInsights />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/scan-bill" element={<BillScanner />} />
           <Route path="/splitwise" element={<SplitwiseSync />} />
+          <Route path="/split-bills" element={<CreateSharedExpense />} />
+          <Route path="/join-group" element={<JoinGroup />} />
         </Route>
       </Routes>
     </Router>

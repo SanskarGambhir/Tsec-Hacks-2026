@@ -43,15 +43,15 @@ export default function ViewSharedExpense() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0f0a] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (error || !expense) {
     return (
-      <div className="min-h-screen bg-[#0a0f0a] flex items-center justify-center p-4 text-center">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 text-center">
         <Card className="border-red-500/20 max-w-md">
           <CardContent className="p-8 space-y-4">
             <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
@@ -72,12 +72,12 @@ export default function ViewSharedExpense() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0f0a] p-4 md:p-12">
+    <div className="min-h-screen bg-background p-4 md:p-12">
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Branding */}
         <div className="flex justify-center mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/10">
               <span className="font-black text-primary-foreground text-xl italic">C</span>
             </div>
             <div className="flex flex-col">
@@ -96,7 +96,7 @@ export default function ViewSharedExpense() {
             {/* Background Glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
             
-            <CardHeader className="p-8 md:p-10 pb-6 relative border-b border-border bg-white/[0.02]">
+            <CardHeader className="p-8 md:p-10 pb-6 relative border-b border-border bg-secondary">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 mb-2">
@@ -123,7 +123,7 @@ export default function ViewSharedExpense() {
               </div>
 
               {expense.description && (
-                <div className="mt-6 p-4 rounded-xl border border-border text-gray-300 italic text-sm">
+                <div className="mt-6 p-4 rounded-xl border border-border text-foreground italic text-sm">
                   "{expense.description}"
                 </div>
               )}
@@ -131,7 +131,7 @@ export default function ViewSharedExpense() {
 
             <CardContent className="p-8 md:p-10 space-y-10 relative">
               {/* Creator Card */}
-              <div className="flex items-center gap-4 p-5 rounded-2xl bg-white/[0.03] border border-border group hover:border-primary/20 transition-all duration-300">
+              <div className="flex items-center gap-4 p-5 rounded-2xl bg-secondary border border-border group hover:border-primary/20 transition-all duration-300">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-primary-foreground shadow-lg group-hover:scale-110 transition-transform">
                   <User className="w-7 h-7" />
                 </div>
@@ -155,7 +155,7 @@ export default function ViewSharedExpense() {
                     <PieChart className="w-4 h-4 text-primary" />
                     Share Distribution
                   </div>
-                  <div className="text-[10px] font-bold text-gray-600 uppercase">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase">
                     {expense.participants.length} Members
                   </div>
                 </div>
@@ -167,14 +167,14 @@ export default function ViewSharedExpense() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 + (idx * 0.05) }}
-                      className="group flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-border hover:bg-white/[0.04] hover:border-primary/20 transition-all duration-300"
+                      className="group flex items-center justify-between p-5 rounded-2xl bg-secondary border border-border hover:bg-secondary hover:border-primary/20 transition-all duration-300"
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-primary font-bold border border-border group-hover:bg-primary/10 group-hover:border-primary/20 transition-all">
                           {participant.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-200 group-hover:text-foreground transition-colors">{participant.name}</p>
+                          <p className="font-bold text-foreground group-hover:text-foreground transition-colors">{participant.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-secondary border-border text-muted-foreground">
                               {participant.sharePercentage}%
@@ -204,7 +204,7 @@ export default function ViewSharedExpense() {
                     </p>
                   </div>
                   <button 
-                    className="group relative inline-flex items-center justify-center px-10 py-4 font-black text-primary-foreground transition-all duration-200 bg-emerald-400 rounded-2xl hover:bg-emerald-300 active:scale-95 shadow-xl shadow-emerald-500/20"
+                    className="group relative inline-flex items-center justify-center px-10 py-4 font-black text-primary-foreground transition-all duration-200 bg-primary rounded-2xl hover:bg-primary/80 active:scale-95 shadow-xl shadow-primary/10"
                     onClick={() => window.location.href = "/signup"}
                   >
                     Get Started Free
@@ -217,7 +217,7 @@ export default function ViewSharedExpense() {
         </motion.div>
 
         {/* Legal / Info Footer */}
-        <div className="flex flex-col items-center gap-4 text-gray-600 py-8">
+        <div className="flex flex-col items-center gap-4 text-muted-foreground py-8">
            <p className="text-xs font-bold tracking-widest uppercase opacity-50 flex items-center gap-2">
              <ShieldCheck className="w-3 h-3" />
              Secure Data Hosting

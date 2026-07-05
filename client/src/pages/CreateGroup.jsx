@@ -361,7 +361,7 @@ export default function CreateGroup() {
 
             {/* Time Locked Options */}
             {releaseType === "time_locked" && (
-              <div className="space-y-2 p-4 border rounded-lg bg-gray-50">
+              <div className="space-y-2 p-4 border rounded-lg bg-secondary">
                 <Label htmlFor="unlockDate">Unlock Date *</Label>
                 <Input
                   id="unlockDate"
@@ -379,7 +379,7 @@ export default function CreateGroup() {
 
             {/* Milestone Options */}
             {releaseType === "milestone" && (
-              <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+              <div className="space-y-4 p-4 border rounded-lg bg-secondary">
                 <Label>Milestones</Label>
                 <div className="flex gap-2">
                   <Input
@@ -511,10 +511,10 @@ export default function CreateGroup() {
                                     onClick={() => !isAlreadyAdded && toggleFriendSelection(friend)}
                                     className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                                       isAlreadyAdded 
-                                        ? "opacity-50 cursor-not-allowed bg-gray-100" 
+                                        ? "opacity-50 cursor-not-allowed bg-secondary" 
                                         : isSelected 
-                                          ? "border-emerald-500 bg-emerald-50" 
-                                          : "border-gray-200 hover:border-emerald-300 hover:bg-gray-50"
+                                          ? "border-primary bg-primary/5" 
+                                          : "border-border hover:border-primary/30 hover:bg-secondary"
                                     }`}
                                   >
                                     <Avatar className="w-10 h-10">
@@ -530,11 +530,11 @@ export default function CreateGroup() {
                                     {isAlreadyAdded ? (
                                       <Badge variant="secondary">Added</Badge>
                                     ) : isSelected ? (
-                                      <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
                                         <Check className="w-4 h-4 text-foreground" />
                                       </div>
                                     ) : (
-                                      <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                                      <div className="w-6 h-6 rounded-full border-2 border-border" />
                                     )}
                                   </div>
                                 );
@@ -545,7 +545,7 @@ export default function CreateGroup() {
                               <Button 
                                 type="button"
                                 onClick={handleAddSelectedFriends}
-                                className="w-full bg-emerald-500 hover:bg-emerald-600"
+                                className="w-full bg-primary hover:bg-primary"
                               >
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add {selectedFriends.length} Friend{selectedFriends.length > 1 ? "s" : ""}
@@ -565,7 +565,7 @@ export default function CreateGroup() {
                       <TabsContent value="whatsapp" className="space-y-4">
                         {phoneInviteSuccess ? (
                           <div className="text-center py-12">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
                               <Check className="w-8 h-8 text-primary" />
                             </div>
                             <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
@@ -591,8 +591,8 @@ export default function CreateGroup() {
                               </div>
                             </div>
 
-                            <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
-                              <p className="text-sm text-blue-700 flex items-start gap-2">
+                            <div className="p-4 rounded-xl bg-primary border border-blue-200">
+                              <p className="text-sm text-primary flex items-start gap-2">
                                 <MessageCircle className="w-4 h-4 mt-0.5 shrink-0" />
                                 <span>
                                   Your friend will receive a WhatsApp message with a link to join Cooper and will be added as your friend automatically.
@@ -604,7 +604,7 @@ export default function CreateGroup() {
                               type="button"
                               onClick={handleSendWhatsAppInvite}
                               disabled={phoneLoading || !phoneNumber.trim()}
-                              className="w-full bg-green-500 hover:bg-green-600"
+                              className="w-full bg-primary hover:bg-primary/90"
                             >
                               {phoneLoading ? (
                                 <>
@@ -634,7 +634,7 @@ export default function CreateGroup() {
                     {groupMembers.map((member) => (
                       <div 
                         key={member._id || member.id} 
-                        className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200"
+                        className="flex items-center gap-3 p-3 rounded-xl bg-secondary border border-border"
                       >
                         {member.type === "friend" ? (
                           <>
@@ -648,27 +648,27 @@ export default function CreateGroup() {
                               <p className="font-medium text-sm truncate">{member.username}</p>
                               <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                             </div>
-                            <Badge variant="secondary" className="bg-emerald-100 text-primary">
+                            <Badge variant="secondary" className="bg-primary/10 text-primary">
                               Friend
                             </Badge>
                           </>
                         ) : member.type === "invited" ? (
                           <>
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                               <MessageCircle className="w-4 h-4 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{member.phone}</p>
                               <p className="text-xs text-muted-foreground">WhatsApp invite sent</p>
                             </div>
-                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">
+                            <Badge variant="secondary" className="bg-amber-50 text-amber-700">
                               Pending
                             </Badge>
                           </>
                         ) : (
                           <>
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <UserPlus className="w-4 h-4 text-blue-600" />
+                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                              <UserPlus className="w-4 h-4 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{member.email}</p>
@@ -692,14 +692,14 @@ export default function CreateGroup() {
 
             {/* Error Message */}
             {error && (
-              <div className="p-3 bg-red-100 text-destructive rounded-md text-sm">
+              <div className="p-3 bg-destructive/10 text-destructive rounded-md text-sm">
                 {error}
               </div>
             )}
 
             {/* Success Message */}
             {success && (
-              <div className="p-3 bg-green-100 text-primary rounded-md text-sm">
+              <div className="p-3 bg-primary/10 text-primary rounded-md text-sm">
                 Group created successfully! Redirecting...
               </div>
             )}

@@ -79,7 +79,7 @@ export default function Sidebar({ isOpen, onClose }) {
       </nav>
 
       {/* AI Assistant Card */}
-      <div className="mx-4 mb-4 p-4 rounded-[24px] bg-secondary">
+      <div className="mx-4 mb-4 p-4 rounded-2xl bg-secondary">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary">
             <Zap className="w-4 h-4 text-primary-foreground" />
@@ -89,9 +89,9 @@ export default function Sidebar({ isOpen, onClose }) {
         <p className="text-xs text-muted-foreground mb-3">
           Your smart expense assistant
         </p>
-        <button className="w-full py-2 px-3 text-xs font-semibold rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-          Coming Soon
-        </button>
+        <a href="/ai-insights" className="block w-full py-2 px-3 text-xs font-semibold rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-center">
+          Explore
+        </a>
       </div>
 
       {/* Logout Button */}

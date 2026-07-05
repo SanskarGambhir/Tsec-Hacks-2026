@@ -80,7 +80,7 @@ export default function SplitwiseSync() {
           <Button
             onClick={handleConnect}
             disabled={isSyncing}
-            className="bg-[#5859f2] hover:bg-[#4a4bbd] text-foreground font-semibold h-12 px-6"
+            className="bg-primary hover:bg-primary/90 text-foreground font-semibold h-12 px-6"
           >
             {isSyncing ? (
               <RefreshCw className="w-5 h-5 animate-spin mr-2" />
@@ -181,7 +181,7 @@ export default function SplitwiseSync() {
                           <Users className="w-6 h-6 text-primary" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-200">{group.name}</p>
+                          <p className="font-semibold text-foreground">{group.name}</p>
                           <p className="text-xs text-muted-foreground">{group.members} members</p>
                         </div>
                       </div>
@@ -198,7 +198,7 @@ export default function SplitwiseSync() {
                             Synced
                           </Badge>
                         ) : (
-                          <Button size="sm" className="h-8 bg-emerald-600 hover:bg-emerald-700">
+                          <Button size="sm" className="h-8 bg-primary hover:bg-primary/90">
                             Import
                           </Button>
                         )}
@@ -213,7 +213,7 @@ export default function SplitwiseSync() {
               <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-yellow-400" />
+                    <AlertCircle className="w-5 h-5 text-amber-600" />
                     Pending Settlements
                   </CardTitle>
                 </CardHeader>
@@ -222,7 +222,7 @@ export default function SplitwiseSync() {
                     <span className="text-sm text-muted-foreground">Total Owed</span>
                     <span className="text-lg font-bold text-destructive">₹450</span>
                   </div>
-                  <Button className="w-full bg-red-600 hover:bg-red-700">
+                  <Button className="w-full bg-destructive hover:bg-destructive/90">
                     Settle via Cooper Wallet
                   </Button>
                 </CardContent>
@@ -231,7 +231,7 @@ export default function SplitwiseSync() {
               <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <ArrowRightLeft className="w-5 h-5 text-blue-400" />
+                    <ArrowRightLeft className="w-5 h-5 text-primary" />
                     Auto-Sync
                   </CardTitle>
                 </CardHeader>
@@ -239,7 +239,7 @@ export default function SplitwiseSync() {
                   <p className="text-xs text-muted-foreground">
                     Keep your Splitwise groups and Cooper groups in perfect harmony automatically.
                   </p>
-                  <Button variant="outline" className="w-full border-blue-500/20 text-blue-400 hover:bg-blue-500/10">
+                  <Button variant="outline" className="w-full border-primary/20 text-primary hover:bg-primary/10">
                     Enable Auto-Sync
                   </Button>
                 </CardContent>
@@ -252,7 +252,7 @@ export default function SplitwiseSync() {
             <Card className="border-border">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="w-5 h-5 text-purple-400" />
+                  <User className="w-5 h-5 text-primary" />
                   Splitwise Friends
                 </CardTitle>
               </CardHeader>
@@ -260,11 +260,11 @@ export default function SplitwiseSync() {
                 {mockSplitwiseFriends.map((friend) => (
                   <div key={friend.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary border border-border">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                         {friend.avatar}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-200">{friend.name}</p>
+                        <p className="text-sm font-medium text-foreground">{friend.name}</p>
                         <p className={`text-xs ${friend.balance < 0 ? "text-destructive" : friend.balance > 0 ? "text-primary" : "text-muted-foreground"}`}>
                           {friend.balance === 0 ? "Settled" : `${friend.balance < 0 ? "Owes you" : "You owe"} ₹${Math.abs(friend.balance)}`}
                         </p>

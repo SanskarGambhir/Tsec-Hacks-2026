@@ -150,7 +150,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -158,7 +158,7 @@ export default function ProfilePage() {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto p-4">
-        <div className="bg-destructive/10 border border-red-500 text-destructive px-4 py-3 rounded-lg relative" role="alert">
+        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg relative" role="alert">
           <strong className="font-bold">Error! </strong>
           <span className="block sm:inline">{error}</span>
         </div>
@@ -173,31 +173,28 @@ export default function ProfilePage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <Card className="border-border overflow-hidden relative shadow-2xl">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <Card className="border-border overflow-hidden relative shadow-sm">
+
           
           {/* Cover Image */}
-          <div
-            className="h-40 relative"
-            style={{ background: "linear-gradient(90deg, rgba(74,222,128,0.15), rgba(34,197,94,0.15), rgba(20,184,166,0.15))" }}
-          >
-             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+          <div className="h-40 relative bg-gradient-to-br from-primary via-primary/80 to-primary/60">
+             <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
           </div>
 
           <CardContent className="relative px-8 pb-8">
             {/* Avatar & Info */}
             <div className="flex flex-col md:flex-row md:items-end gap-6 -mt-16">
               <div className="relative mx-auto md:mx-0">
-                <Avatar className="w-32 h-32 border-4 border-[#0a0f0a] shadow-xl">
+                <Avatar className="w-32 h-32 border-4 border-background shadow-xl">
                   <AvatarImage src={userData.avatar} className="object-cover" />
                   <AvatarFallback
                     className="text-primary-foreground text-4xl font-bold"
-                    style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+                    
                   >
                     {userData.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <button className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center hover:bg-emerald-600 transition-colors shadow-lg border-2 border-[#0a0f0a]">
+                <button className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-primary flex items-center justify-center hover:bg-primary transition-colors shadow-lg border-2 border-background">
                   <Camera className="w-4 h-4 text-primary-foreground" />
                 </button>
               </div>
@@ -209,7 +206,7 @@ export default function ProfilePage() {
                    {userData.email}
                    {userData.phone && (
                       <>
-                        <span className="w-1 h-1 rounded-full bg-gray-600" />
+                        <span className="w-1 h-1 rounded-full bg-secondary" />
                         <Phone className="w-3 h-3" />
                         {userData.phone}
                       </>
@@ -338,7 +335,7 @@ export default function ProfilePage() {
                             Cancel
                         </Button>
                         <Button
-                            className="text-primary-foreground bg-emerald-500 hover:bg-emerald-600"
+                            className="text-primary-foreground bg-primary hover:bg-primary"
                         >
                             Save Changes
                         </Button>
@@ -371,7 +368,7 @@ export default function ProfilePage() {
                                             <TrendingDown className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <p className="font-medium text-sm text-gray-200">{withdrawal.group}</p>
+                                            <p className="font-medium text-sm text-foreground">{withdrawal.group}</p>
                                             <p className="text-xs text-muted-foreground">
                                                 {new Date(withdrawal.issuedAt).toLocaleDateString()}
                                             </p>
@@ -430,7 +427,7 @@ export default function ProfilePage() {
                         <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                             <item.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
                         </div>
-                        <span className="flex-1 text-left font-medium text-sm text-gray-200">
+                        <span className="flex-1 text-left font-medium text-sm text-foreground">
                             {item.label}
                         </span>
                         {item.toggle ? (
@@ -449,7 +446,7 @@ export default function ProfilePage() {
                         ) : item.value ? (
                             <span className="text-muted-foreground text-xs">{item.value}</span>
                         ) : (
-                            <ChevronRight className="w-4 h-4 text-gray-600" />
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         )}
                         </motion.button>
                     ))}
@@ -498,7 +495,7 @@ export default function ProfilePage() {
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
                      <span className="font-bold text-primary">C</span>
                 </div>
-                <p className="text-sm font-medium text-gray-300">
+                <p className="text-sm font-medium text-foreground">
                 Cooper App
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">

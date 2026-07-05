@@ -126,9 +126,9 @@ const defaultActivities = [
 const activityIcons = {
   expense: { icon: Receipt, color: "bg-destructive/10 text-destructive" },
   payment: { icon: Check, color: "bg-primary/10 text-primary" },
-  member: { icon: Users, color: "bg-blue-500/20 text-blue-400" },
-  pool: { icon: TrendingUp, color: "bg-purple-500/20 text-purple-400" },
-  message: { icon: Clock, color: "bg-yellow-500/20 text-yellow-400" },
+  member: { icon: Users, color: "bg-primary/20 text-primary" },
+  pool: { icon: TrendingUp, color: "bg-primary/10 text-primary" },
+  message: { icon: Clock, color: "bg-amber-50 text-amber-600" },
   settlement: { icon: Check, color: "bg-primary/10 text-primary" },
 };
 
@@ -268,10 +268,10 @@ export default function ActivityPage() {
 
   // Prepare chart data for activity type distribution
   const typeDistribution = [
-    { name: "Expenses", value: activities.filter((a) => a.type === "expense").length, fill: "#ef4444" },
-    { name: "Payments", value: activities.filter((a) => a.type === "payment").length, fill: "#10b981" },
-    { name: "Messages", value: activities.filter((a) => a.type === "message").length, fill: "#f59e0b" },
-    { name: "Settlement", value: activities.filter((a) => a.type === "settlement").length, fill: "#8b5cf6" },
+    { name: "Expenses", value: activities.filter((a) => a.type === "expense").length, fill: "#cf202f" },
+    { name: "Payments", value: activities.filter((a) => a.type === "payment").length, fill: "#05b169" },
+    { name: "Messages", value: activities.filter((a) => a.type === "message").length, fill: "#f4b000" },
+    { name: "Settlement", value: activities.filter((a) => a.type === "settlement").length, fill: "#0052ff" },
   ].filter((item) => item.value > 0);
 
   // Prepare chart data for activity by type (bar chart)
@@ -289,7 +289,7 @@ export default function ActivityPage() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl bg-destructive/10 border border-red-500/30 text-destructive"
+          className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive"
         >
           {error}
         </motion.div>
@@ -338,8 +338,8 @@ export default function ActivityPage() {
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                <ActivityIcon className="w-5 h-5 text-blue-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <ActivityIcon className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Activities</p>
@@ -380,8 +380,8 @@ export default function ActivityPage() {
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-purple-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pool Updates</p>
@@ -404,7 +404,7 @@ export default function ActivityPage() {
           <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-400" />
+                <TrendingUp className="w-5 h-5 text-primary" />
                 Activity Trend
               </CardTitle>
             </CardHeader>
@@ -412,16 +412,16 @@ export default function ActivityPage() {
               {trendChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={trendChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="date" stroke="#9ca3af" />
-                    <YAxis stroke="#9ca3af" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" />
+                    <XAxis dataKey="date" stroke="#7c828a" />
+                    <YAxis stroke="#7c828a" />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: "#1f2937", 
-                        border: "1px solid #374151",
-                        borderRadius: "8px"
+                        backgroundColor: "#ffffff", 
+                        border: "1px solid #dee1e6",
+                        borderRadius: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
                       }}
-                      labelStyle={{ color: "#fff" }}
+                      labelStyle={{ color: "#0a0b0d" }}
                     />
                     <Line
                       type="monotone"
@@ -469,10 +469,10 @@ export default function ActivityPage() {
                     </Pie>
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: "#1f2937", 
-                        border: "1px solid #374151",
-                        borderRadius: "8px",
-                        color: "#fff"
+                        backgroundColor: "#ffffff", 
+                        border: "1px solid #dee1e6",
+                        borderRadius: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        color: "#0a0b0d"
                       }}
                     />
                   </PieChart>
@@ -489,7 +489,7 @@ export default function ActivityPage() {
           <Card className="border-border lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-purple-400" />
+                <Users className="w-5 h-5 text-primary" />
                 Activities by Type
               </CardTitle>
             </CardHeader>
@@ -497,18 +497,18 @@ export default function ActivityPage() {
               {activityByType.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={activityByType}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="type" stroke="#9ca3af" />
-                    <YAxis stroke="#9ca3af" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" />
+                    <XAxis dataKey="type" stroke="#7c828a" />
+                    <YAxis stroke="#7c828a" />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: "#1f2937", 
-                        border: "1px solid #374151",
-                        borderRadius: "8px"
+                        backgroundColor: "#ffffff", 
+                        border: "1px solid #dee1e6",
+                        borderRadius: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
                       }}
-                      labelStyle={{ color: "#fff" }}
+                      labelStyle={{ color: "#0a0b0d" }}
                     />
-                    <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="count" fill="#0052ff" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -585,7 +585,7 @@ export default function ActivityPage() {
                         />
                         <AvatarFallback 
                           className="text-primary-foreground text-sm"
-                          style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+                          
                         >
                           {activity.user.avatar}
                         </AvatarFallback>
@@ -593,7 +593,7 @@ export default function ActivityPage() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold text-white truncate">{activity.title}</p>
+                          <p className="font-semibold text-foreground truncate">{activity.title}</p>
                           <Badge
                             variant="secondary"
                             className="bg-secondary text-muted-foreground border-0 text-xs hidden sm:inline-flex"

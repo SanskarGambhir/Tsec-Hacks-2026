@@ -93,7 +93,7 @@ export default function AIInsights() {
       >
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-yellow-400" />
+            <Sparkles className="w-8 h-8 text-amber-600" />
             AI Insights & Analysis
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -107,7 +107,7 @@ export default function AIInsights() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl bg-destructive/10 border border-red-500/30 text-destructive"
+          className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive"
         >
           {error}
         </motion.div>
@@ -121,7 +121,7 @@ export default function AIInsights() {
           className="text-center py-20"
         >
           <div className="w-20 h-20 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-4">
-            <Sparkles className="w-10 h-10 text-yellow-400 animate-pulse" />
+            <Sparkles className="w-10 h-10 text-amber-600 animate-pulse" />
           </div>
           <h3 className="text-xl font-semibold mb-2">Analyzing your data</h3>
           <p className="text-muted-foreground">AI is processing your spending patterns...</p>
@@ -138,8 +138,8 @@ export default function AIInsights() {
             className="space-y-6"
           >
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-blue-400" />
+              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Expense Insights</h2>
@@ -152,12 +152,12 @@ export default function AIInsights() {
               <Card className="border-border lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-blue-400" />
+                    <Brain className="w-5 h-5 text-primary" />
                     Key Insights
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-gray-300 leading-relaxed text-base">
+                  <div className="prose prose max-w-none whitespace-pre-wrap text-foreground leading-relaxed text-base">
                     {insights?.insights || "No insights available"}
                   </div>
                 </CardContent>
@@ -188,10 +188,10 @@ export default function AIInsights() {
                         </Pie>
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#1f2937",
-                            border: "1px solid #374151",
-                            borderRadius: "8px",
-                            color: "#fff",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #dee1e6",
+                            borderRadius: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            color: "#0a0b0d",
                           }}
                         />
                       </PieChart>
@@ -251,8 +251,8 @@ export default function AIInsights() {
             className="space-y-6"
           >
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                <Brain className="w-6 h-6 text-purple-400" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Brain className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Behavioral Analysis</h2>
@@ -267,12 +267,12 @@ export default function AIInsights() {
               <Card className="border-border lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-purple-400" />
+                    <AlertCircle className="w-5 h-5 text-primary" />
                     Behavioral Insights
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-gray-300 leading-relaxed text-base">
+                  <div className="prose prose max-w-none whitespace-pre-wrap text-foreground leading-relaxed text-base">
                     {behavioral?.analysis || "No analysis available"}
                   </div>
                 </CardContent>
@@ -287,16 +287,16 @@ export default function AIInsights() {
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={behavioral.categoryBreakdown}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="name" stroke="#9ca3af" />
-                        <YAxis stroke="#9ca3af" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" />
+                        <XAxis dataKey="name" stroke="#7c828a" />
+                        <YAxis stroke="#7c828a" />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#1f2937",
-                            border: "1px solid #374151",
-                            borderRadius: "8px",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #dee1e6",
+                            borderRadius: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                           }}
-                          labelStyle={{ color: "#fff" }}
+                          labelStyle={{ color: "#0a0b0d" }}
                         />
                         <Bar dataKey="amount" fill="#a78bfa" radius={[8, 8, 0, 0]} />
                       </BarChart>
@@ -321,8 +321,8 @@ export default function AIInsights() {
                           transition={{ delay: idx * 0.05 }}
                           className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border"
                         >
-                          <span className="text-sm text-gray-300 font-medium">{pattern.description}</span>
-                          <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                          <span className="text-sm text-foreground font-medium">{pattern.description}</span>
+                          <Badge variant="secondary" className="bg-primary/10 text-purple-300 border-purple-500/30">
                             {pattern.frequency}x
                           </Badge>
                         </motion.div>
@@ -361,7 +361,7 @@ export default function AIInsights() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-gray-300 leading-relaxed text-base">
+                  <div className="prose prose max-w-none whitespace-pre-wrap text-foreground leading-relaxed text-base">
                     {coach?.advice || "No recommendations available"}
                   </div>
                 </CardContent>
@@ -376,16 +376,16 @@ export default function AIInsights() {
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={coach.recommendations}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="category" stroke="#9ca3af" />
-                        <YAxis stroke="#9ca3af" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" />
+                        <XAxis dataKey="category" stroke="#7c828a" />
+                        <YAxis stroke="#7c828a" />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#1f2937",
-                            border: "1px solid #374151",
-                            borderRadius: "8px",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #dee1e6",
+                            borderRadius: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                           }}
-                          labelStyle={{ color: "#fff" }}
+                          labelStyle={{ color: "#0a0b0d" }}
                         />
                         <Bar dataKey="amount" fill="#22c55e" radius={[8, 8, 0, 0]} />
                       </BarChart>
@@ -399,7 +399,7 @@ export default function AIInsights() {
                 <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <TrendingDown className="w-5 h-5 text-yellow-400" />
+                      <TrendingDown className="w-5 h-5 text-amber-600" />
                       Potential Savings
                     </CardTitle>
                   </CardHeader>
@@ -447,7 +447,7 @@ export default function AIInsights() {
                 <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-blue-400" />
+                      <DollarSign className="w-5 h-5 text-primary" />
                       Your Summary
                     </CardTitle>
                   </CardHeader>
@@ -465,9 +465,9 @@ export default function AIInsights() {
                           ${coach.potentialMonthlySavings.toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-colors">
-                        <span className="text-blue-400 font-medium">New Target Spend</span>
-                        <span className="font-bold text-xl text-blue-400">
+                      <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors">
+                        <span className="text-primary font-medium">New Target Spend</span>
+                        <span className="font-bold text-xl text-primary">
                           ₹{(coach.totalCurrentSpend - coach.potentialMonthlySavings).toFixed(2)}
                         </span>
                       </div>

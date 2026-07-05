@@ -272,7 +272,7 @@ export default function CreateSharedExpense() {
               onClick={handleCreateSplit}
               disabled={loading}
               className="w-full h-14 text-primary-foreground font-bold text-xl rounded-2xl"
-              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+              
             >
               {loading ? "Creating..." : "Create & Generate Link"}
             </Button>
@@ -299,7 +299,7 @@ export default function CreateSharedExpense() {
                   readOnly 
                   className="bg-transparent border-none focus-visible:ring-0 font-mono text-sm h-10"
                 />
-                <Button onClick={copyToClipboard} className="shrink-0 bg-emerald-600 hover:bg-emerald-500 px-6">
+                <Button onClick={copyToClipboard} className="shrink-0 bg-primary hover:bg-primary px-6">
                   {copied ? <CheckCircle2 className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
                   {copied ? 'Copied' : 'Copy'}
                 </Button>
@@ -314,7 +314,7 @@ export default function CreateSharedExpense() {
                   Create Another
                 </Button>
                 <Button 
-                  className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-500 text-lg font-semibold"
+                  className="flex-1 h-12 bg-primary hover:bg-primary text-lg font-semibold"
                   onClick={() => window.open(shareLink, '_blank')}
                 >
                   Preview Page

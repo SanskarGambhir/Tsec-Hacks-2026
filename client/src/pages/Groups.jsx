@@ -72,7 +72,7 @@ export default function Groups() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -88,8 +88,7 @@ export default function Groups() {
         <p className="text-muted-foreground mb-6">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-primary-foreground font-semibold hover:opacity-90 transition-opacity"
-          style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
         >
           <span>Retry</span>
         </button>
@@ -108,8 +107,7 @@ export default function Groups() {
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Link
             to="/groups/create"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-primary-foreground font-semibold hover:opacity-90 transition-opacity"
-            style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Create Group</span>
@@ -189,7 +187,7 @@ export default function Groups() {
           >
             {filteredGroups.map((group) => (
               <motion.div key={group.id} variants={item}>
-                <Link to={`/group/${group.id}`}>
+                <Link to={`/groups/${group.id}`}>
                   <Card
                     className={` border-border hover:border-primary/20 transition-all cursor-pointer group ${viewMode === "list" ? "flex items-center" : ""
                       }`}
@@ -203,12 +201,12 @@ export default function Groups() {
                       {/* Avatar */}
                       <div className={viewMode === "list" ? "" : "mb-4"}>
                         <div
-                          className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl relative"
-                          style={{ background: `linear-gradient(135deg, ${group.color})` }}
+                          className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl relative bg-primary/10"
+                          
                         >
                           {group.avatar}
                           {group.isPinned && (
-                            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center">
+                            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
                               <Star className="w-3 h-3 text-primary-foreground" fill="currentColor" />
                             </div>
                           )}
@@ -309,16 +307,14 @@ export default function Groups() {
               </p>
               <Link
                 to="/join-group"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-primary-foreground font-semibold hover:opacity-90 transition-opacity mr-4"
-                style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors mr-4"
               >
                 <Plus className="w-5 h-5" />
                 <span>Join Group</span>
               </Link>
               <Link
                 to="/groups/create"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-primary-foreground font-semibold hover:opacity-90 transition-opacity"
-                style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
               >
                 <Plus className="w-5 h-5" />
                 <span>Create Group</span>

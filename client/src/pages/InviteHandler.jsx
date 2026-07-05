@@ -22,9 +22,7 @@ export default function InviteHandler() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
-      style={{
-        background: "linear-gradient(180deg, rgba(10, 15, 10, 0.98) 0%, rgba(16, 24, 16, 0.95) 100%)",
-      }}
+      
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -32,7 +30,7 @@ export default function InviteHandler() {
         className="text-center space-y-6 max-w-md"
       >
         <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center"
-          style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+          
         >
           <UserPlus className="w-10 h-10 text-primary-foreground" />
         </div>

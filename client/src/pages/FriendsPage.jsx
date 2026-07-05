@@ -181,7 +181,7 @@ function FriendsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="border-red-500/30 text-destructive hover:bg-destructive/10"
+            className="border-destructive/20 text-destructive hover:bg-destructive/10"
             onClick={() => handleRemoveFriend(user._id)}
           >
             Remove
@@ -193,7 +193,7 @@ function FriendsPage() {
             variant="outline"
             size="sm"
             disabled
-            className="border-yellow-500/30 text-yellow-400"
+            className="border-amber-200 text-amber-600"
           >
             <Clock className="w-4 h-4 mr-1" />
             Pending
@@ -205,7 +205,7 @@ function FriendsPage() {
             <Button
               size="sm"
               className="text-primary-foreground font-semibold"
-              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+              
               onClick={() => handleAcceptRequest(user.friendshipId)}
             >
               Accept
@@ -217,7 +217,7 @@ function FriendsPage() {
           <Button
             size="sm"
             className="text-primary-foreground font-semibold"
-            style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+            
             onClick={() => handleSendRequest(user._id)}
           >
             <UserPlus className="w-4 h-4 mr-1" />
@@ -249,7 +249,7 @@ function FriendsPage() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-6 py-3 rounded-xl text-primary-foreground font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+              
             >
               <UserPlus className="w-5 h-5" />
               <span className="hidden sm:inline">Add Friend</span>
@@ -306,10 +306,7 @@ function FriendsPage() {
                             <AvatarImage src={user.avatar?.url} />
                             <AvatarFallback
                               className="text-foreground"
-                              style={{
-                                background:
-                                  "linear-gradient(135deg, #4ade80, #22c55e)",
-                              }}
+                              
                             >
                               {user.username?.[0]?.toUpperCase() || "U"}
                             </AvatarFallback>
@@ -374,8 +371,8 @@ function FriendsPage() {
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                      <p className="text-sm text-blue-400 flex items-start gap-2">
+                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                      <p className="text-sm text-primary flex items-start gap-2">
                         <Mail className="w-4 h-4 mt-0.5 shrink-0" />
                         <span>
                           Your friend will receive an SMS with a link to join Cooper and automatically be added to your friend list.
@@ -387,9 +384,7 @@ function FriendsPage() {
                       onClick={handleSendPhoneInvite}
                       disabled={phoneLoading || !phoneNumber.trim()}
                       className="w-full text-primary-foreground font-semibold"
-                      style={{
-                        background: "linear-gradient(90deg, #4ade80, #22c55e)",
-                      }}
+                      
                     >
                       {phoneLoading ? (
                         <>
@@ -443,9 +438,7 @@ function FriendsPage() {
                       <AvatarImage src={friend.avatar?.url} />
                       <AvatarFallback
                         className="text-foreground"
-                        style={{
-                          background: "linear-gradient(135deg, #a855f7, #ec4899)",
-                        }}
+                        
                       >
                         {friend.username?.[0]?.toUpperCase() || "F"}
                       </AvatarFallback>
@@ -459,7 +452,7 @@ function FriendsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-red-500/30 text-destructive hover:bg-destructive/10"
+                      className="border-destructive/20 text-destructive hover:bg-destructive/10"
                       onClick={() => handleRemoveFriend(friend._id)}
                     >
                       Remove
@@ -501,9 +494,7 @@ function FriendsPage() {
                       <AvatarImage src={request.requester?.avatar?.url} />
                       <AvatarFallback
                         className="text-foreground"
-                        style={{
-                          background: "linear-gradient(135deg, #3b82f6, #06b6d4)",
-                        }}
+                        
                       >
                         {request.requester?.username?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
@@ -568,9 +559,7 @@ function FriendsPage() {
                       <AvatarImage src={request.recipient?.avatar?.url} />
                       <AvatarFallback
                         className="text-foreground"
-                        style={{
-                          background: "linear-gradient(135deg, #f97316, #ef4444)",
-                        }}
+                        
                       >
                         {request.recipient?.username?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
@@ -583,7 +572,7 @@ function FriendsPage() {
                         {request.recipient?.email}
                       </p>
                     </div>
-                    <span className="px-3 py-1 text-xs font-medium rounded-lg bg-yellow-500/20 text-yellow-400">
+                    <span className="px-3 py-1 text-xs font-medium rounded-lg bg-amber-50 text-amber-600">
                       Pending
                     </span>
                   </motion.div>

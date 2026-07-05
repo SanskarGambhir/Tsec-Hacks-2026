@@ -11,6 +11,11 @@ const pageTitles = {
   "/wallet": "Wallet",
   "/activity": "Activity",
   "/profile": "Profile",
+  "/friends": "Friends",
+  "/ai-insights": "AI Insights",
+  "/splitwise": "Splitwise Sync",
+  "/split-bills": "Split Bills",
+  "/join-group": "Join Group",
 };
 
 export default function MainLayout() {

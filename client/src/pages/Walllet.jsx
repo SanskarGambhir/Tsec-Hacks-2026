@@ -103,7 +103,7 @@ function WalletPage() {
           }
         },
         theme: {
-          color: "#22c55e",
+          color: "#0052ff",
         },
       };
 
@@ -125,7 +125,7 @@ function WalletPage() {
       case "SUCCESS":
         return <Badge className="bg-primary/10 text-primary border-primary/20">Completed</Badge>;
       case "PENDING":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/20">Pending</Badge>;
+        return <Badge className="bg-amber-50 text-amber-600 border-amber-200">Pending</Badge>;
       case "FAILED":
         return <Badge variant="destructive">Failed</Badge>;
       default:
@@ -159,13 +159,13 @@ function WalletPage() {
             transition={{ delay: 0.1 }}
           >
             <Card className="border-border overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
               <CardContent className="p-8 relative">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Current Balance</p>
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-semibold text-primary">₹</span>
-                    <span className="text-5xl font-bold tracking-tighter">
+                    <span className="text-5xl font-bold tracking-tighter font-mono">
                       {balance !== null ? balance.toLocaleString() : "..."}
                     </span>
                   </div>
@@ -201,8 +201,7 @@ function WalletPage() {
               <Button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="w-full h-12 text-primary-foreground font-semibold text-lg"
-                style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+                className="w-full h-12 font-semibold text-lg"
               >
                 {loading ? (
                   <RefreshCw className="w-5 h-5 animate-spin mr-2" />
@@ -221,7 +220,7 @@ function WalletPage() {
                     className={`p-3 rounded-xl text-sm flex items-center gap-2 ${
                       message.includes("success") || message.includes("confirmed")
                         ? "bg-primary/10 text-primary border border-primary/20"
-                        : "bg-secondary text-gray-300 border border-border"
+                        : "bg-secondary text-foreground border border-border"
                     }`}
                   >
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -274,7 +273,7 @@ function WalletPage() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="font-semibold text-gray-200">
+                        <p className="font-semibold text-foreground">
                           {tx.type === "DEPOSIT" ? "Wallet Deposit" : tx.type}
                         </p>
                         <p className="font-bold text-lg">
@@ -295,7 +294,7 @@ function WalletPage() {
                           size="sm"
                           onClick={() => verifyTransaction(tx.intentId)}
                           disabled={loading}
-                          className="w-full mt-3 bg-blue-600 hover:bg-blue-500 text-xs h-8"
+                          className="w-full mt-3 bg-primary hover:bg-primary text-xs h-8"
                         >
                           Confirm Delivery
                         </Button>

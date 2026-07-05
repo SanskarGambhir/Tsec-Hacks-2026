@@ -211,8 +211,7 @@ export default function Dashboard() {
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Link
             to="/groups/create"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-primary-foreground font-semibold hover:opacity-90 transition-opacity"
-            style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>New Group</span>
@@ -247,7 +246,7 @@ export default function Dashboard() {
                     {stat.change}
                   </span>
                 </div>
-                <div className="text-2xl lg:text-3xl font-bold">{stat.value}</div>
+                <div className="text-2xl lg:text-3xl font-bold font-mono">{stat.value}</div>
                 <div className="text-xs lg:text-sm text-muted-foreground mt-1">{stat.title}</div>
               </CardContent>
             </Card>
@@ -255,30 +254,7 @@ export default function Dashboard() {
         ))}
       </motion.div>
 
-      {/* Splitwise Teaser */}
-      {/* <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Link to="/splitwise">
-          <Card className="border-primary/20 bg-primary/10 hover:bg-primary/10 transition-all group overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-all" />
-            <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Share2 className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">Sync with Splitwise</h3>
-                  <p className="text-sm text-muted-foreground">Import your existing groups and settle balances instantly</p>
-                </div>
-              </div>
-              <ChevronRight className="w-6 h-6 text-primary group-hover:translate-x-1 transition-transform" />
-            </CardContent>
-          </Card>
-        </Link>
-      </motion.div> */}
+
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
@@ -328,8 +304,7 @@ export default function Dashboard() {
                       className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-secondary hover:bg-secondary border border-transparent hover:border-primary/20 transition-all"
                     >
                       <div
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0"
-                        style={{ background: `linear-gradient(135deg, ${group.color.includes('blue') ? '#3b82f6, #06b6d4' : group.color.includes('purple') ? '#a855f7, #ec4899' : '#f97316, #ef4444'})` }}
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0 bg-primary/10"
                       >
                         {group.avatar}
                       </div>
@@ -419,43 +394,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Monthly Overview */}
-      {/* <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Monthly Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid sm:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Income</span>
-                  <span className="font-medium text-primary">$4,500</span>
-                </div>
-                <Progress value={75} className="h-2 bg-secondary" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Expenses</span>
-                  <span className="font-medium text-destructive">$2,340</span>
-                </div>
-                <Progress value={52} className="h-2 bg-secondary" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Savings</span>
-                  <span className="font-medium text-blue-400">$2,160</span>
-                </div>
-                <Progress value={48} className="h-2 bg-secondary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div> */}
+
     </div>
   );
 }

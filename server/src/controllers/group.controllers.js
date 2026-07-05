@@ -1359,6 +1359,34 @@ const completeGroupDeposit = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Failed to verify payment signature");
   }
 });
+
+const cancelGroupDeposit = asyncHandler(async (req, res) => {
+  const { groupId, intentId } = req.params;
+  const userId = req.user._id;
+
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (!groupWallet) {
+    throw new ApiError(404, "Group wallet not found");
+  }
+
+  const tx = await Transaction.findOne({
+    user: userId,
+    wallet: groupWallet._id,
+    intentId,
+    status: "PENDING",
+  });
+
+  if (!tx) {
+    throw new ApiError(404, "Pending transaction not found");
+  }
+
+  tx.status = "FAILED";
+  tx.paymentStatus = "CANCELLED";
+  await tx.save();
+
+  return res.status(200).json(new ApiResponse(200, {}, "Deposit cancelled successfully"));
+});
+
 const groupPaymentIntent = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { amount } = req.body;
@@ -1535,6 +1563,7 @@ export {
   getGroupTransactions,
   checkGroupPayments,
   completeGroupDeposit,
+  cancelGroupDeposit,
   groupPaymentIntent,
   leaveGroup,
   getGroupPendingInvites,

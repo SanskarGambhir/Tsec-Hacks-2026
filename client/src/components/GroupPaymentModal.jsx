@@ -249,7 +249,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <Card className="w-full max-w-2xl bg-gray-900 border-gray-700 my-8 max-h-[90vh] flex flex-col">
+      <Card className="w-full max-w-2xl bg-secondary border-border my-8 max-h-[90vh] flex flex-col">
         <CardHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
@@ -286,7 +286,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
               </div>
               <Button
                 onClick={() => setShowBillScanner(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 whitespace-nowrap"
+                className="bg-primary hover:bg-primary/90 whitespace-nowrap"
               >
                 <Scan className="w-4 h-4 mr-2" />
                 Scan Bill
@@ -296,10 +296,10 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-700" />
+              <span className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gray-900 px-2 text-muted-foreground">Or enter manually</span>
+              <span className="bg-secondary px-2 text-muted-foreground">Or enter manually</span>
             </div>
           </div>
 
@@ -336,7 +336,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                 <Button
                   type="button"
                   variant={divisionMethod === "even" ? "default" : "outline"}
-                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === "even" ? "bg-emerald-600 hover:bg-emerald-700" : "border-gray-600"}`}
+                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === "even" ? "bg-primary hover:bg-primary/90" : "border-border"}`}
                   onClick={() => setDivisionMethod("even")}
                 >
                   <span className="text-xs">Even Split</span>
@@ -344,7 +344,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                 <Button
                   type="button"
                   variant={divisionMethod === "exclude" ? "default" : "outline"}
-                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === "exclude" ? "bg-emerald-600 hover:bg-emerald-700" : "border-gray-600"}`}
+                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === "exclude" ? "bg-primary hover:bg-primary/90" : "border-border"}`}
                   onClick={() => setDivisionMethod("exclude")}
                 >
                   <span className="text-xs">Exclude Some</span>
@@ -352,7 +352,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                 <Button
                   type="button"
                   variant={divisionMethod === "custom" ? "default" : "outline"}
-                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === "custom" ? "bg-emerald-600 hover:bg-emerald-700" : "border-gray-600"}`}
+                  className={`flex flex-col items-center p-3 sm:p-4 ${divisionMethod === "custom" ? "bg-primary hover:bg-primary/90" : "border-border"}`}
                   onClick={() => setDivisionMethod("custom")}
                 >
                   <span className="text-xs">Custom Amounts</span>
@@ -369,8 +369,8 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                     <div
                       key={member._id}
                       className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${excludedMembers.includes(member._id)
-                        ? 'bg-destructive/10 border border-red-500/30'
-                        : 'bg-gray-800/50 hover:bg-gray-800'
+                        ? 'bg-destructive/10 border border-destructive/20'
+                        : 'bg-secondary hover:bg-secondary'
                         }`}
                       onClick={() => toggleExcludeMember(member._id)}
                     >
@@ -389,7 +389,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                             <X className="w-3 h-3 text-foreground" />
                           </div>
                         ) : (
-                          <div className="w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full border-2 border-border flex items-center justify-center">
                             <div className="w-2 h-2 rounded-full bg-transparent"></div>
                           </div>
                         )}
@@ -398,8 +398,8 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                   ))}
                 </div>
                 {divisionMethod === "even" && (
-                  <div className="p-3 bg-gray-800/50 rounded-lg mt-2">
-                    <p className="text-sm text-gray-300">
+                  <div className="p-3 bg-secondary rounded-lg mt-2">
+                    <p className="text-sm text-foreground">
                       Each included member pays: ₹{evenSplitAmount.toFixed(2)}
                     </p>
                   </div>
@@ -413,7 +413,7 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                 <Label>Set custom amounts for each member</Label>
                 <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
                   {group?.members?.map((member) => (
-                    <div key={member._id} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg">
+                    <div key={member._id} className="flex items-center gap-3 p-3 bg-secondary rounded-lg">
                       <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
                         <User className="w-5 h-5 text-primary" />
                       </div>
@@ -452,14 +452,14 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="flex-1 border-gray-600"
+                className="flex-1 border-border"
                 disabled={loading}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                className="flex-1 bg-primary hover:bg-primary/90"
                 disabled={loading}
               >
                 {loading ? "Processing..." : "Process Payment"}

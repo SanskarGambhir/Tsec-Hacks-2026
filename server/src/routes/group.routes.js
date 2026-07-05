@@ -18,6 +18,7 @@ import {
   getGroupTransactions,
   checkGroupPayments,
   completeGroupDeposit,
+  cancelGroupDeposit,
   groupPaymentIntent,
   leaveGroup,
   getGroupPendingInvites,

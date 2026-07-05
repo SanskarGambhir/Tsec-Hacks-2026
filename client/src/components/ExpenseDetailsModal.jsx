@@ -9,11 +9,11 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
   if (!expense) return null;
 
   const categoryColors = {
-    Accommodation: "bg-blue-500/20 text-blue-400",
+    Accommodation: "bg-primary/20 text-primary",
     Food: "bg-orange-500/20 text-orange-400",
     Activities: "bg-purple-500/20 text-purple-400",
     Transport: "bg-primary/10 text-primary",
-    General: "bg-gray-500/20 text-muted-foreground",
+    General: "bg-secondary text-muted-foreground",
   };
 
   // Get the user who paid for this expense
@@ -75,7 +75,7 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
                   )}
                   <Badge
                     variant="outline"
-                    className="border-border text-gray-300"
+                    className="border-border text-foreground"
                   >
                     {expense.divisionMethod === "even"
                       ? "Split Evenly"
@@ -98,7 +98,7 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
             {/* Date and Paid By */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
-                <Calendar className="w-5 h-5 text-blue-400" />
+                <Calendar className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-xs text-muted-foreground">Date</p>
                   <p className="font-medium">

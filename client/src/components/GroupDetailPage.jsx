@@ -81,11 +81,11 @@ import {
 } from "../api/groups";
 
 const categoryColors = {
-  Accommodation: "bg-blue-500/20 text-blue-400",
+  Accommodation: "bg-primary/20 text-primary",
   Food: "bg-orange-500/20 text-orange-400",
-  Activities: "bg-purple-500/20 text-purple-400",
+  Activities: "bg-primary/10 text-primary",
   Transport: "bg-primary/10 text-primary",
-  General: "bg-gray-500/20 text-muted-foreground",
+  General: "bg-secondary text-muted-foreground",
 };
 
 const GroupDetailPage = () => {
@@ -451,7 +451,7 @@ const GroupDetailPage = () => {
         );
       case "PENDING":
         return (
-          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/20">
+          <Badge className="bg-amber-50 text-amber-600 border-amber-200">
             Pending
           </Badge>
         );
@@ -823,7 +823,7 @@ const GroupDetailPage = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -897,7 +897,7 @@ const GroupDetailPage = () => {
                   <DialogTitle>Leave Group</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <p className="text-gray-300">
+                  <p className="text-foreground">
                     Are you sure you want to leave{" "}
                     <span className="font-semibold text-foreground">
                       {group.name}
@@ -919,7 +919,7 @@ const GroupDetailPage = () => {
                     <Button
                       onClick={handleLeaveGroup}
                       disabled={leavingGroup}
-                      className="bg-red-600 hover:bg-red-700 text-foreground"
+                      className="bg-destructive hover:bg-destructive/90 text-foreground"
                     >
                       {leavingGroup ? (
                         <>
@@ -942,7 +942,7 @@ const GroupDetailPage = () => {
             <Button
               size="sm"
               className="text-primary-foreground"
-              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+              
               onClick={() => setShowExpenseModal(true)}
             >
               <Plus className="w-4 h-4 mr-1" />
@@ -953,7 +953,7 @@ const GroupDetailPage = () => {
             <Button
               size="sm"
               className="text-primary-foreground"
-              style={{ background: "linear-gradient(90deg, #60a5fa, #3b82f6)" }}
+              
               onClick={() => setShowGroupPaymentModal(true)}
             >
               <Wallet className="w-4 h-4 mr-1" />
@@ -989,8 +989,8 @@ const GroupDetailPage = () => {
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                <Receipt className="w-5 h-5 text-blue-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Receipt className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Expenses</p>
@@ -1006,8 +1006,8 @@ const GroupDetailPage = () => {
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                <Users className="w-5 h-5 text-purple-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Members</p>
@@ -1023,12 +1023,12 @@ const GroupDetailPage = () => {
           <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-yellow-400" />
+                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-amber-600" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Pending Funds</p>
-                  <p className="text-xl font-bold text-yellow-400">
+                  <p className="text-xl font-bold text-amber-600">
                     ₹{group.pendingFunds?.toFixed(2) || "0.00"}
                   </p>
                   {group.unlockDate && (
@@ -1186,7 +1186,7 @@ const GroupDetailPage = () => {
                         case "GROUP_PAYMENT":
                           return "bg-orange-500/10";
                         default:
-                          return "bg-gray-500/10";
+                          return "bg-secondary";
                       }
                     };
 
@@ -1224,7 +1224,7 @@ const GroupDetailPage = () => {
                           <div className="flex-1 min-w-0 w-full">
                             <div className="flex items-start justify-between mb-1 gap-2">
                               <div className="min-w-0">
-                                <p className="font-bold text-sm md:text-base text-gray-200 truncate">
+                                <p className="font-bold text-sm md:text-base text-foreground truncate">
                                   {getTransactionLabel()}
                                 </p>
                                 {tx.description && (
@@ -1276,7 +1276,7 @@ const GroupDetailPage = () => {
                                     confirmTransaction(tx.intentId)
                                   }
                                   disabled={addingFunds}
-                                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-[10px] md:text-xs h-8 rounded-lg"
+                                  className="flex-1 bg-primary hover:bg-primary text-[10px] md:text-xs h-8 rounded-lg"
                                 >
                                   <CheckCircle2 className="w-3 h-3 mr-1" />
                                   Confirm
@@ -1362,7 +1362,7 @@ const GroupDetailPage = () => {
                             {message.sender?.username || message.sender?.email}
                           </p>
                         )}
-                        <p className="text-sm text-gray-200">
+                        <p className="text-sm text-foreground">
                           {message.content}
                         </p>
                       </div>
@@ -1388,7 +1388,7 @@ const GroupDetailPage = () => {
               />
               <Button
                 onClick={handleSendMessage}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-primary hover:bg-primary/90"
               >
                 <Send className="w-4 h-4" />
               </Button>
@@ -1449,9 +1449,7 @@ const GroupDetailPage = () => {
                   <Button
                     size="sm"
                     className="text-primary-foreground"
-                    style={{
-                      background: "linear-gradient(90deg, #4ade80, #22c55e)",
-                    }}
+                    
                   >
                     <UserPlus className="w-4 h-4 mr-1" />
                     Add Member
@@ -1563,10 +1561,7 @@ const GroupDetailPage = () => {
                             selectedFriends.length === 0 || friendsLoading
                           }
                           className="text-primary-foreground"
-                          style={{
-                            background:
-                              "linear-gradient(90deg, #4ade80, #22c55e)",
-                          }}
+                          
                         >
                           {friendsLoading ? (
                             <>
@@ -1609,7 +1604,7 @@ const GroupDetailPage = () => {
                       ) : (
                         <>
                           <div className="space-y-3">
-                            <Label className="text-sm text-gray-300">
+                            <Label className="text-sm text-foreground">
                               Enter Phone Number
                             </Label>
                             <div className="relative">
@@ -1644,10 +1639,7 @@ const GroupDetailPage = () => {
                               onClick={handleSendWhatsAppInvite}
                               disabled={phoneLoading || !phoneNumber.trim()}
                               className="text-primary-foreground"
-                              style={{
-                                background:
-                                  "linear-gradient(90deg, #4ade80, #22c55e)",
-                              }}
+                              
                             >
                               {phoneLoading ? (
                                 <>
@@ -1698,10 +1690,7 @@ const GroupDetailPage = () => {
                       />
                       <AvatarFallback
                         className="text-primary-foreground font-bold"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #4ade80, #22c55e)",
-                        }}
+                        
                       >
                         {getAvatarLetter(member.username || member.email)}
                       </AvatarFallback>
@@ -1712,7 +1701,7 @@ const GroupDetailPage = () => {
                           {member.username || member.email}
                         </p>
                         {member._id === group.owner?._id && (
-                          <Crown className="w-4 h-4 text-yellow-500" />
+                          <Crown className="w-4 h-4 text-amber-600" />
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">{member.email}</p>
@@ -1763,7 +1752,7 @@ const GroupDetailPage = () => {
           <Card className="border-border mt-6">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Mail className="w-5 h-5 text-blue-400" />
+                <Mail className="w-5 h-5 text-primary" />
                 Pending Invites
               </CardTitle>
               <Button
@@ -1796,11 +1785,11 @@ const GroupDetailPage = () => {
                     transition={{ delay: index * 0.05 }}
                     className="flex items-center gap-4 p-4 rounded-xl bg-secondary border border-border"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                       {invite.inviteType === "phone" ? (
-                        <Phone className="w-5 h-5 text-blue-400" />
+                        <Phone className="w-5 h-5 text-primary" />
                       ) : (
-                        <Mail className="w-5 h-5 text-blue-400" />
+                        <Mail className="w-5 h-5 text-primary" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1812,7 +1801,7 @@ const GroupDetailPage = () => {
                         </p>
                         <Badge
                           variant="outline"
-                          className="border-yellow-500/30 text-yellow-400 text-xs"
+                          className="border-amber-200 text-amber-600 text-xs"
                         >
                           Pending
                         </Badge>
@@ -1836,7 +1825,7 @@ const GroupDetailPage = () => {
                     </div>
                     <div className="text-right">
                       <Badge
-                        className={`${invite.inviteType === "phone" ? "bg-purple-500/20 text-purple-400 border-purple-500/20" : "bg-blue-500/20 text-blue-400 border-blue-500/20"}`}
+                        className={`${invite.inviteType === "phone" ? "bg-primary/10 text-primary border-purple-500/20" : "bg-primary/20 text-primary border-primary/20"}`}
                       >
                         {invite.inviteType === "phone" ? "WhatsApp" : "Friend"}
                       </Badge>
@@ -1867,7 +1856,7 @@ const GroupDetailPage = () => {
                 <Button
                   type="submit"
                   disabled={!selectedRule}
-                  className="bg-emerald-600 hover:bg-emerald-700 h-11 px-8 w-full sm:w-auto"
+                  className="bg-primary hover:bg-primary/90 h-11 px-8 w-full sm:w-auto"
                 >
                   Apply Rule
                 </Button>
@@ -1888,7 +1877,7 @@ const GroupDetailPage = () => {
                       </span>
                     </div>
                     <div>
-                      <p className="text-gray-200 font-medium">
+                      <p className="text-foreground font-medium">
                         {rule.ruleType}
                       </p>
                       <p className="text-muted-foreground text-sm">{rule.ruleValue}</p>
@@ -1945,19 +1934,19 @@ const GroupDetailPage = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
-            <div className="p-4 bg-gray-800/50 rounded-lg">
-              <p className="text-sm text-gray-300 mb-2">
+            <div className="p-4 bg-secondary rounded-lg">
+              <p className="text-sm text-foreground mb-2">
                 Share this link with others to join your group:
               </p>
               <div className="flex gap-2">
                 <Input
                   readOnly
                   value={`${window.location.origin}/join-group/${groupId}`}
-                  className="flex-1 bg-gray-700/50 text-gray-200"
+                  className="flex-1 bg-secondary text-foreground"
                 />
                 <Button
                   onClick={copyInvitationLink}
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   Copy
                 </Button>
@@ -1982,35 +1971,35 @@ const GroupDetailPage = () => {
 
       {/* High Expense Approval Modal */}
       <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>
-        <DialogContent className="glass-card border-white/10 max-w-md">
+        <DialogContent className="border-border max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-yellow-400">
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
               <AlertTriangle className="w-5 h-5" />
               High Expense Approval Required
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <div className="p-4 bg-yellow-500/10 border border-amber-200 rounded-lg">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Amount:</span>
-                  <span className="font-bold text-yellow-400">
+                  <span className="text-sm text-muted-foreground">Amount:</span>
+                  <span className="font-bold text-amber-600">
                     ₹{approvalData?.amount}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Description:</span>
+                  <span className="text-sm text-muted-foreground">Description:</span>
                   <span className="font-medium">
                     {approvalData?.description}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Group:</span>
+                  <span className="text-sm text-muted-foreground">Group:</span>
                   <span className="font-medium">{group?.name}</span>
                 </div>
               </div>
             </div>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-foreground">
               This expense exceeds 20% of the group wallet balance. Your
               approval is required to proceed.
             </p>
@@ -2061,7 +2050,7 @@ const GroupDetailPage = () => {
 
                   setApprovalData(null);
                 }}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                className="flex-1 bg-primary hover:bg-primary/90"
               >
                 <Check className="w-4 h-4 mr-2" />
                 Accept
@@ -2078,7 +2067,7 @@ const GroupDetailPage = () => {
           duration: 3000,
           style: {
             background: "rgba(17, 24, 39, 0.95)",
-            color: "#fff",
+            color: "#0a0b0d",
             border: "1px solid rgba(255, 255, 255, 0.1)",
           },
           success: {
