@@ -13,7 +13,6 @@ const pageTitles = {
   "/profile": "Profile",
   "/friends": "Friends",
   "/ai-insights": "AI Insights",
-  "/splitwise": "Splitwise Sync",
   "/split-bills": "Split Bills",
   "/join-group": "Join Group",
 };

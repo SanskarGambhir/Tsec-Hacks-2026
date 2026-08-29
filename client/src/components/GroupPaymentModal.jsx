@@ -13,7 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { X, User, IndianRupee, Divide, Wallet, Scan } from "lucide-react";
 import api from "@/api/axios";
 import BillScannerModal from "../pages/BillScanner";
-import { getSocketId, getSocketsInRoom, getSocket } from "../lib/socket";
+import {
+  onApprovalResponse,
+  requestExpenseApproval,
+} from "../lib/socket";
+import { useAuth } from "../context/AuthContext";
 
 const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
   const [showBillScanner, setShowBillScanner] = useState(false);
@@ -24,22 +28,12 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
   const [customAmounts, setCustomAmounts] = useState({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [socketIds, setSocketIds] = useState([]);
-  const socket = getSocket();
+  // Held so an expense that needs approval can be replayed verbatim once a
+  // member approves it, rather than rebuilt from stale state.
+  const [pendingExpense, setPendingExpense] = useState(null);
+  const { user } = useAuth();
 
-  // Initialize custom amounts when members change
   useEffect(() => {
-    const groupId = group?._id;
-    // Inside your component
-    const socketId = getSocketId();
-    console.log("My socket ID:", socketId);
-    //Get all socket IDs in a group
-    const getSocketUpdates = async () => {
-      const socketIds = await getSocketsInRoom(groupId);
-      setSocketIds(socketIds);
-      console.log("Connected sockets:", socketIds);
-    };
-    getSocketUpdates();
     if (group?.members) {
       const initialCustomAmounts = {};
       group.members.forEach((member) => {
@@ -49,61 +43,43 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
     }
   }, [group]);
 
-  // Listen for approval response from other members
+  // Once a member approves, submit the expense exactly as it was composed.
+  // The previous version rebuilt it with a hard-coded "even" split, silently
+  // discarding a custom or exclude division the user had set up.
   useEffect(() => {
-    if (!socket) return;
+    const unsubscribe = onApprovalResponse(async ({ approved }) => {
+      if (!pendingExpense) return;
 
-    const handleApprovalResponse = async (data) => {
-      const { approved, expenseData, groupId, approvedBy } = data;
-
-      console.log("Received approval response:", {
-        approved,
-        expenseData,
-        groupId,
-      });
-
-      if (approved) {
-        setLoading(true);
-        try {
-          // Prepare the expense data
-          const apiExpenseData = {
-            amount: parseFloat(expenseData.amount),
-            description: expenseData.description,
-            divisionMethod: "even", // Default to even split for approved expenses
-            groupId: expenseData.groupId,
-          };
-
-          // Call the API to process the approved payment
-          const response = await api.post(
-            `/group-payments/${groupId}/process-payment`,
-            apiExpenseData,
-            { withCredentials: true },
-          );
-
-          alert("Expense approved and processed successfully!");
-          onSuccess(response.data);
-          onClose();
-        } catch (err) {
-          console.error("Error processing approved payment:", err);
-          setError(
-            err.response?.data?.message || "Failed to process approved payment",
-          );
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        alert("Your expense request was denied by a group member.");
-        setError("Expense request was denied");
+      if (!approved) {
+        setError("A group member declined this expense");
         setLoading(false);
+        setPendingExpense(null);
+        return;
       }
-    };
 
-    socket.on("approvalResponse", handleApprovalResponse);
+      setLoading(true);
+      try {
+        // Submit the expense this client composed, not one echoed back over
+        // the socket — an approver should not be able to alter what they are
+        // approving.
+        const response = await api.post(
+          `/group-payments/${group._id}/process-payment`,
+          pendingExpense,
+        );
+        onSuccess(response.data);
+        onClose();
+      } catch (err) {
+        setError(
+          err.response?.data?.message || "Failed to process the approved expense",
+        );
+      } finally {
+        setLoading(false);
+        setPendingExpense(null);
+      }
+    });
 
-    return () => {
-      socket.off("approvalResponse", handleApprovalResponse);
-    };
-  }, [socket, onSuccess, onClose]);
+    return unsubscribe;
+  }, [pendingExpense, group?._id, onSuccess, onClose]);
 
   // If bill scanner is open, render it instead (AFTER all hooks)
   if (showBillScanner) {
@@ -145,74 +121,44 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
     setError("");
     setLoading(true);
 
+    // A local flag, not state: `pendingExpense` would still read as its old
+    // value inside `finally` in the same tick.
+    let awaitingApproval = false;
+
     try {
-      // Validation
-      if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
-        setError("Payment amount is required and must be greater than 0");
+      const amount = parseFloat(paymentAmount);
+
+      if (!amount || amount <= 0) {
+        setError("Enter a payment amount greater than 0");
         setLoading(false);
         return;
       }
 
       if (!paymentDescription.trim()) {
-        setError("Payment description is required");
+        setError("A description is required");
         setLoading(false);
         return;
       }
 
-      if (paymentAmount > 0.2 * group.wallet.balance) {
-        console.log("Expense Greater than 20% of wallet balance");
-        console.log(socketIds);
-
-        // Filter out current user's socket ID and get one random ID
-        const otherIds =
-          socketIds.socketIds?.filter((id) => id !== getSocketId()) || [];
-
-        if (otherIds.length > 0) {
-          // Pick one random socket ID from other members
-          const randomSocketId =
-            otherIds[Math.floor(Math.random() * otherIds.length)];
-
-          console.log("Sending alert to socket:", randomSocketId);
-
-          socket.emit("largeExpenseWarning", {
-            targetSocketId: randomSocketId,
-            message: `A large expense of ₹${paymentAmount} is being added which exceeds 20% of the group wallet balance.`,
-            amount: paymentAmount,
-            description: paymentDescription,
-            groupId: group._id,
-            socketId: getSocketId(),
-            timestamp: new Date(),
-          });
-        } else {
-          console.log("No other members online to notify");
-        }
-
-        return;
-      }
-
-      // Prepare the expense data based on division method
-      let expenseData = {
-        amount: parseFloat(paymentAmount),
+      // Build the expense once, so the same object is submitted whether or not
+      // it has to go through approval first.
+      const expenseData = {
+        amount,
         description: paymentDescription.trim(),
         divisionMethod,
-        groupId: group._id,
       };
 
       if (divisionMethod === "exclude") {
         expenseData.excludedMembers = excludedMembers;
       } else if (divisionMethod === "custom") {
-        // Validate custom amounts
-        const totalCustomAmount = Object.values(customAmounts).reduce(
-          (sum, val) => {
-            const numVal = parseFloat(val) || 0;
-            return sum + numVal;
-          },
+        const total = Object.values(customAmounts).reduce(
+          (sum, value) => sum + (parseFloat(value) || 0),
           0,
         );
 
-        if (Math.abs(totalCustomAmount - parseFloat(paymentAmount)) > 0.01) {
+        if (Math.abs(total - amount) > 0.01) {
           setError(
-            `Custom amounts must sum to the payment amount (₹${paymentAmount}). Current total: ₹${totalCustomAmount.toFixed(2)})`,
+            `Custom amounts must add up to ₹${amount.toFixed(2)} (currently ₹${total.toFixed(2)})`,
           );
           setLoading(false);
           return;
@@ -221,24 +167,54 @@ const GroupPaymentModal = ({ group, onClose, onSuccess }) => {
         expenseData.customAmounts = customAmounts;
       }
 
-      // Call the API to process the group payment
+      // Anything over a fifth of the pool needs a second pair of eyes.
+      const needsApproval = amount > 0.2 * (group.wallet?.balance || 0);
+
+      if (needsApproval) {
+        const others = (group.members || []).filter(
+          (member) => member._id !== user?._id,
+        );
+
+        if (others.length === 0) {
+          setError("A second member must be in the group to approve an expense this large");
+          setLoading(false);
+          return;
+        }
+
+        const approver = others[Math.floor(Math.random() * others.length)];
+
+        requestExpenseApproval({
+          groupId: group._id,
+          targetUserId: approver._id,
+          amount,
+          description: expenseData.description,
+          message: `An expense of ₹${amount} exceeds 20% of the group wallet and needs your approval.`,
+        });
+
+        awaitingApproval = true;
+        setPendingExpense(expenseData);
+        setError(
+          `Waiting for ${approver.username || "another member"} to approve this expense...`,
+        );
+        // Stays loading on purpose: the approval response resolves it. The
+        // previous version returned without clearing it, leaving the button
+        // stuck forever when nobody was online.
+        return;
+      }
+
       const response = await api.post(
         `/group-payments/${group._id}/process-payment`,
         expenseData,
-        {
-          withCredentials: true,
-        },
       );
 
       onSuccess(response.data);
       onClose();
     } catch (err) {
-      console.error("Error processing group payment:", err);
-      setError(
-        err.response?.data?.message || "Failed to process group payment",
-      );
+      setError(err.response?.data?.message || "Failed to process group payment");
     } finally {
-      setLoading(false);
+      // Keep the spinner up while an approval is outstanding; the response
+      // handler clears it.
+      if (!awaitingApproval) setLoading(false);
     }
   };
 

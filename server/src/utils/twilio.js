@@ -1,52 +1,45 @@
 import twilio from "twilio";
-import dotenv from "dotenv";
-dotenv.config();
 
+let client;
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+const getClient = () => {
+  if (client) return client;
 
-// console.log(process.env.TWILIO_VERIFY_SERVICE_SID);
-// console.log(process.env.TWILIO_ACCOUNT_SID);
-// console.log(process.env.TWILIO_AUTH_TOKEN);
+  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } = process.env;
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+    throw new Error("TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set");
+  }
 
-export const sendOTP = async (phone) => {
-  return await client.verify.v2
-    .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-    .verifications.create({
-      to: phone,
-      channel: "sms",
-    });
+  client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  return client;
 };
 
-export const verifyOTP = async (phone, code) => {
-  return await client.verify.v2
-    .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-    .verificationChecks.create({
-      to: phone,
-      code,
-    });
+const verifyService = () => {
+  const sid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  if (!sid) throw new Error("TWILIO_VERIFY_SERVICE_SID must be set");
+  return getClient().verify.v2.services(sid);
 };
 
-// Send SMS message
-export const sendSMS = async (to, message) => {
-  return await client.messages.create({
+export const sendOTP = async (phone) =>
+  verifyService().verifications.create({ to: phone, channel: "sms" });
+
+export const verifyOTP = async (phone, code) =>
+  verifyService().verificationChecks.create({ to: phone, code });
+
+export const sendSMS = async (to, message) =>
+  getClient().messages.create({
     body: message,
     from: process.env.TWILIO_PHONE_NUMBER,
-    to: to,
+    to,
   });
-};
 
-// Send WhatsApp message
 export const sendWhatsApp = async (to, message) => {
-  console.log("✅ sendWhatsApp function called!");
-  console.log("Sending WhatsApp message to:", to);
-  console.log("Message content:", message);
-  return await client.messages.create({
+  const from = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+  if (!from) throw new Error("TWILIO_WHATSAPP_NUMBER must be set");
+
+  return getClient().messages.create({
     body: message,
-    from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER}`,
+    from: `whatsapp:${from}`,
     to: `whatsapp:${to}`,
   });
 };

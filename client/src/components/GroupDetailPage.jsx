@@ -4,16 +4,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import api from "../api/axios";
 import {
-  connectSocket,
   joinGroup as socketJoinGroup,
+  leaveGroup as socketLeaveGroup,
   onRuleAdded,
   onMemberJoined,
-  onReceiveMessage,
   onFundsAdded,
   onExpenseLogged,
   onNewMessage,
-  removeListener,
+  onApprovalRequest,
+  respondToApproval,
 } from "../lib/socket";
+import { useAuth } from "../context/AuthContext";
 import {
   AlertTriangle,
   X,
@@ -68,7 +69,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { getSocket } from "../lib/socket";
 import GroupPaymentModal from "./GroupPaymentModal";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import MemberActionsModal from "./MemberActionsModal";
@@ -88,6 +88,38 @@ const categoryColors = {
   General: "bg-secondary text-muted-foreground",
 };
 
+/**
+ * The rules a group can adopt. The form was previously bound to a free-text
+ * field that did not exist, so the whole tab threw on first keystroke and its
+ * submit button could never enable.
+ */
+const RULE_OPTIONS = [
+  {
+    label: "Require approval for large expenses",
+    ruleType: "approval_required",
+    ruleValue: "20%",
+    description: "Expenses over 20% of the pool need another member's approval",
+  },
+  {
+    label: "Owner-only withdrawals",
+    ruleType: "owner_only_withdrawal",
+    ruleValue: "true",
+    description: "Only the group owner may move money out of the pool",
+  },
+  {
+    label: "Equal contributions",
+    ruleType: "equal_contribution",
+    ruleValue: "true",
+    description: "Every member contributes the same amount to the pool",
+  },
+  {
+    label: "No expenses without a receipt",
+    ruleType: "receipt_required",
+    ruleValue: "true",
+    description: "Every expense must have a scanned receipt attached",
+  },
+];
+
 const GroupDetailPage = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
@@ -96,8 +128,9 @@ const GroupDetailPage = () => {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
 
-  const userData = JSON.parse(localStorage.getItem("user") || "{}");
-  const currentUser = userData?.data?.user || userData;
+  // From the auth context rather than a localStorage copy, which could be
+  // stale or edited by hand.
+  const { user: currentUser } = useAuth();
   const currentUserId = currentUser?._id;
 
   // console.log(currentUserId, "CURRENT USER ID");
@@ -112,16 +145,14 @@ const GroupDetailPage = () => {
   const [addFundsAmount, setAddFundsAmount] = useState("");
   const [addingFunds, setAddingFunds] = useState(false);
   const [fundsMessage, setFundsMessage] = useState("");
-  const [socket, setSocket] = useState(null);
   const [removingRule, setRemovingRule] = useState(null);
 
   // Member Management State
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
-  const [otherSocketId, setOtherSocketId] = useState(null);
   // Transaction State
   const [transactions, setTransactions] = useState([]);
-  const [checkingPayments, setCheckingPayments] = useState(false);
+  const [refreshingTransactions, setRefreshingTransactions] = useState(false);
   // Expense Modal State
   const [showExpenseModal, setShowExpenseModal] = useState(false);
 
@@ -163,28 +194,15 @@ const GroupDetailPage = () => {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvalData, setApprovalData] = useState(null);
 
-  // Get current user
+  // Someone in this group is asking this user to approve a large expense.
   useEffect(() => {
-    const sock = getSocket();
+    const unsubscribe = onApprovalRequest((data) => {
+      setApprovalData(data);
+      setShowApprovalModal(true);
+    });
 
-    if (sock) {
-      const handleApprovalRequest = (data) => {
-        console.log("Approval request received:", data);
-        // Show approval modal instead of alert
-        console.log(data.socketId, "SOCKET ID FROM APPROVAL REQUEST");
-        setOtherSocketId(data.socketId);
-
-        setApprovalData(data);
-        setShowApprovalModal(true);
-      };
-
-      sock.on("approval_request", handleApprovalRequest);
-
-      return () => {
-        sock.off("approval_request", handleApprovalRequest);
-      };
-    }
-  }, [socket]);
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     const fetchGroupDetails = async () => {
@@ -199,12 +217,7 @@ const GroupDetailPage = () => {
       }
     };
 
-    // Connect to socket and join the group room (only once)
-    if (!socket) {
-      const sock = connectSocket();
-      setSocket(sock);
-      socketJoinGroup(groupId);
-    }
+    socketJoinGroup(groupId);
 
     fetchGroupDetails();
     fetchTransactions();
@@ -236,17 +249,6 @@ const GroupDetailPage = () => {
         {
           type: "memberJoined",
           content: `${data.user.username || data.user.email} joined the group`,
-          timestamp: new Date().toLocaleString(),
-        },
-      ]);
-    };
-
-    const handleReceiveMessage = (data) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "message",
-          content: `${data.sender.name || data.sender.username}: ${data.message}`,
           timestamp: new Date().toLocaleString(),
         },
       ]);
@@ -311,36 +313,25 @@ const GroupDetailPage = () => {
       ]);
     };
 
-    // Set up socket listeners
-    onRuleAdded(handleRuleAdded);
-    onMemberJoined(handleMemberJoined);
-    onReceiveMessage(handleReceiveMessage);
-    onFundsAdded(handleFundsAdded);
-    onExpenseLogged(handleExpenseLogged);
-    onNewMessage(handleNewMessage);
+    // Each subscribe hands back its own unsubscribe, so the exact handler
+    // registered is the one removed.
+    const unsubscribers = [
+      onRuleAdded(handleRuleAdded),
+      onMemberJoined(handleMemberJoined),
+      onFundsAdded(handleFundsAdded),
+      onExpenseLogged(handleExpenseLogged),
+      onNewMessage(handleNewMessage),
+    ];
 
     return () => {
-      // Clean up socket listeners
-      removeListener("ruleAdded", handleRuleAdded);
-      removeListener("memberJoined", handleMemberJoined);
-      removeListener("receiveMessage", handleReceiveMessage);
-      removeListener("fundsAdded", handleFundsAdded);
-      removeListener("expenseLogged", handleExpenseLogged);
-      removeListener("newMessage", handleNewMessage);
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+      socketLeaveGroup(groupId);
     };
-  }, [groupId]);
-
-  // Periodic payment checking
-  useEffect(() => {
-    if (groupId) {
-      checkGroupPayments();
-      const interval = setInterval(checkGroupPayments, 5000);
-      return () => clearInterval(interval);
-    }
   }, [groupId]);
 
   const fetchTransactions = async () => {
     try {
+      setRefreshingTransactions(true);
       const res = await api.get(`/groups/${groupId}/transactions`, {
         withCredentials: true,
       });
@@ -349,6 +340,8 @@ const GroupDetailPage = () => {
       }
     } catch (err) {
       console.error("Failed to fetch transactions:", err);
+    } finally {
+      setRefreshingTransactions(false);
     }
   };
 
@@ -365,52 +358,6 @@ const GroupDetailPage = () => {
       console.error("Failed to fetch pending invites:", err);
     } finally {
       setLoadingInvites(false);
-    }
-  };
-
-  const checkGroupPayments = async () => {
-    if (!groupId) return;
-    try {
-      setCheckingPayments(true);
-      const res = await api.get(`/groups/${groupId}/check-payments`, {
-        withCredentials: true,
-      });
-      const { updated } = res.data.data || {};
-      if (updated && updated.length > 0) {
-        setFundsMessage("Payment confirmed and balance updated!");
-        fetchTransactions();
-        // Refresh group details to get updated balance
-        const response = await api.get(`/groups/${groupId}`);
-        setGroup(response.data.data);
-      }
-    } catch (err) {
-      // Silent fail for background checks
-      console.error("Payment sync failed:", err);
-    } finally {
-      setCheckingPayments(false);
-    }
-  };
-
-  const confirmTransaction = async (intentId) => {
-    try {
-      setFundsMessage("Submitting proof...");
-
-      const res = await api.post(
-        `/wallet/complete_deposit/${intentId}`,
-        {},
-        { withCredentials: true },
-      );
-
-      if (res.data.success) {
-        setFundsMessage(
-          "Proof submitted. Payment will settle at Decided Date.",
-        );
-        localStorage.removeItem("pendingTimeLockedIntent");
-        fetchTransactions();
-      }
-    } catch (err) {
-      console.error(err);
-      setFundsMessage("Proof submission failed");
     }
   };
 
@@ -477,8 +424,22 @@ const GroupDetailPage = () => {
         description: ruleData.description,
       });
 
+      // The server broadcasts `ruleAdded` to everyone *except* the sender, so
+      // this client updates its own copy directly.
+      setGroup((prev) => ({
+        ...prev,
+        rules: [
+          ...(prev.rules || []),
+          {
+            ruleType: ruleData.ruleType,
+            ruleValue: ruleData.ruleValue,
+            description: ruleData.description,
+          },
+        ],
+      }));
+
       setSelectedRule("");
-      toast.success("Rule added successfully!");
+      toast.success("Rule added");
     } catch (err) {
       console.error("Error adding rule:", err);
       toast.error(err.response?.data?.message || "Failed to add rule");
@@ -746,10 +707,11 @@ const GroupDetailPage = () => {
   // Function to handle group payment
   const handleGroupPayment = async (paymentData) => {
     try {
+      // The route lives under /group-payments. The old path was both double
+      // prefixed and pointed at a group route that does not exist.
       const response = await api.post(
-        `/api/v1/groups/${groupId}/process-payment`,
+        `/group-payments/${groupId}/process-payment`,
         paymentData,
-        { withCredentials: true },
       );
 
       // The expense will be reflected via socket update
@@ -1145,10 +1107,11 @@ const GroupDetailPage = () => {
                   variant="ghost"
                   size="sm"
                   onClick={fetchTransactions}
+                  disabled={refreshingTransactions}
                   className="text-muted-foreground hover:text-primary"
                 >
                   <RefreshCw
-                    className={`w-4 h-4 ${checkingPayments ? "animate-spin" : ""}`}
+                    className={`w-4 h-4 ${refreshingTransactions ? "animate-spin" : ""}`}
                   />
                 </Button>
               </CardHeader>
@@ -1270,17 +1233,6 @@ const GroupDetailPage = () => {
 
                             {tx.status === "PENDING" && tx.intentId && (
                               <div className="flex flex-row gap-2 mt-4">
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    confirmTransaction(tx.intentId)
-                                  }
-                                  disabled={addingFunds}
-                                  className="flex-1 bg-primary hover:bg-primary text-[10px] md:text-xs h-8 rounded-lg"
-                                >
-                                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                                  Confirm
-                                </Button>
                                 <Button
                                   size="sm"
                                   onClick={() => cancelTransaction(tx.intentId)}
@@ -1845,14 +1797,22 @@ const GroupDetailPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add Rule Form */}
-              <form onSubmit={handleAddRule} className="flex gap-2 mb-6">
-                <Input
-                  type="text"
-                  value={newRule}
-                  onChange={(e) => setNewRule(e.target.value)}
-                  placeholder="Add a new rule..."
-                  className="flex-1 bg-secondary border-border"
-                />
+              <form onSubmit={handleAddRule} className="flex flex-col sm:flex-row gap-2 mb-6">
+                <select
+                  value={selectedRule}
+                  onChange={(e) => setSelectedRule(e.target.value)}
+                  className="flex-1 h-11 rounded-md bg-secondary border border-border px-3 text-sm"
+                >
+                  <option value="">Choose a rule to add...</option>
+                  {RULE_OPTIONS.filter(
+                    (option) =>
+                      !group.rules?.some((rule) => rule.ruleType === option.ruleType),
+                  ).map((option) => (
+                    <option key={option.ruleType} value={option.label}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
                 <Button
                   type="submit"
                   disabled={!selectedRule}
@@ -2009,20 +1969,15 @@ const GroupDetailPage = () => {
                 onClick={() => {
                   setShowApprovalModal(false);
 
-                  // Get socket instance and send rejection response back to requester
-                  const sock = getSocket();
-                  if (sock && approvalData?.requestedBy) {
-                    sock.emit("approvalResponse", {
-                      approved: false,
-                      targetSocketId: approvalData.requestedBy,
-                      expenseData: approvalData,
+                  // Addressed to the requesting user, not a transient socket id.
+                  if (approvalData?.requestedBy?._id) {
+                    respondToApproval({
                       groupId: group._id,
+                      targetUserId: approvalData.requestedBy._id,
+                      approved: false,
                     });
-                    alert("Expense denied! Notifying requester...");
-                  } else {
-                    alert("Expense denied!");
                   }
-
+                  toast.success("Expense denied");
                   setApprovalData(null);
                 }}
                 className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
@@ -2034,20 +1989,14 @@ const GroupDetailPage = () => {
                 onClick={() => {
                   setShowApprovalModal(false);
 
-                  // Get socket instance and send approval response back to requester
-                  const sock = getSocket();
-                  if (sock && approvalData?.requestedBy) {
-                    sock.emit("approvalResponse", {
-                      approved: true,
-                      targetSocketId: approvalData.requestedBy,
-                      expenseData: approvalData,
+                  if (approvalData?.requestedBy?._id) {
+                    respondToApproval({
                       groupId: group._id,
+                      targetUserId: approvalData.requestedBy._id,
+                      approved: true,
                     });
-                    alert("Expense approved! Notifying requester...");
-                  } else {
-                    alert("Expense approved! Processing payment...");
                   }
-
+                  toast.success("Expense approved");
                   setApprovalData(null);
                 }}
                 className="flex-1 bg-primary hover:bg-primary/90"

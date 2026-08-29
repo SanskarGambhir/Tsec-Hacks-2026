@@ -1,39 +1,50 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema } from "mongoose";
 
 const transactionSchema = new Schema({
   fromUser: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: true,
   },
   amount: {
     type: Number,
-    required: true
+    required: true,
   },
   type: {
     type: String,
-    enum: ["DEPOSIT", "WITHDRAWAL", "GROUP_PAYMENT", "CREDIT_WITH_DRAWAL"], // In case funds are returned or spent directly
-    default: "DEPOSIT"
+    enum: [
+      "DEPOSIT",
+      "WITHDRAWAL",
+      "GROUP_PAYMENT",
+      "CREDIT_WITHDRAWAL",
+      "MEMBER_FUNDS_ADDED",
+    ],
+    default: "DEPOSIT",
   },
   description: {
     type: String,
   },
+  // How a GROUP_PAYMENT was divided, kept for auditability.
+  memberCharges: {
+    type: Map,
+    of: Number,
+  },
   date: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const memberBalanceSchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: true,
   },
   balance: {
     type: Number,
-    default: 0
-  }
+    default: 0,
+  },
 });
 
 const groupWalletSchema = new Schema(
@@ -43,21 +54,21 @@ const groupWalletSchema = new Schema(
       ref: "Group",
       required: true,
       unique: true,
-      index: true
+      index: true,
     },
     balance: {
       type: Number,
-      default: 0
+      default: 0,
     },
     memberBalances: [memberBalanceSchema],
     currency: {
       type: String,
-      default: "INR"
+      default: "INR",
     },
-    transactions: [transactionSchema]
+    transactions: [transactionSchema],
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 

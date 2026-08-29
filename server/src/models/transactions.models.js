@@ -3,38 +3,59 @@ import mongoose, { Schema } from "mongoose";
 const transactionSchema = new Schema(
   {
     user: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
     },
 
+    // Points at either a UserWallet or a GroupWallet depending on `scope`.
     wallet: {
-      type: String,
-      ref: "Wallet",
+      type: Schema.Types.ObjectId,
       required: true,
+      index: true,
     },
 
+    scope: {
+      type: String,
+      enum: ["USER", "GROUP"],
+      default: "USER",
+      index: true,
+    },
+
+    // Razorpay order id for gateway deposits, or an internal reference for
+    // ledger movements that never touch the gateway.
     intentId: {
       type: String,
       required: true,
+      unique: true,
       index: true,
     },
 
     type: {
       type: String,
-      enum: ["DEPOSIT", "SPEND", "REFUND", "GROUP_PAYMENT", "CREDIT_WITH_DRAWAL"],
+      enum: [
+        "DEPOSIT",
+        "WITHDRAWAL",
+        "SPEND",
+        "REFUND",
+        "GROUP_DEPOSIT",
+        "GROUP_PAYMENT",
+        "CREDIT_WITHDRAWAL",
+        "MEMBER_FUNDS_ADDED",
+      ],
       required: true,
     },
 
     amount: {
       type: Number,
       required: true,
+      min: 0,
     },
 
     currency: {
       type: String,
-      default: "USDC",
+      default: "INR",
     },
 
     status: {
@@ -44,13 +65,17 @@ const transactionSchema = new Schema(
       index: true,
     },
 
+    description: String,
+
+    // Razorpay payment id once verified.
     proofHash: String,
     proofURI: String,
 
-    paymentStatus: String, // raw status from payment API
-
+    paymentStatus: String,
   },
   { timestamps: true }
 );
+
+transactionSchema.index({ user: 1, createdAt: -1 });
 
 export const Transaction = mongoose.model("Transaction", transactionSchema);

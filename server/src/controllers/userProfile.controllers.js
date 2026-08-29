@@ -16,32 +16,39 @@ const getUserProfile = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
-  // Get user's groups
+  // `expenses` has to be selected for the count below to mean anything; it
+  // was omitted before, so the stat always read zero.
   const groups = await Group.find({
     $or: [
       { owner: userId },
       { members: { $in: [userId] } }
     ]
-  }).select("_id name description pool members createdAt");
+  }).select("_id name description pool members expenses createdAt").lean();
 
   // Get user's credit withdrawals
   const creditWithdrawals = await CreditWithdrawal.find({ member: userId }).populate("group", "name");
 
-  // Calculate statistics
-  let totalGroups = groups.length;
-  let totalExpenses = 0;
-  let totalSettled = 0;
+  const totalGroups = groups.length;
+  const totalExpenses = groups.reduce(
+    (sum, group) => sum + (group.expenses?.length || 0),
+    0
+  );
 
-  // Get all groups where user is a member to calculate expenses
-  for (const group of groups) {
-    totalExpenses += group.expenses?.length || 0;
-    
-    // Calculate settled amount from group wallets
-    const groupWallet = await GroupWallet.findOne({ group: group._id });
-    if (groupWallet) {
-      totalSettled += groupWallet.balance;
-    }
-  }
+  // One query for every wallet instead of one per group.
+  const wallets = await GroupWallet.find({
+    group: { $in: groups.map((g) => g._id) },
+  })
+    .select("group balance memberBalances")
+    .lean();
+
+  // "Settled" is what this user personally holds across their groups, not the
+  // combined balance of every group they happen to be in.
+  const totalSettled = wallets.reduce((sum, wallet) => {
+    const entry = wallet.memberBalances.find(
+      (mb) => mb.user.toString() === userId.toString()
+    );
+    return sum + (entry ? entry.balance : 0);
+  }, 0);
 
   // Format response
   const userProfile = {
@@ -49,8 +56,10 @@ const getUserProfile = asyncHandler(async (req, res) => {
     username: user.username,
     email: user.email,
     phone: user.phone,
-    location: user.location,
     avatar: user.avatar,
+    isEmailVerified: user.isEmailVerified,
+    isPhoneVerified: user.isPhoneVerified,
+    panCardLast4: user.panCardLast4,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     stats: {

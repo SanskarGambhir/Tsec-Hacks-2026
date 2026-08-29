@@ -28,12 +28,6 @@ function WalletPage() {
   useEffect(() => {
     fetchBalance();
     fetchTransactions();
-    checkPayments();
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(checkPayments, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   const fetchTransactions = async () => {
@@ -41,27 +35,19 @@ function WalletPage() {
       const res = await api.get("/wallet/get_trans", {
         withCredentials: true,
       });
-      setTransactions(res.data.transactions);
+      setTransactions(res.data.data.transactions);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const verifyTransaction = async (intentId) => {
-    // Deprecated with Razorpay. Handled automatically in handleSubmit callback.
-  };
-
   const fetchBalance = async () => {
     try {
       const res = await api.get("/wallet/balance", { withCredentials: true });
-      setBalance(res.data.balance);
+      setBalance(res.data.data.balance);
     } catch (err) {
       console.error("Balance fetch failed", err);
     }
-  };
-
-  const checkPayments = async () => {
-    // Deprecated with Razorpay
   };
 
   const handleSubmit = async () => {
@@ -75,10 +61,12 @@ function WalletPage() {
       setMessage("Initializing payment...");
       
       const res = await api.post("/wallet/pay", { amount: Number(amount) }, { withCredentials: true });
-      const order = res.data.order;
+      const order = res.data.data.order;
 
       const options = {
-        key: "rzp_test_YourTestKeyIdHere", // MUST match backend
+        // Must match the key the server signs with; hard-coding a placeholder
+        // here meant checkout silently used the wrong merchant account.
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: "INR",
         name: "Cooper Wallet",
@@ -289,16 +277,6 @@ function WalletPage() {
                         {getStatusBadge(tx.status)}
                       </div>
 
-                      {tx.status === "PENDING" && (
-                        <Button
-                          size="sm"
-                          onClick={() => verifyTransaction(tx.intentId)}
-                          disabled={loading}
-                          className="w-full mt-3 bg-primary hover:bg-primary text-xs h-8"
-                        >
-                          Confirm Delivery
-                        </Button>
-                      )}
                     </div>
                   </motion.div>
                 ))

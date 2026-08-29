@@ -30,7 +30,7 @@ const JoinGroup = () => {
 
         // Navigate to the group detail page after successfully joining
         setTimeout(() => {
-          navigate(`/group/${groupId}`);
+          navigate(`/groups/${groupId}`);
         }, 1500); // Wait 1.5 seconds to show success message before navigating
       }
     } catch (err) {

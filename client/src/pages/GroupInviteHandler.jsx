@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Users, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { acceptGroupInviteByToken } from "@/api/groups";
+import { useAuth } from "../context/AuthContext";
 
 export default function GroupInviteHandler() {
   const { token } = useParams();
@@ -12,17 +13,17 @@ export default function GroupInviteHandler() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  const { isAuthenticated, loading: authLoading } = useAuth();
+
   useEffect(() => {
-    // Check if user is logged in
-    const user = localStorage.getItem("user");
-    if (!user) {
-      // Store token and redirect to login
-      localStorage.setItem("groupInviteToken", token);
-      setTimeout(() => {
-        navigate("/login?invited=group");
-      }, 2000);
-    }
-  }, [token, navigate]);
+    // Wait for the session check first, or a signed-in user opening an invite
+    // link gets bounced to the login screen.
+    if (authLoading || isAuthenticated) return;
+
+    localStorage.setItem("groupInviteToken", token);
+    const timer = setTimeout(() => navigate("/login?invited=group"), 2000);
+    return () => clearTimeout(timer);
+  }, [token, navigate, isAuthenticated, authLoading]);
 
   const handleAcceptInvite = async () => {
     setLoading(true);
@@ -101,7 +102,7 @@ export default function GroupInviteHandler() {
           </div>
         )}
 
-        {localStorage.getItem("user") ? (
+        {isAuthenticated ? (
           <Button
             onClick={handleAcceptInvite}
             disabled={loading}

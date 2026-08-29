@@ -1,239 +1,186 @@
-import { response } from "express";
+import crypto from "crypto";
+
 import { UserWallet } from "../models/wallet.models.js";
 import { Transaction } from "../models/transactions.models.js";
 import { razorpayInstance } from "../utils/razorpay.js";
-import crypto from "crypto";
-export const addNewWallet = async (req, res) => {
+import { ApiError } from "../utils/api-error.js";
+import { ApiResponse } from "../utils/api-response.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { creditUserWallet, normalizeAmount } from "../utils/ledger.js";
+
+/**
+ * Wallet money only ever enters through a Razorpay payment whose signature has
+ * been verified server-side. There is deliberately no endpoint that credits a
+ * balance on request.
+ */
+
+const getOrCreateWallet = async (userId) => {
+  const existing = await UserWallet.findOne({ user: userId });
+  if (existing) return existing;
+
   try {
-    const userId = req.user._id;
-
-    // Check if wallet already exists
-    const existingWallet = await UserWallet.findOne({ user: userId });
-    if (existingWallet) {
-      return res.status(200).json({
-        success: true,
-        message: "Wallet already exists",
-        wallet: existingWallet,
-      });
-    }
-
-    const newWallet = new UserWallet({
-      user: userId,
-      balance: 0,
-      status: "ACTIVE",
-    });
-    await newWallet.save();
-    console.log("New wallet created for user:", userId);
-    return res.status(201).json({
-      success: true,
-      message: "Wallet created successfully",
-      wallet: newWallet,
-    });
+    return await UserWallet.create({ user: userId, balance: 0, status: "ACTIVE" });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    // Unique index on `user` — a concurrent request won the race, use theirs.
+    if (error.code === 11000) return UserWallet.findOne({ user: userId });
+    throw error;
   }
 };
-export const getBalance = async (req, res) => {
-  try {
-    const userId = req.user._id;
 
-    // Fetch wallet from database
-    const wallet = await UserWallet.findOne({ user: userId });
+const addNewWallet = asyncHandler(async (req, res) => {
+  const wallet = await getOrCreateWallet(req.user._id);
 
-    if (!wallet) {
-      return res.status(404).json({
-        success: false,
-        message: "Wallet not found",
-      });
-    }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { wallet }, "Wallet ready"));
+});
 
-    res.status(200).json({
-      success: true,
-      balance: wallet.balance,
-    });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+const getBalance = asyncHandler(async (req, res) => {
+  const wallet = await getOrCreateWallet(req.user._id);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { balance: wallet.balance, currency: wallet.currency, status: wallet.status },
+      "Balance fetched successfully"
+    )
+  );
+});
+
+const getUserTransactions = asyncHandler(async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Math.min(Number(req.query.limit) || 25, 100);
+
+  const wallet = await UserWallet.findOne({ user: req.user._id });
+  if (!wallet) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { transactions: [], total: 0, page, limit }, "No transactions"));
   }
-};
-export const checkPayments = async (req, res) => {
-  // Deprecated with Razorpay. Kept for backwards compatibility if needed.
-  res.status(200).json({
-    success: true,
-    updated: [],
-    message: "Use paymentVerify instead for Razorpay."
-  });
-};
 
-export const completeDeposit = async (req, res) => {
-  // Handled inside paymentVerify with Razorpay
-  return res.status(200).json({ success: true, message: "Use paymentVerify for Razorpay" });
-};
-export const getUserTransactions = async (req, res) => {
-  try {
-    const userId = req.user._id;
+  const filter = { user: req.user._id, wallet: wallet._id, scope: "USER" };
 
-    // Get user's wallet
-    const userWallet = await UserWallet.findOne({ user: userId });
-
-    if (!userWallet) {
-      return res.status(200).json({
-        success: true,
-        count: 0,
-        transactions: [],
-      });
-    }
-
-    // Only fetch transactions from UserWallet, not GroupWallet
-    const transactions = await Transaction.find({
-      user: userId,
-      wallet: userWallet._id,
-    })
+  const [transactions, total] = await Promise.all([
+    Transaction.find(filter)
       .sort({ createdAt: -1 })
-      .lean();
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    Transaction.countDocuments(filter),
+  ]);
 
-    res.status(200).json({
-      success: true,
-      count: transactions.length,
-      transactions,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { transactions, total, page, limit },
+        "Transactions fetched successfully"
+      )
+    );
+});
+
+/** Step 1 of a deposit: create a Razorpay order and a matching PENDING row. */
+const paymentIntentResponse = asyncHandler(async (req, res) => {
+  const amount = normalizeAmount(req.body.amount, "Deposit amount");
+  const wallet = await getOrCreateWallet(req.user._id);
+
+  if (wallet.status !== "ACTIVE") {
+    throw new ApiError(403, "Wallet is frozen");
   }
-};
 
-export const paymentVerify = async (req, res) => {
+  const order = await razorpayInstance.orders.create({
+    amount: Math.round(amount * 100), // Razorpay works in paise
+    currency: "INR",
+    receipt: `wlt_${Date.now()}`,
+  });
+
+  await Transaction.create({
+    user: req.user._id,
+    wallet: wallet._id,
+    scope: "USER",
+    intentId: order.id,
+    type: "DEPOSIT",
+    amount,
+    currency: "INR",
+    status: "PENDING",
+    description: "Wallet top-up",
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { order, intentId: order.id }, "Order created"));
+});
+
+/**
+ * Step 2: verify the gateway signature, then credit the wallet.
+ *
+ * The amount credited comes from our own PENDING row, never from the request
+ * body, so a caller cannot claim to have paid more than they did. Flipping the
+ * row to COMPLETED is itself the guard against replaying one payment twice.
+ */
+const paymentVerify = asyncHandler(async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-  
+
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-    return res.status(400).json({ success: false, message: "Missing Razorpay payment details" });
+    throw new ApiError(400, "Missing Razorpay payment details");
   }
 
-  try {
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(body.toString())
-      .digest("hex");
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+    .digest("hex");
 
-    const isAuthentic = expectedSignature === razorpay_signature;
+  const provided = Buffer.from(razorpay_signature);
+  const expected = Buffer.from(expectedSignature);
 
-    if (!isAuthentic) {
-      return res.status(400).json({ success: false, message: "Invalid Signature" });
-    }
+  if (
+    provided.length !== expected.length ||
+    !crypto.timingSafeEqual(provided, expected)
+  ) {
+    throw new ApiError(400, "Invalid payment signature");
+  }
 
-    // Find the pending transaction
-    const tx = await Transaction.findOne({
+  // Claim the pending transaction atomically. If another request already
+  // settled it, this returns null and we stop.
+  const tx = await Transaction.findOneAndUpdate(
+    {
       intentId: razorpay_order_id,
-      status: "PENDING",
-    });
-
-    if (!tx) {
-      return res.status(404).json({ success: false, message: "Transaction not found or already verified" });
-    }
-
-    // Update Transaction
-    tx.status = "COMPLETED";
-    tx.paymentStatus = "SUCCESS";
-    tx.proofHash = razorpay_payment_id; 
-    await tx.save();
-
-    // Update Wallet Balance
-    await UserWallet.findOneAndUpdate(
-      { user: req.user._id, status: "ACTIVE" },
-      { $inc: { balance: tx.amount } }
-    );
-
-    res.status(200).json({ success: true, message: "Payment verified successfully" });
-  } catch (err) {
-    console.error("Verification error:", err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-export const paymentIntentResponse = async (req, res) => {
-  try {
-    const amount = req.body?.amount ? req.body.amount : "25.00";
-    
-    // Razorpay expects amount in paise (smallest currency unit)
-    const amountInPaise = Math.round(Number(amount) * 100);
-
-    const options = {
-      amount: amountInPaise,
-      currency: "INR",
-      receipt: `receipt_${Date.now()}`,
-    };
-
-    const order = await razorpayInstance.orders.create(options);
-
-    const userWallet = await UserWallet.findOne({ user: req.user._id });
-
-    await Transaction.create({
       user: req.user._id,
-      wallet: userWallet._id,
-      intentId: order.id,
-      type: "DEPOSIT",
-      amount: Number(amount),
-      currency: "INR",
+      scope: "USER",
       status: "PENDING",
-    });
+    },
+    {
+      $set: {
+        status: "COMPLETED",
+        paymentStatus: "SUCCESS",
+        proofHash: razorpay_payment_id,
+      },
+    },
+    { new: true }
+  );
 
-    res.status(200).json({
-      success: true,
-      order: order,
-      intentId: order.id,
-    });
-  } catch (error) {
-    console.error("Razorpay order error:", error);
-    res.status(500).json({ success: false, message: error.message });
+  if (!tx) {
+    throw new ApiError(404, "Transaction not found or already verified");
   }
-};
 
-const addAmountToWallet = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { amount } = req.body;
+  const wallet = await creditUserWallet(req.user._id, tx.amount);
 
-    // 1️⃣ Validate
-    const parsedAmount = Number(amount);
-    if (!parsedAmount || parsedAmount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Enter a valid amount",
-      });
-    }
-
-    // 2️⃣ Atomic balance increment
-    const updatedWallet = await UserWallet.findOneAndUpdate(
-      { user: userId, status: "ACTIVE" },
-      { $inc: { balance: parsedAmount } }, // 🔥 atomic operation
-      { new: true },
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { balance: wallet.balance, transaction: tx },
+        "Payment verified successfully"
+      )
     );
+});
 
-    if (!updatedWallet) {
-      return res.status(404).json({
-        success: false,
-        message: "Wallet not found or inactive",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Amount added successfully",
-      balance: updatedWallet.balance,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+export {
+  addNewWallet,
+  getBalance,
+  getUserTransactions,
+  paymentIntentResponse,
+  paymentVerify,
 };
-
-export { addAmountToWallet };

@@ -1,12 +1,11 @@
 {
-  "name": "initialisation",
+  "name": "cooper-client",
   "version": "0.0.0",
   "private": true,
-  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "description": "Cooper - group finance, expense splitting and wallets",
   "license": "ISC",
   "author": "",
   "type": "module",
-  "main": "eslint.config.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

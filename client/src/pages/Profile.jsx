@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import api from "@/api/axios";
+import { useAuth } from "../context/AuthContext";
 
 const menuSections = [
   {
@@ -57,6 +58,7 @@ const menuSections = [
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
@@ -130,21 +132,10 @@ export default function ProfilePage() {
     fetchUserProfile();
   }, []);
 
-  const handleSettleWithdrawal = async (withdrawalId) => {
-    try {
-      await api.post(`/credit-withdrawals/${withdrawalId}/settle`, {}, { withCredentials: true });
-      alert("Withdrawal settled successfully!");
-      fetchUserProfile(); // Refresh data
-    } catch (err) {
-      console.error("Error settling withdrawal:", err);
-      alert(err.response?.data?.message || "Failed to settle withdrawal");
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("inviteToken");
-    navigate("/login");
+  const handleLogout = async () => {
+    // Clears the httpOnly session cookies server-side, not just local state.
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   if (loading) {
@@ -380,16 +371,6 @@ export default function ProfilePage() {
                                             <Badge variant="secondary" className="text-[10px] h-5 bg-secondary text-muted-foreground">
                                                 {withdrawal.status}
                                             </Badge>
-                                            {withdrawal.status === "issued" && (
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="outline" 
-                                                    className="h-7 px-2 text-[10px] border-primary/20 text-primary hover:bg-primary/10"
-                                                    onClick={() => handleSettleWithdrawal(withdrawal._id)}
-                                                >
-                                                    Settle
-                                                </Button>
-                                            )}
                                         </div>
                                     </div>
                                 </div>

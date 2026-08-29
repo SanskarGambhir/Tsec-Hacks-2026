@@ -5,6 +5,7 @@ import { ApiResponse } from '../utils/api-response.js';
 import { ApiError } from '../utils/api-error.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendWhatsApp } from '../utils/twilio.js';
+import { escapeRegex } from '../validators/index.js';
 
 // Send friend request
 const sendFriendRequest = asyncHandler(async (req, res) => {
@@ -195,13 +196,16 @@ const searchUsers = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Search query is required");
   }
 
-  // Search users by username, email, or phone
+  // The query is escaped before it reaches $regex: unescaped input let a
+  // caller inject a pattern and stall the server on a crafted string.
+  const safe = escapeRegex(query.trim());
+
   const users = await User.find({
     _id: { $ne: userId }, // Exclude current user
     $or: [
-      { username: { $regex: query, $options: "i" } },
-      { email: { $regex: query, $options: "i" } },
-      { phone: { $regex: query, $options: "i" } },
+      { username: { $regex: safe, $options: "i" } },
+      { email: { $regex: safe, $options: "i" } },
+      { phone: { $regex: safe, $options: "i" } },
     ],
   }).select("username email avatar phone").limit(20);
 
@@ -250,6 +254,11 @@ const blockUser = asyncHandler(async (req, res) => {
 
   if (userId.toString() === userIdToBlock) {
     throw new ApiError(400, "You cannot block yourself");
+  }
+
+  const target = await User.findById(userIdToBlock).select("_id");
+  if (!target) {
+    throw new ApiError(404, "User not found");
   }
 
   const friendship = await Friend.findOne({
@@ -360,26 +369,18 @@ const sendPhoneInvite = asyncHandler(async (req, res) => {
   // Create invite link
   const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/invite/${token}`;
 
-  // Send WhatsApp message
+  // Nothing here logs the phone number, the invite link or the message body:
+  // an invite log should not become a record of who knows whom.
   try {
-    console.log("📱 Sending WhatsApp to:", formattedPhone);
-    console.log("📞 From Twilio WhatsApp:", process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER);
-    console.log("📝 Message:", `${req.user.username} invited you to join Cooper! Click here to accept: ${inviteLink}`);
-    
-    const whatsappResult = await sendWhatsApp(
+    await sendWhatsApp(
       formattedPhone,
-      `${req.user.username} invited you to join Cooper! Click here to accept: ${inviteLink}`
+      `${req.user.username} invited you to join Cooper. Accept here: ${inviteLink}`
     );
-    
-    console.log("✅ WhatsApp sent successfully! SID:", whatsappResult.sid);
-    console.log("📊 Status:", whatsappResult.status);
   } catch (error) {
-    // Delete invite if WhatsApp fails
+    // An invite nobody received should not linger as a pending record.
     await invite.deleteOne();
-    console.error("❌ WhatsApp Error:", error);
-    console.error("Error code:", error.code);
-    console.error("Error message:", error.message);
-    throw new ApiError(500, `Failed to send WhatsApp: ${error.message || 'Unknown error'}`);
+    console.error("WhatsApp invite failed:", error.message);
+    throw new ApiError(502, "Could not send the WhatsApp invite. Please try again.");
   }
 
   return res.status(201).json(

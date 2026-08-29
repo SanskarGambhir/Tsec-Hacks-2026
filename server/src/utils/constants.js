@@ -1,19 +1,25 @@
-// This is where I will define all the constants used across the server application. 
+// Fixed values shared across the server.
 
-// This includes enumerations for user roles, task statuses, and any other fixed values.
-
-export const UserRolesEnum = { 
-  ADMIN: 'admin',
-  PROJECT_ADMIN: 'project_admin',
-  MEMBER: 'member',
+export const UserRolesEnum = {
+  OWNER: "owner",
+  MEMBER: "member",
 };
 
 export const AvailableUserRoles = Object.values(UserRolesEnum);
 
-export const TaskStatusEnum = {
-  TODO: "todo",
-  IN_PROGRESS: "in_progress",
-  DONE: "done",
+export const GroupRuleTypeEnum = {
+  POOLING: "pooling",
+  SPLITWISE: "splitwise",
 };
 
-export const AvailableTaskStatuses = Object.values(TaskStatusEnum);
+export const GroupReleaseTypeEnum = {
+  INSTANT: "instant",
+  TIME_LOCKED: "time_locked",
+  MILESTONE: "milestone",
+};
+
+export const DivisionMethodEnum = {
+  EVEN: "even",
+  CUSTOM: "custom",
+  EXCLUDE: "exclude",
+};

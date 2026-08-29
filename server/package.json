@@ -1,7 +1,7 @@
 {
-  "name": "projectmangement",
+  "name": "cooper-server",
   "version": "1.0.0",
-  "description": "Backend Basics",
+  "description": "Cooper API - group finance, expense splitting and wallets",
   "license": "ISC",
   "author": "Sanskar Gambhir",
   "type": "module",

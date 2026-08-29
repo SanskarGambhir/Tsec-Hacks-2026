@@ -1,8 +1,7 @@
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../api/auth.js";
-import axios from "axios";
 import api from "../api/axios.js";
+import { useAuth } from "../context/AuthContext";
 import { useState, useEffect } from "react";
 import { Zap, Mail, Lock, Shield } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +28,7 @@ export default function Login() {
   const [countdown, setCountdown] = useState(0);
 
   const navigate = useNavigate();
-
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -40,13 +39,10 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await loginUser({ email, password });
-      localStorage.setItem("user", JSON.stringify(res.data));
-
-      await api.post("wallet/add_new", {}, { withCredentials: true });
-
-      navigate("/dashboard");
-
+      // The session lives in httpOnly cookies; nothing about it is written to
+      // localStorage, so injected script has no token to steal.
+      await login({ email, password });
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       const message = error.response?.data?.message;
 
@@ -70,11 +66,7 @@ export default function Login() {
     }
 
     try {
-      await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}auth/verify-phone`,
-        { email, otp },
-        { withCredentials: true }
-      );
+      await api.post("/auth/verify-phone", { email, otp });
 
       setShowOTP(false);
       setOtp("");
@@ -88,11 +80,7 @@ export default function Login() {
   /* ================= RESEND OTP ================= */
 
   const handleResendOTP = async () => {
-    await axios.post(
-      `${import.meta.env.VITE_SERVER_URL}auth/resend-phone-otp`,
-      { email },
-      { withCredentials: true }
-    );
+    await api.post("/auth/resend-phone-otp", { email });
     setCountdown(60);
   };
 

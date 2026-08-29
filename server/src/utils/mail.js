@@ -1,82 +1,104 @@
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
 
-// This function is used to send emails using the "nodemailer" and "mailgen" libraries
+const APP_NAME = process.env.APP_NAME || "Cooper";
+const APP_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+let transporter;
+
+/** Built once and reused; nodemailer pools connections per transporter. */
+const getTransporter = () => {
+  if (transporter) return transporter;
+
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD } = process.env;
+
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASSWORD) {
+    throw new Error(
+      "SMTP_HOST, SMTP_USER and SMTP_PASSWORD must be set to send email"
+    );
+  }
+
+  const port = Number(SMTP_PORT) || 587;
+
+  transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: { user: SMTP_USER, pass: SMTP_PASSWORD },
+  });
+
+  return transporter;
+};
+
+/**
+ * Send a transactional email.
+ *
+ * Failures throw. An earlier version swallowed them, which meant registration
+ * reported success while the verification mail never left the building.
+ */
 const sendEmail = async (options) => {
-  // This "mailGenerator" object is used to generate email content in HTML and plaintext format
   const mailGenerator = new Mailgen({
     theme: "default",
-    product: {
-      name: "Task Manager App",
-      link: "https://taskmanagerapp.com"
-    }
-  })
-
-  const emailTextual = mailGenerator.generatePlaintext(options.mailgenContent);
-
-  const emailHTML = mailGenerator.generate(options.mailgenContent);
-
-  // Create a transporter (It is like a service which will send emails on our behalf)
-  const transporter = nodemailer.createTransport({
-    host: process.env.MAILTRAP_SMTP_HOST,
-    port: process.env.MAILTRAP_SMTP_PORT,
-    auth: {
-      user: process.env.MAILTRAP_SMTP_USER,
-      pass: process.env.MAILTRAP_SMTP_PASSWORD
-    }
+    product: { name: APP_NAME, link: APP_URL },
   });
 
   const mail = {
-    from: "mail.taskmanager@example.com",
+    from: process.env.MAIL_FROM || `${APP_NAME} <no-reply@${process.env.MAIL_DOMAIN || "localhost"}>`,
     to: options.email,
     subject: options.subject,
-    text: emailTextual,
-    html: emailHTML
+    text: mailGenerator.generatePlaintext(options.mailgenContent),
+    html: mailGenerator.generate(options.mailgenContent),
   };
 
-  try{
-    await transporter.sendMail(mail);
-  } catch(error){
-    console.error("Error sending email. Make sure that you have provided your MAILTRAP credentials in the .env file.");
-    console.error(error);
-  }
-}
+  await getTransporter().sendMail(mail);
+};
 
-// This is just a format for generating email content using Mailgen library.
-const emailVerificationMailgenContent = (username, verificationUrl) => {
-  return {
-    body: {
-      name: username,
-      intro: "Welcome to our App! We're very excited to have you on board.",
-      action: {
-        instructions: "To verify your email, please click on the button below:",
-        button: {
-          color: "#22BC66",
-          text: "Verify Email",
-          link: verificationUrl
-        }
+const emailVerificationMailgenContent = (username, verificationUrl) => ({
+  body: {
+    name: username,
+    intro: `Welcome to ${APP_NAME}! We're glad to have you on board.`,
+    action: {
+      instructions: "To verify your email address, click the button below:",
+      button: {
+        color: "#22BC66",
+        text: "Verify Email",
+        link: verificationUrl,
       },
-      outro: "If you did not create an account, no further action is required."
-    }
-  }
-}
+    },
+    outro: "If you did not create an account, no further action is required.",
+  },
+});
 
-const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
-  return {
-    body: {
-      name: username,
-      intro: "You have requested to reset your password.",
-      action: {
-        instructions: "To reset your password, please click on the button below:",  
-        button: {
-          color: "#DC4D2F",
-          text: "Reset Password",
-          link: passwordResetUrl
-        }
+const forgotPasswordMailgenContent = (username, passwordResetUrl) => ({
+  body: {
+    name: username,
+    intro: "You requested a password reset.",
+    action: {
+      instructions: "To choose a new password, click the button below:",
+      button: {
+        color: "#DC4D2F",
+        text: "Reset Password",
+        link: passwordResetUrl,
       },
-      outro: "If you did not request a password reset, no further action is required."
-    }
-  }
-}
+    },
+    outro: "This link expires in 20 minutes. If you did not request a reset, ignore this email.",
+  },
+});
 
-export { emailVerificationMailgenContent, forgotPasswordMailgenContent, sendEmail };
+const groupInviteMailgenContent = (inviterName, groupName, inviteUrl) => ({
+  body: {
+    intro: `${inviterName} invited you to join the group "${groupName}" on ${APP_NAME}.`,
+    action: {
+      instructions: "To accept the invitation, click the button below:",
+      button: { color: "#0052ff", text: "Join Group", link: inviteUrl },
+    },
+    outro: "If you weren't expecting this invitation, you can ignore this email.",
+  },
+});
+
+export {
+  sendEmail,
+  emailVerificationMailgenContent,
+  forgotPasswordMailgenContent,
+  groupInviteMailgenContent,
+};

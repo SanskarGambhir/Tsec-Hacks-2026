@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 
 // Helper function to get emoji based on group name
 const getGroupEmoji = (name) => {
@@ -71,7 +72,9 @@ const item = {
 };
 
 export default function Dashboard() {
-  const [username, setUsername] = useState("User");
+  // The display name comes from the live session rather than a cached copy.
+  const { user } = useAuth();
+  const username = user?.username || "there";
   const [balance, setBalance] = useState(null);
   const [recentGroups, setRecentGroups] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
@@ -96,7 +99,7 @@ export default function Dashboard() {
     try {
       const res = await api.get("/wallet/balance", { withCredentials: true });
       if (res.data.success) {
-        const balanceValue = res.data.balance;
+        const balanceValue = res.data.data.balance;
         setBalance(balanceValue);
         
         // Update the stats array with the fetched balance
@@ -121,6 +124,8 @@ export default function Dashboard() {
       const res = await api.get("/groups/user-groups", { withCredentials: true });
       if (res.data.success) {
         const groups = res.data.data || [];
+        // Defensive: balance should always be a number, but never let a bad
+        // value crash the whole dashboard over one group.
         
         // Update active groups count in stats
         setStats(prev => prev.map((stat, index) => 
@@ -134,7 +139,7 @@ export default function Dashboard() {
           id: group._id,
           name: group.name,
           members: group.members,
-          balance: `₹${group.balance.toLocaleString()}`,
+          balance: `₹${(group.balance || 0).toLocaleString()}`,
           avatar: getGroupEmoji(group.name),
           color: getGradientColor(index),
         }));
@@ -155,7 +160,7 @@ export default function Dashboard() {
     try {
       const res = await api.get("/wallet/get_trans", { withCredentials: true });
       if (res.data.success) {
-        const transactions = res.data.transactions || [];
+        const transactions = res.data.data.transactions || [];
         
         // Take only the 3 most recent transactions
         const recentActivityData = transactions.slice(0, 3).map((tx) => ({
@@ -163,7 +168,7 @@ export default function Dashboard() {
           type: tx.type === "DEPOSIT" ? "payment" : "expense",
           title: tx.type === "DEPOSIT" ? "Wallet Deposit" : tx.type,
           group: "Wallet",
-          amount: `₹${tx.amount.toLocaleString()}`,
+          amount: `₹${(tx.amount || 0).toLocaleString()}`,
           user: "You",
           time: getTimeAgo(tx.createdAt),
         }));
@@ -176,18 +181,6 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // Get username from localStorage
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        const user = parsed.data?.user || parsed.user || parsed; // Handle nested structure
-        setUsername(user.username || "User");
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-      }
-    }
-    
     // Fetch all data
     fetchBalance();
     fetchUserGroups();

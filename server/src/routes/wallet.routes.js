@@ -1,27 +1,28 @@
 import { Router } from "express";
+
 import {
-  addAmountToWallet,
   addNewWallet,
-  paymentIntentResponse,
-  paymentVerify,
   getBalance,
   getUserTransactions,
-  checkPayments,
-  completeDeposit,
+  paymentIntentResponse,
+  paymentVerify,
 } from "../controllers/wallet.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { paymentLimiter } from "../utils/rateLimiter.js";
+import { validate, amountSchema, paginationSchema } from "../validators/index.js";
+
 const router = Router();
 
-// Below line of code means that when a POST request is made to "/register", the registerUser controller function will be called.
-// Unsecure Routes
-router.route("/add").post(verifyJWT, addAmountToWallet);
-router.route("/add_new").post(verifyJWT, addNewWallet);
-router.route("/pay").post(verifyJWT, paymentIntentResponse);
-router.route("/pay_verify").post(verifyJWT, paymentVerify);
-router.route("/balance").get(verifyJWT, getBalance);
-router.route("/get_trans").get(verifyJWT, getUserTransactions);
-router.route("/check_payments").get(verifyJWT, checkPayments);
-router.route("/complete_deposit/:intentId").post(verifyJWT, completeDeposit);
+router.use(verifyJWT);
 
+router.route("/add_new").post(addNewWallet);
+router.route("/balance").get(getBalance);
+router.route("/get_trans").get(validate(paginationSchema, "query"), getUserTransactions);
+
+// Deposits are two-step: create a Razorpay order, then settle it against a
+// verified signature. There is deliberately no endpoint that credits a balance
+// without a payment behind it.
+router.route("/pay").post(paymentLimiter, validate(amountSchema), paymentIntentResponse);
+router.route("/pay_verify").post(paymentLimiter, paymentVerify);
 
 export default router;

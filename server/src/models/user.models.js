@@ -18,6 +18,8 @@ const userSchema = new Schema(
 
     username: {
       type: String,
+      required: true,
+      unique: true,
       lowercase: true,
       trim: true,
       index: true,
@@ -26,20 +28,33 @@ const userSchema = new Schema(
     email: {
       type: String,
       required: true,
+      unique: true,
       lowercase: true,
       trim: true,
+      index: true,
     },
 
     phone: {
       type: String,
       required: true,
+      unique: true,
+      trim: true,
+      index: true,
     },
 
-    panCard: {
+    // PAN is a government financial identifier and is never stored in the
+    // clear. We keep a keyed hash (for duplicate detection) plus the last four
+    // characters, which is all the UI ever needs to display.
+    panCardHash: {
       type: String,
       required: true,
-      uppercase: true,
-      trim: true,
+      unique: true,
+      index: true,
+    },
+
+    panCardLast4: {
+      type: String,
+      required: true,
     },
 
     password: {
@@ -106,6 +121,18 @@ userSchema.methods.generateTemporaryForgotPasswordToken = function () {
   const forgotPasswordExpiry = Date.now() + 20 * 60 * 1000;
 
   return { forgotToken, forgotPasswordToken, forgotPasswordExpiry };
+};
+
+/** Keyed hash so a leaked database does not leak PAN numbers. */
+userSchema.statics.hashPan = function (panCard) {
+  const secret = process.env.PAN_HASH_SECRET || process.env.ACCESS_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error("PAN_HASH_SECRET (or ACCESS_TOKEN_SECRET) must be set");
+  }
+  return crypto
+    .createHmac("sha256", secret)
+    .update(String(panCard).trim().toUpperCase())
+    .digest("hex");
 };
 
 export const User = mongoose.model("User", userSchema);

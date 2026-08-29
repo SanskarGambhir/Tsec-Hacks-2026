@@ -30,6 +30,12 @@ const sharedExpenseSchema = new Schema({
     required: true
   },
   participants: [expenseParticipantSchema],
+  creator: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+    index: true
+  },
   creatorName: {
     type: String,
     required: true
@@ -41,7 +47,8 @@ const sharedExpenseSchema = new Schema({
   shareLink: {
     type: String,
     unique: true,
-    required: true
+    required: true,
+    index: true
   },
   isActive: {
     type: Boolean,

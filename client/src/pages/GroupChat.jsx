@@ -2,14 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import {
-  connectSocket,
   joinGroup as socketJoinGroup,
   leaveGroup as socketLeaveGroup,
-  emitSendMessage,
   onNewMessage,
-  onReceiveMessage,
-  removeListener
 } from '../lib/socket';
+import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -24,9 +21,9 @@ const GroupChat = () => {
   const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
 
-  // Get current user from localStorage - handling potential { user: { _id: ... } } structure
-  const userData = JSON.parse(localStorage.getItem('user'));
-  const currentUser = userData?.data?.user || userData;
+  // The signed-in user comes from the auth context rather than a localStorage
+  // copy that could be stale or hand-edited.
+  const { user: currentUser } = useAuth();
   const currentUserId = currentUser?._id;
 
   // Scroll to bottom of messages
@@ -35,45 +32,48 @@ const GroupChat = () => {
   };
 
   useEffect(() => {
-    // Fetch group details
-    const fetchGroupDetails = async () => {
-      try {
-        const response = await api.get(`/api/v1/groups/${groupId}`);
-        setGroup(response.data.data);
+    let active = true;
 
-        // Load messages
-        setMessages(response.data.data.messages || []);
+    const load = async () => {
+      try {
+        // The axios baseURL already ends in /api/v1; repeating it here produced
+        // /api/v1/api/v1/... and a 404 on every load.
+        const [groupRes, messageRes] = await Promise.all([
+          api.get(`/groups/${groupId}`),
+          api.get(`/groups/${groupId}/messages`, { params: { limit: 100 } }),
+        ]);
+
+        if (!active) return;
+        setGroup(groupRes.data.data);
+        setMessages(messageRes.data.data.messages || []);
       } catch (err) {
-        console.error('Error fetching group details:', err);
-        setError(err.response?.data?.message || 'Failed to load group details');
+        if (active) {
+          setError(err.response?.data?.message || 'Failed to load this chat');
+        }
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
-    fetchGroupDetails();
+    load();
 
-    // Connect to socket and join the group room
-    connectSocket();
-    socketJoinGroup(groupId);
+    // The server refuses the room unless the caller is a member.
+    socketJoinGroup(groupId).then((joined) => {
+      if (active && !joined) {
+        setError('You do not have access to this group chat');
+      }
+    });
 
-    // Define message handler
-    const handleMessageReceived = (data) => {
-      setMessages(prev => [...prev, {
-        content: data.message.content,
-        sender: data.message.sender,
-        timestamp: data.message.timestamp
-      }]);
-    };
-
-    // Set up socket listener for new messages
-    onNewMessage(handleMessageReceived);
-    onReceiveMessage(handleMessageReceived);
+    // Messages are persisted by the API, which then broadcasts them; listening
+    // for the broadcast is what keeps every open tab in sync.
+    const unsubscribe = onNewMessage((data) => {
+      if (data.groupId !== groupId) return;
+      setMessages((prev) => [...prev, data.message]);
+    });
 
     return () => {
-      // Clean up socket listeners and leave group room
-      removeListener('newMessage', handleMessageReceived);
-      removeListener('receiveMessage', handleMessageReceived);
+      active = false;
+      unsubscribe();
       socketLeaveGroup(groupId);
     };
   }, [groupId]);
@@ -87,16 +87,17 @@ const GroupChat = () => {
 
     if (!newMessage.trim()) return;
 
-    try {
-      // Send message via API
-      await api.post(`/api/v1/groups/${groupId}/messages`, {
-        content: newMessage.trim()
-      }, { withCredentials: true });
+    const content = newMessage.trim();
+    // Clear straight away so the input feels responsive; restore it if the
+    // send fails rather than losing what was typed.
+    setNewMessage('');
 
-      // Clear the input field
-      setNewMessage('');
+    try {
+      const { data } = await api.post(`/groups/${groupId}/messages`, { content });
+      // The sender does not receive their own broadcast, so append locally.
+      setMessages((prev) => [...prev, data.data.message]);
     } catch (err) {
-      console.error('Error sending message:', err);
+      setNewMessage(content);
       setError(err.response?.data?.message || 'Failed to send message');
     }
   };
@@ -156,7 +157,8 @@ const GroupChat = () => {
             <div className="flex-1 overflow-y-auto mb-4 max-h-[60vh] p-2 flex flex-col">
               {messages.length > 0 ? (
                 messages.map((message, index) => {
-                  const isOwnMessage = message.sender._id === currentUserId || message.sender === currentUserId;
+                  const senderId = message.sender?._id || message.sender;
+                  const isOwnMessage = senderId === currentUserId;
 
                   return (
                     <div
@@ -167,7 +169,7 @@ const GroupChat = () => {
                         }`}
                     >
                       <div className="font-medium text-[10px] mb-1 opacity-80">
-                        {isOwnMessage ? 'You' : (message.sender.username || message.sender.email || 'User')}
+                        {isOwnMessage ? 'You' : (message.sender?.username || message.sender?.email || 'User')}
                       </div>
                       <div className="break-words text-sm">{message.content}</div>
                       <div className="text-[9px] opacity-70 mt-1 text-right">

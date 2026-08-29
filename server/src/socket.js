@@ -1,145 +1,158 @@
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
+
+import { User } from "./models/user.models.js";
+import { Group } from "./models/group.models.js";
 
 let io;
+
+const allowedOrigins = () =>
+  [
+    process.env.CORS_ORIGIN,
+    process.env.FRONTEND_URL,
+    "http://localhost:5173",
+  ].filter(Boolean);
+
+/**
+ * Read the JWT from the handshake — either the `auth.token` the client sends
+ * or the httpOnly cookie set at login.
+ */
+const extractToken = (socket) => {
+  const fromAuth = socket.handshake.auth?.token;
+  if (fromAuth) return fromAuth.replace(/^Bearer /, "");
+
+  const cookieHeader = socket.handshake.headers?.cookie;
+  if (!cookieHeader) return null;
+
+  const match = cookieHeader.match(/(?:^|;\s*)accessToken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
 
 export const initializeSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: [
-        process.env.CORS_ORIGIN,
-        "http://localhost:5173",
-        "https://tsec-hacks-2026-lac.vercel.app"
-      ].filter(Boolean),
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      origin: allowedOrigins(),
+      methods: ["GET", "POST"],
       credentials: true,
     },
   });
 
-  io.on("connection", (socket) => {
-    console.log(`Socket connected: ${socket.id}`);
+  /**
+   * Every connection is authenticated before any handler runs. The client was
+   * already sending a token; the server simply never checked it, so any client
+   * could join any group room and read its chat.
+   */
+  io.use(async (socket, next) => {
+    try {
+      const token = extractToken(socket);
+      if (!token) return next(new Error("Authentication required"));
 
-    socket.on("joinGroup", (groupId) => {
-      socket.join(groupId);
-      console.log(`Socket ${socket.id} joined group ${groupId}`);
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+      const user = await User.findById(decoded?._id).select("username email avatar");
+
+      if (!user) return next(new Error("Invalid token"));
+
+      socket.user = user;
+      return next();
+    } catch {
+      return next(new Error("Authentication failed"));
+    }
+  });
+
+  io.on("connection", (socket) => {
+    const userId = socket.user._id.toString();
+
+    // A private room per user, so the server can address someone directly
+    // without the client having to hand out raw socket ids.
+    socket.join(`user:${userId}`);
+
+    /**
+     * Joining a group room requires actual membership of that group — this is
+     * the check that turns rooms into a real boundary.
+     */
+    socket.on("joinGroup", async (groupId, callback) => {
+      try {
+        const group = await Group.findById(groupId).select("members owner").lean();
+
+        if (!group) {
+          return callback?.({ ok: false, error: "Group not found" });
+        }
+
+        const isMember =
+          group.members.some((m) => m.toString() === userId) ||
+          group.owner.toString() === userId;
+
+        if (!isMember) {
+          return callback?.({ ok: false, error: "Not a member of this group" });
+        }
+
+        socket.join(groupId);
+        return callback?.({ ok: true });
+      } catch (error) {
+        console.error("joinGroup failed:", error.message);
+        return callback?.({ ok: false, error: "Could not join group" });
+      }
     });
 
     socket.on("leaveGroup", (groupId) => {
       socket.leave(groupId);
-      console.log(`Socket ${socket.id} left group ${groupId}`);
     });
 
-    // Handle rule addition event
-    socket.on("ruleAdded", (data) => {
-      const { groupId, rule, userId } = data;
-      console.log(`Rule added in group ${groupId}:`, rule);
-      // Broadcast to all members in the group except sender
-      socket
-        .to(groupId)
-        .emit("ruleAdded", { rule, userId, timestamp: new Date() });
-    });
+    /**
+     * Relayed events carry the sender's identity from the verified session, not
+     * from the payload, so a client cannot speak as someone else. They are only
+     * delivered to rooms this socket has actually joined.
+     */
+    const relay = (event, build) => {
+      socket.on(event, (data = {}) => {
+        const { groupId } = data;
+        if (!groupId || !socket.rooms.has(groupId)) return;
 
-    // Handle member joining event
-    socket.on("memberJoined", (data) => {
-      const { groupId, user } = data;
-      console.log(
-        `Member ${user.name || user.username || user.email} joined group ${groupId}`,
-      );
-      // Notify all other members in the group
-      socket.to(groupId).emit("memberJoined", { user, timestamp: new Date() });
-    });
+        socket.to(groupId).emit(event, {
+          ...build(data),
+          user: socket.user,
+          timestamp: new Date(),
+        });
+      });
+    };
 
-    // Handle member leaving event
-    socket.on("memberLeft", (data) => {
-      const { groupId, userId } = data;
-      console.log(`Member ${userId} left group ${groupId}`);
-      // Notify all other members in the group
-      socket.to(groupId).emit("memberLeft", { userId, timestamp: new Date() });
-    });
+    relay("ruleAdded", (d) => ({ rule: d.rule }));
+    relay("typing", () => ({}));
 
-    // Handle message sending via API
-    socket.on("sendMessage", (data) => {
-      const { groupId, message, sender } = data;
-      console.log(
-        `Message sent in group ${groupId} by ${sender.name || sender.username || sender.email}:`,
-        message,
-      );
-      // Broadcast message to all members in the group except sender
-      socket
-        .to(groupId)
-        .emit("receiveMessage", { message, sender, timestamp: new Date() });
-    });
+    /**
+     * Large-expense approval. The request is addressed to a user id rather than
+     * a raw socket id: socket ids are transient, and accepting one from a
+     * client let anyone target any connection on the server.
+     */
+    socket.on("largeExpenseWarning", (data = {}) => {
+      const { groupId, targetUserId, amount, description, message } = data;
+      if (!groupId || !socket.rooms.has(groupId) || !targetUserId) return;
 
-    // Handle new message event from API
-    socket.on("newMessage", (data) => {
-      const { groupId, message } = data;
-      console.log(
-        `New message in group ${groupId} by ${message.sender.username || message.sender.email}:`,
-        message.content,
-      );
-      // Broadcast message to all members in the group
-      socket.to(groupId).emit("newMessage", { message });
-    });
-
-    // Handle request to get sockets in a room
-    socket.on("getRoomSockets", (roomId, callback) => {
-      const room = io.sockets.adapter.rooms.get(roomId);
-      const socketIds = room ? Array.from(room) : [];
-      const roomSize = socketIds.length;
-
-      console.log(`Room ${roomId} has ${roomSize} connected sockets`);
-
-      if (callback && typeof callback === "function") {
-        callback({ socketIds, count: roomSize });
-      }
-    });
-
-    // Handle high expense warning and send approval request to target socket
-    socket.on("largeExpenseWarning", (data) => {
-      const {
-        targetSocketId,
-        message,
-        amount,
-        socketId,
-        description,
+      io.to(`user:${targetUserId}`).emit("approval_request", {
         groupId,
-      } = data;
-
-      console.log(`High expense alert: ₹${amount} in group ${groupId}`);
-      console.log(`Sending approval request to socket: ${targetSocketId}`);
-
-      // Send approval request to the specific target socket
-      io.to(targetSocketId).emit("approval_request", {
         amount,
         description,
         message,
-        groupId,
-        socketId,
-        requestedBy: socket.id,
+        requestedBy: socket.user,
         timestamp: new Date(),
       });
     });
 
-    // Handle approval response and forward to requester
-    socket.on("approvalResponse", (data) => {
-      const { targetSocketId, approved, expenseData, groupId } = data;
+    socket.on("approvalResponse", (data = {}) => {
+      const { groupId, targetUserId, approved, expenseData } = data;
+      if (!groupId || !socket.rooms.has(groupId) || !targetUserId) return;
 
-      console.log(
-        `Approval response: ${approved ? "APPROVED" : "DENIED"} for expense in group ${groupId}`,
-      );
-      console.log(`Sending response to requester socket: ${targetSocketId}`);
-
-      // Send approval response back to the requester
-      io.to(targetSocketId).emit("approvalResponse", {
-        approved,
-        expenseData,
+      io.to(`user:${targetUserId}`).emit("approvalResponse", {
         groupId,
-        approvedBy: socket.id,
+        approved: Boolean(approved),
+        expenseData,
+        approvedBy: socket.user,
         timestamp: new Date(),
       });
     });
 
     socket.on("disconnect", () => {
-      console.log(`Socket disconnected: ${socket.id}`);
+      // Rooms are cleaned up by socket.io itself.
     });
   });
 
@@ -147,40 +160,16 @@ export const initializeSocket = (httpServer) => {
 };
 
 export const getIO = () => {
-  if (!io) {
-    throw new Error("Socket.io not initialized!");
-  }
+  if (!io) throw new Error("Socket.io is not initialised");
   return io;
 };
 
-// Helper function to emit events to a specific group from outside socket handlers
+/** Emit to a group room from outside a socket handler (controllers use this). */
 export const emitToGroup = (groupId, event, data) => {
-  if (io) {
-    io.to(groupId).emit(event, data);
-  }
+  if (io) io.to(String(groupId)).emit(event, data);
 };
 
-// Get all socket IDs in a specific room/group
-export const getSocketsInRoom = (roomId) => {
-  if (!io) {
-    throw new Error("Socket.io not initialized!");
-  }
-
-  const room = io.sockets.adapter.rooms.get(roomId);
-  if (!room) {
-    return [];
-  }
-
-  // Convert Set to Array
-  return Array.from(room);
-};
-
-// Get count of sockets in a room
-export const getRoomSize = (roomId) => {
-  if (!io) {
-    throw new Error("Socket.io not initialized!");
-  }
-
-  const room = io.sockets.adapter.rooms.get(roomId);
-  return room ? room.size : 0;
+/** Emit to one user across all of their open tabs. */
+export const emitToUser = (userId, event, data) => {
+  if (io) io.to(`user:${userId}`).emit(event, data);
 };

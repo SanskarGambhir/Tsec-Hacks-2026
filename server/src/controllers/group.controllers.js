@@ -10,7 +10,44 @@ import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { getIO } from "../socket.js";
 import { sendWhatsApp } from "../utils/twilio.js";
-import { razorpayInstance } from "../utils/razorpay.js";const createGroup = asyncHandler(async (req, res) => {
+import { razorpayInstance } from "../utils/razorpay.js";
+import {
+  chargeGroupMembers,
+  creditGroupMember,
+  creditUserWallet,
+  debitGroupMember,
+  debitUserWallet,
+  getMemberShare,
+  normalizeAmount,
+} from "../utils/ledger.js";
+import { computeMemberCharges } from "../utils/splitEngine.js";
+
+/**
+ * `group.pool` is a denormalised copy of `groupWallet.balance` kept for the UI.
+ * It is only ever written from the wallet's authoritative balance, never
+ * incremented on its own — that drift is what let it go negative before.
+ */
+/** Keeps a chat's history bounded so the group document cannot hit 16MB. */
+const MAX_STORED_MESSAGES = 500;
+
+const syncPool = (groupId, balance) =>
+  Group.findByIdAndUpdate(groupId, { $set: { pool: balance } }, { new: true });
+
+const assertMember = (group, userId) => {
+  const isMember =
+    group.members.some((m) => (m._id || m).toString() === userId.toString()) ||
+    (group.owner._id || group.owner).toString() === userId.toString();
+
+  if (!isMember) {
+    throw new ApiError(403, "You are not a member of this group");
+  }
+};
+
+const assertUnlocked = (group) => {
+  if (group.releaseType !== "time_locked" || !group.isLocked) return;
+  if (group.unlockDate && group.unlockDate <= new Date()) return;
+  throw new ApiError(403, "This group's funds are locked");
+};const createGroup = asyncHandler(async (req, res) => {
   const {
     name,
     description,
@@ -41,6 +78,8 @@ import { razorpayInstance } from "../utils/razorpay.js";const createGroup = asyn
     });
   }
 
+  const initialPool = pool ? normalizeAmount(pool, "Pool amount") : 0;
+
   const group = await Group.create({
     name,
     description: description || "",
@@ -50,7 +89,7 @@ import { razorpayInstance } from "../utils/razorpay.js";const createGroup = asyn
     unlockDate: unlockDate || null,
     isLocked: isLocked || false,
     milestones: milestones || [],
-    pool: pool || 0,
+    pool: initialPool,
     owner: req.user._id,
     members: [req.user._id], // Owner is automatically a member
   });
@@ -61,55 +100,50 @@ import { razorpayInstance } from "../utils/razorpay.js";const createGroup = asyn
     throw new ApiError(500, "Something went wrong while creating the group");
   }
 
-  // Handle pool deduction from owner's wallet if pool > 0
+  // Seed the pool from the owner's wallet. The debit is guarded atomically, so
+  // two concurrent group creations cannot both spend the same balance.
   let ownerWallet = null;
-  if (pool && pool > 0) {
-    ownerWallet = await UserWallet.findOne({ user: req.user._id });
-    if (!ownerWallet) {
-      // Rollback group creation if wallet not found but pool is required
+  if (initialPool > 0) {
+    try {
+      ownerWallet = await debitUserWallet(req.user._id, initialPool);
+    } catch (error) {
+      // The group has no wallet and no members' money yet, so removing it is a
+      // complete rollback.
       await Group.findByIdAndDelete(group._id);
-      throw new ApiError(404, "Owner wallet not found. Pool amount cannot be deducted.");
+      throw error;
     }
-
-    if (ownerWallet.balance < pool) {
-      // Rollback group creation if insufficient funds
-      await Group.findByIdAndDelete(group._id);
-      throw new ApiError(400, "Insufficient funds in your wallet to cover the initial pool amount.");
-    }
-
-    // Deduct from owner's wallet
-    ownerWallet.balance -= pool;
-    await ownerWallet.save();
   }
 
   // Create Group Wallet
   const groupWallet = await GroupWallet.create({
     group: createdGroup._id,
-    balance: pool || 0, // Initialize with pool amount if provided
+    balance: initialPool,
     currency: "INR",
-    memberBalances: pool > 0 ? [{
-      user: req.user._id,
-      balance: pool
-    }] : [],
-    transactions: pool > 0 ? [{
-      fromUser: req.user._id,
-      amount: pool,
-      type: "DEPOSIT",
-      description: "Initial pool contribution"
-    }] : []
+    memberBalances: initialPool > 0
+      ? [{ user: req.user._id, balance: initialPool }]
+      : [],
+    transactions: initialPool > 0
+      ? [{
+          fromUser: req.user._id,
+          amount: initialPool,
+          type: "DEPOSIT",
+          description: "Initial pool contribution",
+        }]
+      : [],
   });
 
-  // Create Transaction Record for owner's deduction
-  if (pool && pool > 0 && ownerWallet) {
+  if (initialPool > 0 && ownerWallet) {
     await Transaction.create({
       user: req.user._id,
       wallet: ownerWallet._id,
+      scope: "USER",
       intentId: `GROUP_INIT_${createdGroup._id}`,
-      type: "DEPOSIT", // Or a new type like "GROUP_INITIAL_POOL"
-      amount: pool,
+      type: "GROUP_DEPOSIT",
+      amount: initialPool,
       currency: ownerWallet.currency || "INR",
       status: "COMPLETED",
-      paymentStatus: "SUCCESS"
+      paymentStatus: "SUCCESS",
+      description: `Initial pool for group "${createdGroup.name}"`,
     });
   }
 
@@ -122,233 +156,166 @@ import { razorpayInstance } from "../utils/razorpay.js";const createGroup = asyn
     .json(new ApiResponse(201, createdGroup, "Group created successfully"));
 });
 
+
+/**
+ * Move money from the caller's personal wallet into their share of the group
+ * pool. Gateway-funded deposits go through groupPaymentIntent instead.
+ */
 const addFundsToGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
-  const { amount, intentId } = req.body;
-
-  if (!amount || amount <= 0) {
-    throw new ApiError(400, "Valid amount is required");
-  }
+  const amount = normalizeAmount(req.body.amount, "Amount");
+  const userId = req.user._id;
 
   const group = await Group.findById(groupId);
-  if (!group) {
-    throw new ApiError(404, "Group not found");
-  }
+  if (!group) throw new ApiError(404, "Group not found");
 
-  // Get Group Wallet
+  assertMember(group, userId);
+
   const groupWallet = await GroupWallet.findOne({ group: groupId });
-  if (!groupWallet) {
-    throw new ApiError(404, "Group wallet not found");
-  }
+  if (!groupWallet) throw new ApiError(404, "Group wallet not found");
 
-  // If intentId is provided, create a Transaction record for tracking
-  if (intentId) {
-    const existingTransaction = await Transaction.findOne({ intentId });
+  // Debit first: if this throws for insufficient funds nothing has moved yet.
+  const userWallet = await debitUserWallet(userId, amount);
 
-    if (!existingTransaction) {
-      await Transaction.create({
-        user: req.user._id,
-        wallet: groupWallet._id,
-        intentId: intentId,
-        type: "DEPOSIT",
-        amount: amount,
-        currency: "USDC",
-        status: "PENDING",
-      });
-
-      // For time-locked groups, add to pending funds instead of pool
-      if (group.releaseType === "time_locked") {
-        group.pendingFunds = (group.pendingFunds || 0) + amount;
-        await group.save();
-      }
-    }
-
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          groupPool: group.pool,
-          groupWalletBalance: groupWallet.balance,
-          pendingFunds: group.pendingFunds,
-        },
-        "Payment intent created, awaiting confirmation",
-      ),
-    );
-  }
-
-  // Original flow for instant payments (no intentId)
-  // 1. Get User Wallet
-  const userWallet = await UserWallet.findOne({ user: req.user._id });
-  if (!userWallet) {
-    throw new ApiError(404, "User wallet not found");
-  }
-
-  // 2. Check Balance
-  if (userWallet.balance < amount) {
-    throw new ApiError(400, "Insufficient funds in user wallet");
-  }
-
-  // 4. Perform Transaction
-  userWallet.balance -= amount;
-
-  // Update Group Wallet Total Balance
-  groupWallet.balance += amount;
-
-  // Update Specific User's Mini-Pool in Group Wallet
-  const memberBalanceIndex = groupWallet.memberBalances.findIndex(
-    (mb) => mb.user.toString() === req.user._id.toString(),
-  );
-
-  if (memberBalanceIndex > -1) {
-    groupWallet.memberBalances[memberBalanceIndex].balance += amount;
-  } else {
-    groupWallet.memberBalances.push({
-      user: req.user._id,
-      balance: amount,
+  let updatedWallet;
+  try {
+    updatedWallet = await creditGroupMember(groupId, userId, amount, {
+      fromUser: userId,
+      amount,
+      type: "DEPOSIT",
+      description: "Wallet transfer to group pool",
     });
+  } catch (error) {
+    // Never strand the money between the two wallets.
+    await creditUserWallet(userId, amount);
+    throw error;
   }
 
-  groupWallet.transactions.push({
-    fromUser: req.user._id,
+  await Transaction.create({
+    user: userId,
+    wallet: userWallet._id,
+    scope: "USER",
+    intentId: `GROUP_ADD_${groupId}_${Date.now()}`,
+    type: "GROUP_DEPOSIT",
     amount,
-    type: "DEPOSIT",
+    currency: userWallet.currency || "INR",
+    status: "COMPLETED",
+    paymentStatus: "SUCCESS",
+    description: `Transfer to group "${group.name}"`,
   });
 
-  // Sync group pool for display/legacy purposes
-  // group.pool += amount;
+  const updatedGroup = await syncPool(groupId, updatedWallet.balance);
 
-  await userWallet.save();
-  await groupWallet.save();
-  await group.save();
-
-  // Emit real-time update
   try {
-    const io = getIO();
-    io.to(groupId).emit("fundsAdded", {
+    getIO().to(groupId).emit("fundsAdded", {
       groupId,
-      addedBy: req.user._id,
+      addedBy: userId,
       amount,
-      newPoolBalance: group.pool,
-      newWalletBalance: groupWallet.balance,
+      newPoolBalance: updatedGroup.pool,
+      newWalletBalance: updatedWallet.balance,
     });
-    console.log("Socket emit successful");
   } catch (error) {
-    console.error("Socket emit failed:", error);
+    console.error("Socket emit failed:", error.message);
   }
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { groupPool: group.pool, groupWalletBalance: groupWallet.balance },
-        "Funds added successfully",
-      ),
-    );
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        groupPool: updatedGroup.pool,
+        groupWalletBalance: updatedWallet.balance,
+        memberBalance: getMemberShare(updatedWallet, userId),
+        walletBalance: userWallet.balance,
+      },
+      "Funds added successfully"
+    )
+  );
 });
 
+
+/**
+ * Record a group expense and charge it to members.
+ *
+ * Division goes through the same `computeMemberCharges` helper the detailed
+ * payment path uses, so "even", "custom" and "exclude" behave identically
+ * whichever endpoint the client calls. Previously this path ignored the
+ * requested method and always split evenly.
+ */
 const logExpense = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
-  const { amount, description } = req.body;
+  const {
+    description,
+    category,
+    divisionMethod = "even",
+    excludedMembers = [],
+    customAmounts = {},
+  } = req.body;
 
-  if (!amount || !description) {
-    throw new ApiError(400, "Amount and description are required");
-  }
+  const amount = normalizeAmount(req.body.amount, "Amount");
+  const userId = req.user._id;
 
   const group = await Group.findById(groupId);
+  if (!group) throw new ApiError(404, "Group not found");
 
-  if (!group) {
-    throw new ApiError(404, "Group not found");
-  }
+  assertMember(group, userId);
+  assertUnlocked(group);
 
-  // Check if the user is a member or owner
-  const isMember =
-    group.members.includes(req.user._id) ||
-    group.owner.toString() === req.user._id.toString();
+  const memberCharges = computeMemberCharges({
+    amount,
+    members: group.members,
+    divisionMethod,
+    excludedMembers,
+    customAmounts,
+  });
 
-  if (!isMember) {
-    throw new ApiError(403, "You are not a member of this group");
-  }
+  // Verifies every member can cover their share before anything is written.
+  const groupWallet = await chargeGroupMembers(groupId, memberCharges, {
+    fromUser: userId,
+    amount,
+    type: "GROUP_PAYMENT",
+    description,
+    memberCharges,
+  });
 
-  const groupWallet = await GroupWallet.findOne({ group: groupId });
-  if (!groupWallet) {
-    throw new ApiError(404, "Group wallet not found");
-  }
-
-  // Calculate split amount
-  const numberOfMembers = group.members.length;
-  if (numberOfMembers === 0) {
-    throw new ApiError(400, "Group has no members to split the expense");
-  }
-  const splitAmount = amount / numberOfMembers;
-
-  // Verify if ALL members have enough balance in their mini-pools
-  // Note: We need to handle cases where a member might not have an entry in memberBalances yet (effectively 0 balance)
-  for (const memberId of group.members) {
-    const memberBalanceEntry = groupWallet.memberBalances.find(
-      (mb) => mb.user.toString() === memberId.toString(),
-    );
-    const currentBalance = memberBalanceEntry ? memberBalanceEntry.balance : 0;
-
-    if (currentBalance < splitAmount) {
-      throw new ApiError(
-        400,
-        `Insufficient funds for user ${memberId}. Each member needs ${splitAmount}`,
-      );
-    }
-  }
-
-  // Deduct from each member's mini-pool
-  for (const memberId of group.members) {
-    const memberBalanceEntry = groupWallet.memberBalances.find(
-      (mb) => mb.user.toString() === memberId.toString(),
-    );
-    // We already verified existence and balance above, so strictly speaking it should be there,
-    // but safe to check if we created it (though we expect it to exist if balance > 0)
-    if (memberBalanceEntry) {
-      memberBalanceEntry.balance -= splitAmount;
-    }
-  }
-
-  // Deduct from pool and add to expenses
   const expense = {
     amount,
     description,
-    spentBy: req.user._id,
+    spentBy: userId,
+    paidBy: userId,
     date: new Date(),
+    category: category || "General",
+    divisionMethod,
+    memberCharges,
   };
 
-  group.pool -= amount;
-  group.expenses.push(expense);
+  const updatedGroup = await Group.findByIdAndUpdate(
+    groupId,
+    { $push: { expenses: expense }, $set: { pool: groupWallet.balance } },
+    { new: true }
+  );
 
-  // Update Wallet Total Balance
-  groupWallet.balance -= amount;
-  groupWallet.transactions.push({
-    fromUser: req.user._id, // Recording who spent it essentially
-    amount,
-    type: "WITHDRAWAL", // Or specific expense type if needed
-  });
-
-  await group.save();
-  await groupWallet.save();
-
-  // Emit real-time update
   try {
-    const io = getIO();
-    io.to(groupId).emit("expenseLogged", {
+    getIO().to(groupId).emit("expenseLogged", {
       groupId,
-      pool: group.pool,
+      pool: updatedGroup.pool,
       walletBalance: groupWallet.balance,
       expense,
     });
   } catch (error) {
-    console.error("Socket emit failed:", error);
-    // Continue execution, don't fail the request
+    console.error("Socket emit failed:", error.message);
   }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, group, "Expense logged successfully"));
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        expense,
+        groupBalance: groupWallet.balance,
+        memberBalances: groupWallet.memberBalances,
+      },
+      "Expense logged successfully"
+    )
+  );
 });
 
 const addRule = asyncHandler(async (req, res) => {
@@ -443,149 +410,107 @@ const removeRule = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, group, "Rule removed successfully"));
 });
 
+
 const joinGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
-  const { amount } = req.body;
+  const userId = req.user._id;
 
-  const group = await Group.findById(groupId)
-    .populate("owner", "username email")
-    .populate("members", "username email");
+  const group = await Group.findById(groupId);
+  if (!group) throw new ApiError(404, "Group not found");
 
-  if (!group) {
-    throw new ApiError(404, "Group not found");
+  const alreadyMember =
+    group.members.some((m) => m.toString() === userId.toString()) ||
+    group.owner.toString() === userId.toString();
+
+  if (alreadyMember) {
+    throw new ApiError(400, "You are already a member of this group");
   }
 
-  // Check if user is already a member
-  const isAlreadyMember = group.members.some(
-    (member) => member._id.toString() === req.user._id.toString(),
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (!groupWallet) throw new ApiError(404, "Group wallet not found");
+
+  const contribution = req.body.amount
+    ? normalizeAmount(req.body.amount, "Contribution")
+    : 0;
+
+  // Add the member first with a guarded update: `$ne` makes this a no-op if a
+  // concurrent request already added them, so membership cannot duplicate.
+  const joined = await Group.findOneAndUpdate(
+    { _id: groupId, members: { $ne: userId } },
+    { $addToSet: { members: userId } },
+    { new: true }
   );
 
-  if (isAlreadyMember) {
-    throw new ApiError(400, "User is already a member of this group");
-  }
+  if (!joined) throw new ApiError(400, "You are already a member of this group");
 
-  // Handle pool contribution if amount > 0
-  let userWallet = null;
-  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  let wallet = groupWallet;
 
-  if (amount && amount > 0) {
-    userWallet = await UserWallet.findOne({ user: req.user._id });
-    if (!userWallet) {
-      throw new ApiError(404, "User wallet not found. Contribution cannot be deducted.");
+  if (contribution > 0) {
+    let userWallet;
+    try {
+      userWallet = await debitUserWallet(userId, contribution);
+    } catch (error) {
+      // Joining is only worthwhile with the contribution they asked for, so
+      // undo the membership rather than silently joining with nothing.
+      await Group.findByIdAndUpdate(groupId, { $pull: { members: userId } });
+      throw error;
     }
 
-    if (userWallet.balance < amount) {
-      throw new ApiError(400, "Insufficient funds in your wallet to cover the group contribution.");
-    }
-
-    if (!groupWallet) {
-      throw new ApiError(404, "Group wallet not found.");
-    }
-
-    // Deduct from user's wallet
-    userWallet.balance -= amount;
-    await userWallet.save();
-
-    // Update Group Wallet
-    groupWallet.balance += amount;
-
-    // Update user's balance in group wallet
-    const memberBalanceIndex = groupWallet.memberBalances.findIndex(
-      (mb) => mb.user.toString() === req.user._id.toString(),
-    );
-
-    if (memberBalanceIndex > -1) {
-      groupWallet.memberBalances[memberBalanceIndex].balance += amount;
-    } else {
-      groupWallet.memberBalances.push({
-        user: req.user._id,
-        balance: amount,
-      });
-    }
-
-    groupWallet.transactions.push({
-      fromUser: req.user._id,
-      amount,
+    wallet = await creditGroupMember(groupId, userId, contribution, {
+      fromUser: userId,
+      amount: contribution,
       type: "DEPOSIT",
-      description: "Join group contribution"
+      description: "Contribution on joining",
     });
 
-    await groupWallet.save();
-
-    // Update group total pool
-    group.pool += amount;
-
-    // Create Transaction Record
     await Transaction.create({
-      user: req.user._id,
+      user: userId,
       wallet: userWallet._id,
-      intentId: `GROUP_JOIN_${group._id}_${Date.now()}`,
-      type: "DEPOSIT",
-      amount: amount,
+      scope: "USER",
+      intentId: `GROUP_JOIN_${groupId}_${Date.now()}`,
+      type: "GROUP_DEPOSIT",
+      amount: contribution,
       currency: userWallet.currency || "INR",
       status: "COMPLETED",
-      paymentStatus: "SUCCESS"
+      paymentStatus: "SUCCESS",
+      description: `Joined group "${group.name}"`,
     });
+
+    await syncPool(groupId, wallet.balance);
   }
 
-  // Add user to the group members
-  group.members.push(req.user._id);
-  await group.save();
-
-  // Get updated group details with populated data
   const updatedGroup = await Group.findById(groupId)
-    .populate("owner", "username email")
-    .populate("members", "username email");
+    .populate("owner", "username email avatar")
+    .populate("members", "username email avatar")
+    .lean();
 
-  console.log("Group joined:", updatedGroup);
-
-  // Prepare response with group details
-  const groupDetails = {
-    _id: updatedGroup._id,
-    name: updatedGroup.name,
-    description: updatedGroup.description,
-    pool: updatedGroup.pool,
-    rules: updatedGroup.rules,
-    owner: {
-      _id: updatedGroup.owner._id,
-      username: updatedGroup.owner.username,
-      email: updatedGroup.owner.email,
-    },
-    members: updatedGroup.members.map((member) => ({
-      _id: member._id,
-      username: member.username,
-      email: member.email,
-    })),
-    expenses: updatedGroup.expenses,
-    createdAt: updatedGroup.createdAt,
-    updatedAt: updatedGroup.updatedAt,
-    wallet: groupWallet
-      ? {
-        balance: groupWallet.balance,
-        currency: groupWallet.currency,
-        transactions: groupWallet.transactions,
-      }
-      : null,
-  };
-
-  // Emit real-time update to notify other members
   try {
-    const io = getIO();
-    io.to(groupId).emit("memberJoined", {
+    getIO().to(groupId).emit("memberJoined", {
       groupId,
       user: {
-        _id: req.user._id,
-        username: req.user.username, // assuming user object has username
+        _id: userId,
+        username: req.user.username,
         email: req.user.email,
       },
     });
   } catch (error) {
-    console.error("Socket emit failed:", error);
+    console.error("Socket emit failed:", error.message);
   }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, groupDetails, "Successfully joined the group"));
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        ...updatedGroup,
+        wallet: {
+          balance: wallet.balance,
+          currency: wallet.currency,
+          memberBalance: getMemberShare(wallet, userId),
+        },
+      },
+      "Successfully joined the group"
+    )
+  );
 });
 
 const getGroupDetails = asyncHandler(async (req, res) => {
@@ -617,78 +542,77 @@ const getGroupDetails = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, group, "Group details retrieved successfully"));
 });
 
+
 const sendMessage = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { content } = req.body;
+  const userId = req.user._id;
 
-  if (!content || content.trim().length === 0) {
-    throw new ApiError(400, "Message content is required");
-  }
+  const group = await Group.findById(groupId).select("members owner");
+  if (!group) throw new ApiError(404, "Group not found");
 
-  const group = await Group.findById(groupId);
-  if (!group) {
-    throw new ApiError(404, "Group not found");
-  }
+  assertMember(group, userId);
 
-  // Check if the user is a member of the group
-  const isMember =
-    group.members.some(
-      (member) => member.toString() === req.user._id.toString(),
-    ) || group.owner.toString() === req.user._id.toString();
+  const message = { content: content.trim(), sender: userId, timestamp: new Date() };
 
-  if (!isMember) {
-    throw new ApiError(403, "You are not a member of this group");
-  }
+  // `$push` with `$slice` appends and trims in one atomic step: concurrent
+  // messages cannot overwrite each other, and the document cannot grow past
+  // MongoDB's 16MB ceiling.
+  await Group.findByIdAndUpdate(groupId, {
+    $push: { messages: { $each: [message], $slice: -MAX_STORED_MESSAGES } },
+  });
 
-  // Create and add the message to the group
-  const message = {
-    content: content.trim(),
-    sender: req.user._id,
+  const payload = {
+    ...message,
+    sender: {
+      _id: userId,
+      username: req.user.username,
+      email: req.user.email,
+      avatar: req.user.avatar,
+    },
   };
 
-  group.messages.push(message);
-  await group.save();
-
-  // Populate the sender information for the response
-  const populatedGroup = await Group.findById(groupId)
-    .populate("owner", "username email")
-    .populate("members", "username email")
-    .populate({
-      path: "messages",
-      populate: {
-        path: "sender",
-        select: "username email",
-      },
-    })
-    .populate("wallet");
-
-  // Emit real-time update
   try {
-    const io = getIO();
-    io.to(groupId).emit("newMessage", {
-      groupId,
-      message: {
-        content: message.content,
-        sender: {
-          _id: req.user._id,
-          username: req.user.username,
-          email: req.user.email,
-        },
-        timestamp: new Date(),
-      },
-    });
+    getIO().to(groupId).emit("newMessage", { groupId, message: payload });
   } catch (error) {
-    console.error("Socket emit failed:", error);
+    console.error("Socket emit failed:", error.message);
   }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { message: payload }, "Message sent successfully"));
+});
+
+/**
+ * Messages are paginated newest-first so a long-running group chat does not
+ * ship its entire history on every open.
+ */
+const getMessages = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user._id;
+  const limit = Math.min(Number(req.query.limit) || 50, 100);
+  const page = Math.max(Number(req.query.page) || 1, 1);
+
+  const group = await Group.findById(groupId)
+    .select("members owner messages")
+    .populate("messages.sender", "username email avatar")
+    .lean();
+
+  if (!group) throw new ApiError(404, "Group not found");
+
+  assertMember(group, userId);
+
+  const all = group.messages || [];
+  const total = all.length;
+  const end = Math.max(total - (page - 1) * limit, 0);
+  const start = Math.max(end - limit, 0);
 
   return res.status(200).json(
     new ApiResponse(
       200,
-      {
-        message: populatedGroup.messages[populatedGroup.messages.length - 1],
-      },
-      "Message sent successfully",
-    ),
+      { messages: all.slice(start, end), total, page, limit },
+      "Messages fetched successfully"
+    )
   );
 });
 
@@ -1274,235 +1198,229 @@ const getGroupTransactions = asyncHandler(async (req, res) => {
     );
 });
 
-const checkGroupPayments = asyncHandler(async (req, res) => {
-  // Deprecated with Razorpay
-  return res.status(200).json(new ApiResponse(200, { updated: [], count: 0 }, "Use completeGroupDeposit for Razorpay"));
-});
+
+/**
+ * Step 2 of a gateway-funded group deposit: verify Razorpay's signature, then
+ * credit the member's share.
+ *
+ * The credited amount is read from our own PENDING row rather than the request
+ * body, and claiming that row atomically is what stops one payment being
+ * redeemed twice.
+ */
 const completeGroupDeposit = asyncHandler(async (req, res) => {
   const { groupId, intentId } = req.params;
   const { razorpay_payment_id, razorpay_signature } = req.body;
   const userId = req.user._id;
 
-  // Verify user is member of group
-  const group = await Group.findById(groupId);
-  if (!group) {
-    throw new ApiError(404, "Group not found");
-  }
-
-  const isMember =
-    group.members.some((m) => m.toString() === userId.toString()) ||
-    group.owner.toString() === userId.toString();
-
-  if (!isMember) {
-    throw new ApiError(403, "You are not a member of this group");
-  }
-
-  const groupWallet = await GroupWallet.findOne({ group: groupId });
-  if (!groupWallet) {
-    throw new ApiError(404, "Group wallet not found");
-  }
-
-  const tx = await Transaction.findOne({
-    user: userId,
-    wallet: groupWallet._id,
-    intentId,
-    status: "PENDING",
-  });
-
-  if (!tx) {
-    throw new ApiError(404, "Pending transaction not found");
-  }
-
   if (!razorpay_payment_id || !razorpay_signature) {
     throw new ApiError(400, "Missing Razorpay verification data");
   }
 
-  try {
-    const body = intentId + "|" + razorpay_payment_id;
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(body.toString())
-      .digest("hex");
+  const group = await Group.findById(groupId);
+  if (!group) throw new ApiError(404, "Group not found");
 
-    if (expectedSignature !== razorpay_signature) {
-      throw new ApiError(400, "Invalid payment signature");
-    }
+  assertMember(group, userId);
 
-    // Mark as completed
-    tx.status = "COMPLETED";
-    tx.paymentStatus = "SUCCESS";
-    tx.proofHash = razorpay_payment_id;
-    await tx.save();
+  const expected = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(intentId + "|" + razorpay_payment_id)
+    .digest("hex");
 
-    // Update group wallet balance
-    groupWallet.balance += tx.amount;
-    await groupWallet.save();
+  const a = Buffer.from(expected);
+  const b = Buffer.from(razorpay_signature);
 
-    // Update group pool and move from pending to pool
-    group.pool += tx.amount;
-    if (group.pendingFunds >= tx.amount) {
-      group.pendingFunds -= tx.amount;
-    }
-    await group.save();
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { transaction: tx },
-          "Payment verified successfully",
-        ),
-      );
-  } catch (error) {
-    console.error("Proof verification error:", error);
-    throw new ApiError(500, "Failed to verify payment signature");
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    throw new ApiError(400, "Invalid payment signature");
   }
+
+  const tx = await Transaction.findOneAndUpdate(
+    { intentId, user: userId, scope: "GROUP", status: "PENDING" },
+    {
+      $set: {
+        status: "COMPLETED",
+        paymentStatus: "SUCCESS",
+        proofHash: razorpay_payment_id,
+      },
+    },
+    { new: true }
+  );
+
+  if (!tx) {
+    throw new ApiError(404, "Pending transaction not found or already verified");
+  }
+
+  const groupWallet = await creditGroupMember(groupId, userId, tx.amount, {
+    fromUser: userId,
+    amount: tx.amount,
+    type: "DEPOSIT",
+    description: "Card / UPI deposit",
+  });
+
+  // Time-locked groups stage incoming money separately until the unlock date.
+  const update = { $set: { pool: groupWallet.balance } };
+  if (group.releaseType === "time_locked") {
+    update.$inc = { pendingFunds: -tx.amount };
+  }
+  await Group.findByIdAndUpdate(groupId, update);
+
+  try {
+    getIO().to(groupId).emit("fundsAdded", {
+      groupId,
+      addedBy: userId,
+      amount: tx.amount,
+      newWalletBalance: groupWallet.balance,
+    });
+  } catch (error) {
+    console.error("Socket emit failed:", error.message);
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { transaction: tx, groupBalance: groupWallet.balance },
+      "Payment verified successfully"
+    )
+  );
 });
 
 const cancelGroupDeposit = asyncHandler(async (req, res) => {
   const { groupId, intentId } = req.params;
   const userId = req.user._id;
 
-  const groupWallet = await GroupWallet.findOne({ group: groupId });
-  if (!groupWallet) {
-    throw new ApiError(404, "Group wallet not found");
-  }
+  const tx = await Transaction.findOneAndUpdate(
+    { intentId, user: userId, scope: "GROUP", status: "PENDING" },
+    { $set: { status: "FAILED", paymentStatus: "CANCELLED" } },
+    { new: true }
+  );
 
-  const tx = await Transaction.findOne({
-    user: userId,
-    wallet: groupWallet._id,
-    intentId,
-    status: "PENDING",
-  });
+  if (!tx) throw new ApiError(404, "Pending transaction not found");
 
-  if (!tx) {
-    throw new ApiError(404, "Pending transaction not found");
-  }
-
-  tx.status = "FAILED";
-  tx.paymentStatus = "CANCELLED";
-  await tx.save();
-
-  return res.status(200).json(new ApiResponse(200, {}, "Deposit cancelled successfully"));
-});
-
-const groupPaymentIntent = asyncHandler(async (req, res) => {
-  const { groupId } = req.params;
-  const { amount } = req.body;
-
-  if (!amount || Number(amount) <= 0) {
-    throw new ApiError(400, "Valid amount is required");
-  }
-
-  const groupWallet = await GroupWallet.findOne({ group: groupId });
-  if (!groupWallet) {
-    throw new ApiError(404, "Group wallet not found");
-  }
-
-  const amountInPaise = Math.round(Number(amount) * 100);
-  const order = await razorpayInstance.orders.create({
-    amount: amountInPaise,
-    currency: "INR",
-    receipt: `grp_${groupId.substring(0, 5)}_${Date.now()}`
-  });
-
-  return res.status(200).json(new ApiResponse(200, { order, intentId: order.id }, "Order created"));
-});
-
-// Leave group
-const leaveGroup = asyncHandler(async (req, res) => {
-  const { groupId } = req.params;
-  const userId = req.user._id;
-
-  // Check if group exists
   const group = await Group.findById(groupId);
-  if (!group) {
-    throw new ApiError(404, "Group not found");
-  }
-
-  // Check if user is the owner
-  if (group.owner.toString() === userId.toString()) {
-    throw new ApiError(
-      403,
-      "Group owner cannot leave the group. Please transfer ownership or delete the group.",
-    );
-  }
-
-  // Check if user is a member
-  const isMember = group.members.some(
-    (m) => m.toString() === userId.toString(),
-  );
-  if (!isMember) {
-    throw new ApiError(400, "You are not a member of this group");
-  }
-
-  // Find Group Wallet and handle refund
-  const groupWallet = await GroupWallet.findOne({ group: groupId });
-  if (groupWallet) {
-    const memberBalanceIndex = groupWallet.memberBalances.findIndex(
-      (mb) => mb.user.toString() === userId.toString()
-    );
-
-    if (memberBalanceIndex > -1) {
-      const refundAmount = groupWallet.memberBalances[memberBalanceIndex].balance;
-
-      if (refundAmount > 0) {
-        // Refund to user wallet
-        const userWallet = await UserWallet.findOne({ user: userId });
-        if (userWallet) {
-          userWallet.balance += refundAmount;
-          await userWallet.save();
-
-          // Update Group Wallet balance and pool
-          groupWallet.balance -= refundAmount;
-          group.pool -= refundAmount;
-
-          // Record Transaction for refund
-          await Transaction.create({
-            user: userId,
-            wallet: userWallet._id,
-            intentId: `GROUP_LEAVE_REFUND_${group._id}_${Date.now()}`,
-            type: "REFUND",
-            amount: refundAmount,
-            currency: userWallet.currency || "INR",
-            status: "COMPLETED",
-            paymentStatus: "SUCCESS"
-          });
-
-          groupWallet.transactions.push({
-            fromUser: userId,
-            amount: refundAmount,
-            type: "WITHDRAWAL",
-            description: "Refund upon leaving group"
-          });
-        }
-      }
-
-      // Remove member balance entry
-      groupWallet.memberBalances.splice(memberBalanceIndex, 1);
-      await groupWallet.save();
-    }
-  }
-
-  // Remove user from members
-  group.members = group.members.filter(
-    (m) => m.toString() !== userId.toString(),
-  );
-  await group.save();
-
-  // Emit socket event for member left
-  const io = getIO();
-  if (io) {
-    io.to(groupId).emit("memberLeft", {
-      groupId,
-      user: req.user,
+  if (group && group.releaseType === "time_locked") {
+    await Group.findByIdAndUpdate(groupId, {
+      $inc: { pendingFunds: -tx.amount },
     });
   }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, null, "Successfully left the group and funds refunded if any"));
+    .json(new ApiResponse(200, {}, "Deposit cancelled successfully"));
+});
+
+/** Step 1: create the Razorpay order and the PENDING row it will settle. */
+const groupPaymentIntent = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const amount = normalizeAmount(req.body.amount, "Amount");
+  const userId = req.user._id;
+
+  const group = await Group.findById(groupId);
+  if (!group) throw new ApiError(404, "Group not found");
+
+  // Missing before: anyone who knew a group id could open an order against it.
+  assertMember(group, userId);
+
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  if (!groupWallet) throw new ApiError(404, "Group wallet not found");
+
+  const order = await razorpayInstance.orders.create({
+    amount: Math.round(amount * 100),
+    currency: "INR",
+    receipt: "grp_" + groupId.slice(-6) + "_" + Date.now(),
+  });
+
+  await Transaction.create({
+    user: userId,
+    wallet: groupWallet._id,
+    scope: "GROUP",
+    intentId: order.id,
+    type: "GROUP_DEPOSIT",
+    amount,
+    currency: "INR",
+    status: "PENDING",
+    description: "Deposit to group " + group.name,
+  });
+
+  if (group.releaseType === "time_locked") {
+    await Group.findByIdAndUpdate(groupId, { $inc: { pendingFunds: amount } });
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { order, intentId: order.id }, "Order created"));
+});
+
+
+/** Leaving refunds whatever of the member's share is left in the group. */
+const leaveGroup = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user._id;
+
+  const group = await Group.findById(groupId);
+  if (!group) throw new ApiError(404, "Group not found");
+
+  if (group.owner.toString() === userId.toString()) {
+    throw new ApiError(
+      403,
+      "The group owner cannot leave. Transfer ownership or delete the group instead."
+    );
+  }
+
+  const isMember = group.members.some((m) => m.toString() === userId.toString());
+  if (!isMember) throw new ApiError(400, "You are not a member of this group");
+
+  assertUnlocked(group);
+
+  const groupWallet = await GroupWallet.findOne({ group: groupId });
+  const refund = groupWallet ? getMemberShare(groupWallet, userId) : 0;
+
+  let balance = groupWallet ? groupWallet.balance : 0;
+
+  if (refund > 0) {
+    const updated = await debitGroupMember(groupId, userId, refund, {
+      fromUser: userId,
+      amount: refund,
+      type: "WITHDRAWAL",
+      description: "Refund on leaving the group",
+    });
+    balance = updated.balance;
+
+    const userWallet = await creditUserWallet(userId, refund);
+
+    await Transaction.create({
+      user: userId,
+      wallet: userWallet._id,
+      scope: "USER",
+      intentId: "GROUP_LEAVE_" + groupId + "_" + Date.now(),
+      type: "REFUND",
+      amount: refund,
+      currency: userWallet.currency || "INR",
+      status: "COMPLETED",
+      paymentStatus: "SUCCESS",
+      description: "Refund on leaving group " + group.name,
+    });
+  }
+
+  await Group.findByIdAndUpdate(groupId, {
+    $pull: { members: userId },
+    $set: { pool: balance },
+  });
+
+  if (groupWallet) {
+    await GroupWallet.findOneAndUpdate(
+      { group: groupId },
+      { $pull: { memberBalances: { user: userId } } }
+    );
+  }
+
+  try {
+    getIO().to(groupId).emit("memberLeft", { groupId, userId });
+  } catch (error) {
+    console.error("Socket emit failed:", error.message);
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { refunded: refund }, "You have left the group"));
 });
 
 const getGroupPendingInvites = asyncHandler(async (req, res) => {
@@ -1553,6 +1471,7 @@ export {
   joinGroup,
   getGroupDetails,
   sendMessage,
+  getMessages,
   getUserGroups,
   sendGroupInviteToFriend,
   sendGroupInviteViaWhatsApp,
@@ -1561,7 +1480,6 @@ export {
   rejectGroupInvite,
   acceptGroupInviteByToken,
   getGroupTransactions,
-  checkGroupPayments,
   completeGroupDeposit,
   cancelGroupDeposit,
   groupPaymentIntent,

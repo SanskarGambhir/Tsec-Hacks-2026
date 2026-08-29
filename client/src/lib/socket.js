@@ -1,202 +1,108 @@
 import { io } from "socket.io-client";
 
-let socket;
+import { SERVER_ORIGIN } from "../api/axios";
 
-// Create socket connection
-export const connectSocket = (token = null) => {
-  const options = {
-    transports: ["websocket"],
-    upgrade: false,
-    secure: false,
-    rejectUnauthorized: false,
+/**
+ * One shared socket for the app.
+ *
+ * The connection authenticates using the same httpOnly cookies as the REST
+ * API, so there is no token to pass around. Group rooms are membership-checked
+ * on the server, so joining one is a request that can be refused.
+ */
+
+let socket = null;
+
+export const connectSocket = () => {
+  if (socket?.connected) return socket;
+  if (socket) return socket;
+
+  socket = io(SERVER_ORIGIN, {
+    withCredentials: true,
+    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionDelay: 1000,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: 10,
     timeout: 20000,
-  };
-
-  // Use environment variable or default to localhost:8000
-  // Remove /api/v1/ suffix if present since socket.io connects to base URL
-  let SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-  SERVER_URL = SERVER_URL.replace(/\/api\/v1\/?$/, "");
-
-  if (token) {
-    options.auth = { token };
-  }
-
-  socket = io(SERVER_URL, options);
-
-  socket.on("connect", () => {
-    console.log("Connected to server:", socket.id);
-  });
-
-  socket.on("disconnect", (reason) => {
-    console.log("Disconnected from server:", reason);
   });
 
   socket.on("connect_error", (error) => {
-    console.error("Connection error:", error);
+    console.error("Socket connection failed:", error.message);
   });
 
   return socket;
 };
 
-// Disconnect socket
 export const disconnectSocket = () => {
   if (socket) {
+    socket.removeAllListeners();
     socket.disconnect();
     socket = null;
   }
 };
 
-// Get socket instance
-export const getSocket = () => {
-  if (!socket) {
-    console.warn("Socket not connected. Call connectSocket() first.");
-    return null;
-  }
-  return socket;
-};
+export const getSocket = () => socket;
 
-// Get socket ID
-export const getSocketId = () => {
-  if (!socket || !socket.connected) {
-    console.warn("Socket not connected. Call connectSocket() first.");
-    return null;
-  }
-  return socket.id;
-};
+/**
+ * Join a group room. Resolves false when the server refuses because the user
+ * is not a member, so callers can react rather than silently receiving nothing.
+ */
+export const joinGroup = (groupId) =>
+  new Promise((resolve) => {
+    const sock = connectSocket();
+    if (!sock) return resolve(false);
 
-// Get all socket IDs in a room/group
-export const getSocketsInRoom = (roomId) => {
-  return new Promise((resolve, reject) => {
-    const socketInstance = getSocket();
-    if (!socketInstance) {
-      reject(new Error("Socket not connected"));
-      return;
-    }
+    const emit = () =>
+      sock.emit("joinGroup", groupId, (response) => resolve(Boolean(response?.ok)));
 
-    socketInstance.emit("getRoomSockets", roomId, (response) => {
-      resolve(response);
-    });
+    if (sock.connected) emit();
+    else sock.once("connect", emit);
 
-    // Timeout after 5 seconds
-    setTimeout(() => {
-      reject(new Error("Request timeout"));
-    }, 5000);
+    // Rejoin automatically after a dropped connection, otherwise a reconnect
+    // leaves the user in no room and silently stops all live updates.
+    sock.on("connect", emit);
   });
-};
 
-// Join a group
-export const joinGroup = (groupId) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.emit("joinGroup", groupId);
-  }
-};
-
-// Leave a group
 export const leaveGroup = (groupId) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.emit("leaveGroup", groupId);
-  }
+  socket?.emit("leaveGroup", groupId);
 };
 
-// Emit rule added event
-export const emitRuleAdded = (data) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.emit("ruleAdded", data);
-  }
+/** Subscribe to an event; returns the unsubscribe function. */
+export const on = (event, handler) => {
+  const sock = connectSocket();
+  sock?.on(event, handler);
+  return () => sock?.off(event, handler);
 };
 
-// Emit member joined event
-export const emitMemberJoined = (data) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.emit("memberJoined", data);
-  }
+export const off = (event, handler) => {
+  socket?.off(event, handler);
 };
 
-// Emit member left event
-export const emitMemberLeft = (data) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.emit("memberLeft", data);
-  }
+export const emit = (event, payload) => {
+  socket?.emit(event, payload);
 };
 
-// Emit send message event
-export const emitSendMessage = (data) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.emit("sendMessage", data);
-  }
+/* Named helpers for the events the UI actually listens to. Chat messages are
+   sent over the REST API — it persists them and broadcasts the result, so a
+   message can no longer appear live but vanish on refresh. */
+
+export const onNewMessage = (handler) => on("newMessage", handler);
+export const onFundsAdded = (handler) => on("fundsAdded", handler);
+export const onExpenseLogged = (handler) => on("expenseLogged", handler);
+export const onMemberJoined = (handler) => on("memberJoined", handler);
+export const onMemberLeft = (handler) => on("memberLeft", handler);
+export const onRuleAdded = (handler) => on("ruleAdded", handler);
+export const onCreditsWithdrawn = (handler) => on("creditsWithdrawn", handler);
+export const onMemberFundsAdded = (handler) => on("memberFundsAdded", handler);
+export const onApprovalRequest = (handler) => on("approval_request", handler);
+export const onApprovalResponse = (handler) => on("approvalResponse", handler);
+
+/** Ask a specific member to approve a large expense. */
+export const requestExpenseApproval = ({ groupId, targetUserId, amount, description, message }) => {
+  emit("largeExpenseWarning", { groupId, targetUserId, amount, description, message });
 };
 
-// Listen for rule added event
-export const onRuleAdded = (callback) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.on("ruleAdded", callback);
-  }
+export const respondToApproval = ({ groupId, targetUserId, approved, expenseData }) => {
+  emit("approvalResponse", { groupId, targetUserId, approved, expenseData });
 };
 
-// Listen for member joined event
-export const onMemberJoined = (callback) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.on("memberJoined", callback);
-  }
-};
-
-// Listen for member left event
-export const onMemberLeft = (callback) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.on("memberLeft", callback);
-  }
-};
-
-// Listen for received message event
-export const onReceiveMessage = (callback) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.on("receiveMessage", callback);
-  }
-};
-
-// Listen for funds added event
-export const onFundsAdded = (callback) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.on("fundsAdded", callback);
-  }
-
-  console.log("Listening for fundsAdded event");
-};
-
-// Listen for new message event
-export const onNewMessage = (callback) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.on("newMessage", callback);
-  }
-};
-
-// Listen for expense logged event
-export const onExpenseLogged = (callback) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.on("expenseLogged", callback);
-  }
-};
-
-// Remove listeners
-export const removeListener = (event, callback) => {
-  const socketInstance = getSocket();
-  if (socketInstance) {
-    socketInstance.off(event, callback);
-  }
-};
+export const removeListener = off;

@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Router } from "express";
+
 import {
   registerUser,
   loginUser,
@@ -10,33 +11,54 @@ import {
   refreshAccessToken,
   resetForgotPassword,
   changeCurrentPassword,
+  verifyPhoneOTP,
   resendPhoneOTP,
-  addMoneyToUserWallet
-} from '../controllers/auth.controllers.js';
-import { verifyJWT } from '../middlewares/auth.middleware.js';
-import { verifyPhoneOTP } from "../controllers/auth.controllers.js";
-
-
+} from "../controllers/auth.controllers.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { authLimiter, otpLimiter } from "../utils/rateLimiter.js";
+import {
+  validate,
+  registerSchema,
+  loginSchema,
+  emailOnlySchema,
+  otpSchema,
+  passwordResetSchema,
+  changePasswordSchema,
+} from "../validators/index.js";
 
 const router = Router();
 
-// Below line of code means that when a POST request is made to "/register", the registerUser controller function will be called.
-// Unsecure Routes
-router.route('/register').post(registerUser);
-router.route('/login').post(loginUser);
-router.route('/verify-email/:verificationToken').get(verifyEmail);
-router.route('/refresh-token').get(refreshAccessToken);
-router.route('/forgot-password').post(forgotPasswordRequest);
-router.route('/reset-password/:resetToken').post(resetForgotPassword);
-router.route("/verify-phone").post(verifyPhoneOTP);
-router.post("/resend-phone-otp", resendPhoneOTP);
+/* Public. Credential and OTP endpoints are rate limited — every OTP send costs
+   real money and an unlimited one is an SMS-bombing tool. */
 
+router.route("/register").post(authLimiter, validate(registerSchema), registerUser);
+router.route("/login").post(authLimiter, validate(loginSchema), loginUser);
 
-// Secure Routes
-router.route('/logout').post(verifyJWT, logoutUser);
-router.route('/current-user').get(verifyJWT, getCurrentUser);
-router.route('/resend-verification-email').post(verifyJWT, resendVerificationEmail);
-router.route('/change-password').post(verifyJWT, changeCurrentPassword);
-router.route('/add-money').post(verifyJWT, addMoneyToUserWallet);
+router.route("/verify-email/:verificationToken").get(verifyEmail);
+
+router.route("/refresh-token").post(refreshAccessToken);
+
+router
+  .route("/forgot-password")
+  .post(authLimiter, validate(emailOnlySchema), forgotPasswordRequest);
+
+router
+  .route("/reset-password/:resetToken")
+  .post(authLimiter, validate(passwordResetSchema), resetForgotPassword);
+
+router.route("/verify-phone").post(otpLimiter, validate(otpSchema), verifyPhoneOTP);
+
+router
+  .route("/resend-phone-otp")
+  .post(otpLimiter, validate(emailOnlySchema), resendPhoneOTP);
+
+/* Authenticated */
+
+router.route("/logout").post(verifyJWT, logoutUser);
+router.route("/current-user").get(verifyJWT, getCurrentUser);
+router.route("/resend-verification-email").post(verifyJWT, otpLimiter, resendVerificationEmail);
+router
+  .route("/change-password")
+  .post(verifyJWT, validate(changePasswordSchema), changeCurrentPassword);
 
 export default router;

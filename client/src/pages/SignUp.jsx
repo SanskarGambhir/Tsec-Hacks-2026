@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../api/auth.js";
-import axios from "axios";
+import api from "../api/axios.js";
 import { useState, useEffect } from "react";
 import { Zap, User, Mail, Phone, CreditCard, Lock, Shield, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,11 +63,7 @@ export default function SignUp() {
 
   const handleVerifyOTP = async () => {
     try {
-      await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}auth/verify-phone`,
-        { email, otp },
-        { withCredentials: true }
-      );
+      await api.post("/auth/verify-phone", { email, otp });
 
       navigate("/login");
 
@@ -77,11 +73,7 @@ export default function SignUp() {
   };
 
   const handleResendOTP = async () => {
-    await axios.post(
-      `${import.meta.env.VITE_SERVER_URL}auth/resend-phone-otp`,
-      { email },
-      { withCredentials: true }
-    );
+    await api.post("/auth/resend-phone-otp", { email });
     setCountdown(60);
   };
 

@@ -25,11 +25,14 @@ const expenseSchema = new Schema({
     type: String,
     required: true,
   },
+  // Who recorded the expense. Always set by the controller from the
+  // authenticated user, so it is genuinely required.
   spentBy: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    // required: true,
+    required: true,
   },
+  // Who actually fronted the money, when that differs from `spentBy`.
   paidBy: {
     type: Schema.Types.ObjectId,
     ref: "User",
@@ -46,6 +49,7 @@ const expenseSchema = new Schema({
   divisionMethod: {
     type: String,
     enum: ["even", "custom", "exclude"],
+    default: "even",
   },
   memberCharges: {
     type: Map,
@@ -150,5 +154,9 @@ const groupSchema = new Schema(
     timestamps: true,
   },
 );
+
+// The two hot lookups are "groups I own" and "groups I belong to".
+groupSchema.index({ owner: 1 });
+groupSchema.index({ members: 1 });
 
 export const Group = mongoose.model("Group", groupSchema);
