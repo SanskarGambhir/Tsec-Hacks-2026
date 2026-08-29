@@ -71,16 +71,16 @@ export default function SplitwiseSync() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-3xl font-bold tracking-tight">Splitwise Sync</h1>
-            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/20">Beta</Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/20">Beta</Badge>
           </div>
-          <p className="text-gray-400">Import your Splitwise groups and settle debts effortlessly</p>
+          <p className="text-muted-foreground">Import your Splitwise groups and settle debts effortlessly</p>
         </div>
         
         {!isConnected ? (
           <Button
             onClick={handleConnect}
             disabled={isSyncing}
-            className="bg-[#5859f2] hover:bg-[#4a4bbd] text-white font-semibold h-12 px-6"
+            className="bg-primary hover:bg-primary/90 text-foreground font-semibold h-12 px-6"
           >
             {isSyncing ? (
               <RefreshCw className="w-5 h-5 animate-spin mr-2" />
@@ -95,14 +95,14 @@ export default function SplitwiseSync() {
               variant="outline"
               onClick={handleSync}
               disabled={isSyncing}
-              className="border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10"
+              className="border-primary/20 text-primary hover:bg-primary/10"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
               Sync Data
             </Button>
             <Button
               variant="outline"
-              className="border-white/10 text-gray-400 hover:bg-white/5"
+              className="border-border text-muted-foreground hover:bg-secondary"
             >
               <Settings2 className="w-4 h-4" />
             </Button>
@@ -117,24 +117,24 @@ export default function SplitwiseSync() {
           className="grid place-items-center py-20"
         >
           <div className="text-center max-w-md space-y-6">
-            <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
+            <div className="w-24 h-24 rounded-3xl bg-secondary border border-border flex items-center justify-center mx-auto mb-6">
               <Share2 className="w-12 h-12 text-[#5859f2]" />
             </div>
             <h2 className="text-2xl font-bold">Connect your accounts</h2>
-            <p className="text-gray-400">
+            <p className="text-muted-foreground">
               Link your Splitwise account to Cooper to import your groups, expenses, and balances in one click.
             </p>
             <div className="flex flex-col gap-3 pt-4">
-              <div className="flex items-center gap-3 text-sm text-gray-400 justify-center">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-3 text-sm text-muted-foreground justify-center">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
                 Import all active groups
               </div>
-              <div className="flex items-center gap-3 text-sm text-gray-400 justify-center">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-3 text-sm text-muted-foreground justify-center">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
                 Sync real-time balances
               </div>
-              <div className="flex items-center gap-3 text-sm text-gray-400 justify-center">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-3 text-sm text-muted-foreground justify-center">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
                 One-tap settlement via Cooper Wallet
               </div>
             </div>
@@ -144,27 +144,27 @@ export default function SplitwiseSync() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column - Groups */}
           <div className="lg:col-span-8 space-y-6">
-            <Card className="glass-card border-white/10">
+            <Card className="border-border">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-xl flex items-center gap-2">
-                    <Users className="w-5 h-5 text-emerald-400" />
+                    <Users className="w-5 h-5 text-primary" />
                     Splitwise Groups
                   </CardTitle>
                   <CardDescription>Groups found on your Splitwise account</CardDescription>
                 </div>
-                <Button variant="ghost" size="sm" className="text-emerald-400">
+                <Button variant="ghost" size="sm" className="text-primary">
                   Select All
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isSyncing && (
-                  <div className="space-y-2 mb-6 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                  <div className="space-y-2 mb-6 p-4 rounded-xl bg-primary/10 border border-primary/20">
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-emerald-400 font-medium">Syncing groups...</span>
+                      <span className="text-primary font-medium">Syncing groups...</span>
                       <span>{syncProgress}%</span>
                     </div>
-                    <Progress value={syncProgress} className="h-2 bg-emerald-500/10" />
+                    <Progress value={syncProgress} className="h-2 bg-primary/10" />
                   </div>
                 )}
                 
@@ -174,31 +174,31 @@ export default function SplitwiseSync() {
                       key={group.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-all"
+                      className="flex items-center justify-between p-4 rounded-2xl bg-secondary border border-border hover:border-primary/20 transition-all"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                          <Users className="w-6 h-6 text-emerald-400" />
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                          <Users className="w-6 h-6 text-primary" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-200">{group.name}</p>
-                          <p className="text-xs text-gray-500">{group.members} members</p>
+                          <p className="font-semibold text-foreground">{group.name}</p>
+                          <p className="text-xs text-muted-foreground">{group.members} members</p>
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className={`font-bold ${group.balance < 0 ? "text-red-400" : "text-emerald-400"}`}>
+                          <p className={`font-bold ${group.balance < 0 ? "text-destructive" : "text-primary"}`}>
                             {group.balance < 0 ? "-" : "+"}₹{Math.abs(group.balance)}
                           </p>
-                          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Balance</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Balance</p>
                         </div>
                         {group.status === "synced" ? (
-                          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                          <Badge className="bg-primary/10 text-primary border-primary/20">
                             Synced
                           </Badge>
                         ) : (
-                          <Button size="sm" className="h-8 bg-emerald-600 hover:bg-emerald-700">
+                          <Button size="sm" className="h-8 bg-primary hover:bg-primary/90">
                             Import
                           </Button>
                         )}
@@ -210,36 +210,36 @@ export default function SplitwiseSync() {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="glass-card border-white/10">
+              <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-yellow-400" />
+                    <AlertCircle className="w-5 h-5 text-amber-600" />
                     Pending Settlements
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-red-500/5 border border-red-500/10">
-                    <span className="text-sm text-gray-400">Total Owed</span>
-                    <span className="text-lg font-bold text-red-400">₹450</span>
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-destructive/10 border border-red-500/10">
+                    <span className="text-sm text-muted-foreground">Total Owed</span>
+                    <span className="text-lg font-bold text-destructive">₹450</span>
                   </div>
-                  <Button className="w-full bg-red-600 hover:bg-red-700">
+                  <Button className="w-full bg-destructive hover:bg-destructive/90">
                     Settle via Cooper Wallet
                   </Button>
                 </CardContent>
               </Card>
 
-              <Card className="glass-card border-white/10">
+              <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <ArrowRightLeft className="w-5 h-5 text-blue-400" />
+                    <ArrowRightLeft className="w-5 h-5 text-primary" />
                     Auto-Sync
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     Keep your Splitwise groups and Cooper groups in perfect harmony automatically.
                   </p>
-                  <Button variant="outline" className="w-full border-blue-500/20 text-blue-400 hover:bg-blue-500/10">
+                  <Button variant="outline" className="w-full border-primary/20 text-primary hover:bg-primary/10">
                     Enable Auto-Sync
                   </Button>
                 </CardContent>
@@ -249,33 +249,33 @@ export default function SplitwiseSync() {
 
           {/* Right Column - Friends */}
           <div className="lg:col-span-4">
-            <Card className="glass-card border-white/10">
+            <Card className="border-border">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="w-5 h-5 text-purple-400" />
+                  <User className="w-5 h-5 text-primary" />
                   Splitwise Friends
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {mockSplitwiseFriends.map((friend) => (
-                  <div key={friend.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                  <div key={friend.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary border border-border">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                         {friend.avatar}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-200">{friend.name}</p>
-                        <p className={`text-xs ${friend.balance < 0 ? "text-red-400" : friend.balance > 0 ? "text-emerald-400" : "text-gray-500"}`}>
+                        <p className="text-sm font-medium text-foreground">{friend.name}</p>
+                        <p className={`text-xs ${friend.balance < 0 ? "text-destructive" : friend.balance > 0 ? "text-primary" : "text-muted-foreground"}`}>
                           {friend.balance === 0 ? "Settled" : `${friend.balance < 0 ? "Owes you" : "You owe"} ₹${Math.abs(friend.balance)}`}
                         </p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-emerald-400">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
-                <Button variant="link" className="w-full text-gray-500 text-xs">
+                <Button variant="link" className="w-full text-muted-foreground text-xs">
                   View all on Splitwise.com <ExternalLink className="w-3 h-3 ml-1" />
                 </Button>
               </CardContent>

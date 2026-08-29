@@ -119,15 +119,15 @@ export default function CreateSharedExpense() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Split Bills</h1>
-          <p className="text-gray-400 mt-1">Create a shareable expense breakdown with anyone</p>
+          <p className="text-muted-foreground mt-1">Create a shareable expense breakdown with anyone</p>
         </div>
       </motion.div>
 
       {!shareLink ? (
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl font-bold">
-              <Divide className="w-6 h-6 text-emerald-400" />
+              <Divide className="w-6 h-6 text-primary" />
               New Shared Expense
             </CardTitle>
             <CardDescription>Enter details and define how the bill is split</CardDescription>
@@ -141,19 +141,19 @@ export default function CreateSharedExpense() {
                   placeholder="e.g. Weekend Dinner" 
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="bg-white/5 border-white/10 h-12"
+                  className="bg-secondary border-border h-12"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Total Amount *</Label>
                 <div className="relative">
-                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input 
                     type="number"
                     placeholder="0.00" 
                     value={totalAmount}
                     onChange={(e) => setTotalAmount(e.target.value)}
-                    className="pl-10 bg-white/5 border-white/10 h-12"
+                    className="pl-10 bg-secondary border-border h-12"
                   />
                 </div>
               </div>
@@ -163,20 +163,20 @@ export default function CreateSharedExpense() {
                   placeholder="What was this for?" 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="bg-white/5 border-white/10 h-12"
+                  className="bg-secondary border-border h-12"
                 />
               </div>
             </div>
 
             {/* Creator Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-primary/10 border border-primary/20">
               <div className="space-y-2">
                 <Label>Your Name (Creator) *</Label>
                 <Input 
                   placeholder="Enter your name" 
                   value={creatorName}
                   onChange={(e) => setCreatorName(e.target.value)}
-                  className="bg-white/5 border-white/10"
+                  className="bg-secondary border-border"
                 />
               </div>
               <div className="space-y-2">
@@ -186,7 +186,7 @@ export default function CreateSharedExpense() {
                   placeholder="your@email.com" 
                   value={creatorEmail}
                   onChange={(e) => setCreatorEmail(e.target.value)}
-                  className="bg-white/5 border-white/10"
+                  className="bg-secondary border-border"
                 />
               </div>
             </div>
@@ -195,14 +195,14 @@ export default function CreateSharedExpense() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-emerald-400" />
+                  <UserPlus className="w-5 h-5 text-primary" />
                   <h3 className="font-bold text-lg">Participants</h3>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={calculateAutoPercentage}
-                  className="text-xs border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10"
+                  className="text-xs border-primary/20 text-primary hover:bg-primary/10"
                 >
                   Split Equally
                 </Button>
@@ -217,24 +217,24 @@ export default function CreateSharedExpense() {
                     className="flex gap-4 items-end"
                   >
                     <div className="flex-1 space-y-1">
-                      <Label className="text-xs text-gray-500">Name</Label>
+                      <Label className="text-xs text-muted-foreground">Name</Label>
                       <Input 
                         placeholder="Participant Name" 
                         value={member.name}
                         onChange={(e) => updateMember(index, "name", e.target.value)}
-                        className="bg-white/5 border-white/10"
+                        className="bg-secondary border-border"
                       />
                     </div>
                     <div className="w-24 space-y-1">
-                      <Label className="text-xs text-gray-500">Share %</Label>
+                      <Label className="text-xs text-muted-foreground">Share %</Label>
                       <div className="relative">
-                        <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+                        <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
                         <Input 
                           type="number"
                           placeholder="0" 
                           value={member.percentage}
                           onChange={(e) => updateMember(index, "percentage", e.target.value)}
-                          className="bg-white/5 border-white/10 pr-8"
+                          className="bg-secondary border-border pr-8"
                         />
                       </div>
                     </div>
@@ -242,7 +242,7 @@ export default function CreateSharedExpense() {
                       variant="ghost" 
                       size="icon" 
                       onClick={() => removeMember(index)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-400/10 mb-0.5"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 mb-0.5"
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -252,7 +252,7 @@ export default function CreateSharedExpense() {
                 <Button 
                   variant="outline" 
                   onClick={addMember}
-                  className="w-full h-12 border-dashed border-white/10 hover:border-emerald-500/30 hover:bg-white/5"
+                  className="w-full h-12 border-dashed border-border hover:border-primary/20 hover:bg-secondary"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Person
@@ -260,9 +260,9 @@ export default function CreateSharedExpense() {
               </div>
 
               {/* Creator auto-calculation display */}
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex justify-between items-center text-sm">
-                <span className="text-gray-400 font-medium">Your Remaining Share ({creatorName || 'You'}):</span>
-                <span className={`font-bold ${(100 - members.reduce((s, m) => s + parseFloat(m.percentage || 0), 0)) < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+              <div className="p-4 rounded-xl bg-secondary border border-border flex justify-between items-center text-sm">
+                <span className="text-muted-foreground font-medium">Your Remaining Share ({creatorName || 'You'}):</span>
+                <span className={`font-bold ${(100 - members.reduce((s, m) => s + parseFloat(m.percentage || 0), 0)) < 0 ? 'text-destructive' : 'text-primary'}`}>
                   {(100 - members.reduce((s, m) => s + parseFloat(m.percentage || 0), 0)).toFixed(2)}%
                 </span>
               </div>
@@ -271,8 +271,8 @@ export default function CreateSharedExpense() {
             <Button 
               onClick={handleCreateSplit}
               disabled={loading}
-              className="w-full h-14 text-black font-bold text-xl rounded-2xl"
-              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+              className="w-full h-14 text-primary-foreground font-bold text-xl rounded-2xl"
+              
             >
               {loading ? "Creating..." : "Create & Generate Link"}
             </Button>
@@ -283,23 +283,23 @@ export default function CreateSharedExpense() {
            initial={{ opacity: 0, scale: 0.9 }}
            animate={{ opacity: 1, scale: 1 }}
         >
-          <Card className="glass-card border-emerald-500/20 bg-emerald-500/5">
+          <Card className="border-primary/20 bg-primary/10">
             <CardContent className="p-10 text-center space-y-6">
-              <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-12 h-12 text-primary" />
               </div>
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold">Split Created Successfully!</h2>
-                <p className="text-gray-400 text-lg">Your shared expense link is ready to be sent.</p>
+                <p className="text-muted-foreground text-lg">Your shared expense link is ready to be sent.</p>
               </div>
               
-              <div className="flex gap-2 p-3 rounded-2xl bg-black/40 border border-white/10 mt-8">
+              <div className="flex gap-2 p-3 rounded-2xl border border-border mt-8">
                 <Input 
                   value={shareLink} 
                   readOnly 
                   className="bg-transparent border-none focus-visible:ring-0 font-mono text-sm h-10"
                 />
-                <Button onClick={copyToClipboard} className="shrink-0 bg-emerald-600 hover:bg-emerald-500 px-6">
+                <Button onClick={copyToClipboard} className="shrink-0 bg-primary hover:bg-primary px-6">
                   {copied ? <CheckCircle2 className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
                   {copied ? 'Copied' : 'Copy'}
                 </Button>
@@ -309,12 +309,12 @@ export default function CreateSharedExpense() {
                 <Button 
                   variant="outline" 
                   onClick={() => { setShareLink(""); setTitle(""); setTotalAmount(""); setMembers([{ name: "", percentage: "" }]); }}
-                  className="flex-1 h-12 border-white/10 text-lg font-semibold"
+                  className="flex-1 h-12 border-border text-lg font-semibold"
                 >
                   Create Another
                 </Button>
                 <Button 
-                  className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-500 text-lg font-semibold"
+                  className="flex-1 h-12 bg-primary hover:bg-primary text-lg font-semibold"
                   onClick={() => window.open(shareLink, '_blank')}
                 >
                   Preview Page

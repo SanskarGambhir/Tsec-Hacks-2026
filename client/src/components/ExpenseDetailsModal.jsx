@@ -9,11 +9,11 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
   if (!expense) return null;
 
   const categoryColors = {
-    Accommodation: "bg-blue-500/20 text-blue-400",
+    Accommodation: "bg-primary/20 text-primary",
     Food: "bg-orange-500/20 text-orange-400",
     Activities: "bg-purple-500/20 text-purple-400",
-    Transport: "bg-green-500/20 text-green-400",
-    General: "bg-gray-500/20 text-gray-400",
+    Transport: "bg-primary/10 text-primary",
+    General: "bg-secondary text-muted-foreground",
   };
 
   // Get the user who paid for this expense
@@ -40,18 +40,18 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
     : 0;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <Card className="glass-card border-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between border-b border-white/10">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+      <Card className="border-border max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border">
           <CardTitle className="text-xl flex items-center gap-2">
-            <Receipt className="w-6 h-6 text-emerald-400" />
+            <Receipt className="w-6 h-6 text-primary" />
             Expense Details
           </CardTitle>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="text-gray-400 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </Button>
@@ -62,7 +62,7 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
           <div className="space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <h3 className="text-2xl font-bold text-foreground mb-2">
                   {expense.description}
                 </h3>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -75,7 +75,7 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
                   )}
                   <Badge
                     variant="outline"
-                    className="border-white/20 text-gray-300"
+                    className="border-border text-foreground"
                   >
                     {expense.divisionMethod === "even"
                       ? "Split Evenly"
@@ -88,19 +88,19 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-bold text-emerald-400">
+                <p className="text-3xl font-bold text-primary">
                   ₹{expense.amount.toFixed(2)}
                 </p>
-                <p className="text-sm text-gray-400 mt-1">Total Amount</p>
+                <p className="text-sm text-muted-foreground mt-1">Total Amount</p>
               </div>
             </div>
 
             {/* Date and Paid By */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5">
-                <Calendar className="w-5 h-5 text-blue-400" />
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
+                <Calendar className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-xs text-gray-400">Date</p>
+                  <p className="text-xs text-muted-foreground">Date</p>
                   <p className="font-medium">
                     {new Date(expense.date).toLocaleDateString("en-US", {
                       year: "numeric",
@@ -112,10 +112,10 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
               </div>
 
               {paidByUser && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
                   <User className="w-5 h-5 text-purple-400" />
                   <div>
-                    <p className="text-xs text-gray-400">Paid By</p>
+                    <p className="text-xs text-muted-foreground">Paid By</p>
                     <p className="font-medium truncate">
                       {paidByUser.username || paidByUser.email}
                     </p>
@@ -128,7 +128,7 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
           {/* Member Split Details */}
           <div>
             <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
+              <DollarSign className="w-5 h-5 text-primary" />
               Split Breakdown
             </h4>
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
@@ -137,14 +137,14 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
                 memberChargesArray.map(({ userId, amount, member }) => (
                   <div
                     key={userId}
-                    className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg bg-secondary hover:bg-secondary transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <Avatar className="w-10 h-10">
                         <AvatarImage
                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member?.email || userId}`}
                         />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-sm">
+                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-foreground text-sm">
                           {member
                             ? (member.username || member.email)[0].toUpperCase()
                             : "?"}
@@ -155,17 +155,17 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
                           {member?.username || member?.email || "Unknown User"}
                         </p>
                         {member?.email && (
-                          <p className="text-xs text-gray-400 truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {member.email}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="text-right ml-3">
-                      <p className="font-bold text-emerald-400">
+                      <p className="font-bold text-primary">
                         ₹{Number(amount).toFixed(2)}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {((Number(amount) / expense.amount) * 100).toFixed(1)}%
                       </p>
                     </div>
@@ -176,14 +176,14 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
                 group?.members?.map((member) => (
                   <div
                     key={member._id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg bg-secondary hover:bg-secondary transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <Avatar className="w-10 h-10">
                         <AvatarImage
                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.email}`}
                         />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-sm">
+                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-foreground text-sm">
                           {(member.username || member.email)[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -192,17 +192,17 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
                           {member.username || member.email}
                         </p>
                         {member.email && (
-                          <p className="text-xs text-gray-400 truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {member.email}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="text-right ml-3">
-                      <p className="font-bold text-emerald-400">
+                      <p className="font-bold text-primary">
                         ₹{equalSplitAmount.toFixed(2)}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {((equalSplitAmount / expense.amount) * 100).toFixed(1)}
                         %
                       </p>
@@ -214,8 +214,8 @@ const ExpenseDetailsModal = ({ expense, group, onClose }) => {
           </div>
 
           {/* Summary */}
-          <div className="pt-4 border-t border-white/10">
-            <div className="flex items-center justify-between text-sm text-gray-400">
+          <div className="pt-4 border-t border-border">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>
                 Split among {hasDetailedSplit ? memberChargesArray.length : group?.members?.length || 0}{" "}
                 member

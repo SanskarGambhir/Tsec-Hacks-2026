@@ -19,6 +19,7 @@ import {
   checkGroupPayments,
   completeGroupDeposit,
   cancelGroupDeposit,
+  groupPaymentIntent,
   leaveGroup,
   getGroupPendingInvites,
 } from "../controllers/group.controllers.js";
@@ -50,6 +51,7 @@ router.route("/:groupId/add-funds").post(addFundsToGroup);
 router.route("/:groupId/messages").post(sendMessage);
 router.route("/:groupId/transactions").get(getGroupTransactions);
 router.route("/:groupId/check-payments").get(checkGroupPayments);
+router.route("/:groupId/pay").post(groupPaymentIntent);
 router.route("/:groupId/complete-deposit/:intentId").post(completeGroupDeposit);
 router.route("/:groupId/cancel-deposit/:intentId").post(cancelGroupDeposit);
 // router.route("/:groupId/process-payment").post(processGroupPayment);

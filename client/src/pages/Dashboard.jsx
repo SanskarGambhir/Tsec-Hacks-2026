@@ -35,7 +35,7 @@ const getGradientColor = (index) => {
     "from-blue-500 to-cyan-500",
     "from-purple-500 to-pink-500",
     "from-orange-500 to-red-500",
-    "from-green-500 to-emerald-500",
+    "from-primary to-primary",
     "from-yellow-500 to-orange-500",
     "from-indigo-500 to-purple-500",
   ];
@@ -204,15 +204,14 @@ export default function Dashboard() {
       >
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">
-            Welcome back, <span className="gradient-text">{username}</span> 👋
+            Welcome back, <span className="text-foreground">{username}</span> 👋
           </h1>
-          <p className="text-gray-400 mt-1">Here's what's happening with your expenses</p>
+          <p className="text-muted-foreground mt-1">Here's what's happening with your expenses</p>
         </div>
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Link
             to="/groups/create"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-black font-semibold hover:opacity-90 transition-opacity"
-            style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>New Group</span>
@@ -229,14 +228,14 @@ export default function Dashboard() {
       >
         {stats.map((stat, index) => (
           <motion.div key={stat.title} variants={item}>
-            <Card className="glass-card border-white/10 hover:border-emerald-500/30 transition-colors">
+            <Card className="border-border hover:border-primary/20 transition-colors">
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                    <stat.icon className="w-5 h-5 text-emerald-400" />
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                    <stat.icon className="w-5 h-5 text-primary" />
                   </div>
                   <span
-                    className={`flex items-center text-xs font-medium ${stat.trend === "up" ? "text-emerald-400" : "text-red-400"
+                    className={`flex items-center text-xs font-medium ${stat.trend === "up" ? "text-primary" : "text-destructive"
                       }`}
                   >
                     {stat.trend === "up" ? (
@@ -247,38 +246,15 @@ export default function Dashboard() {
                     {stat.change}
                   </span>
                 </div>
-                <div className="text-2xl lg:text-3xl font-bold">{stat.value}</div>
-                <div className="text-xs lg:text-sm text-gray-400 mt-1">{stat.title}</div>
+                <div className="text-2xl lg:text-3xl font-bold font-mono">{stat.value}</div>
+                <div className="text-xs lg:text-sm text-muted-foreground mt-1">{stat.title}</div>
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* Splitwise Teaser */}
-      {/* <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Link to="/splitwise">
-          <Card className="glass-card border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all group overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/20 transition-all" />
-            <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                  <Share2 className="w-6 h-6 text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">Sync with Splitwise</h3>
-                  <p className="text-sm text-gray-400">Import your existing groups and settle balances instantly</p>
-                </div>
-              </div>
-              <ChevronRight className="w-6 h-6 text-emerald-400 group-hover:translate-x-1 transition-transform" />
-            </CardContent>
-          </Card>
-        </Link>
-      </motion.div> */}
+
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
@@ -289,12 +265,12 @@ export default function Dashboard() {
           transition={{ delay: 0.3 }}
           className="lg:col-span-2"
         >
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-semibold">Recent Groups</CardTitle>
               <Link
                 to="/groups"
-                className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                className="text-sm text-primary hover:text-primary flex items-center gap-1"
               >
                 View All
                 <ChevronRight className="w-4 h-4" />
@@ -302,14 +278,14 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               {recentGroups.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-500 space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
                     <Users className="w-8 h-8 opacity-20" />
                   </div>
                   <p className="text-sm">No groups yet</p>
                   <Link
                     to="/groups/create"
-                    className="text-emerald-400 hover:text-emerald-300 text-sm flex items-center gap-1"
+                    className="text-primary hover:text-primary text-sm flex items-center gap-1"
                   >
                     <Plus className="w-4 h-4" />
                     Create your first group
@@ -325,21 +301,20 @@ export default function Dashboard() {
                   >
                     <Link
                       to={`/groups/${group.id}`}
-                      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-emerald-500/30 transition-all"
+                      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-secondary hover:bg-secondary border border-transparent hover:border-primary/20 transition-all"
                     >
                       <div
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0"
-                        style={{ background: `linear-gradient(135deg, ${group.color.includes('blue') ? '#3b82f6, #06b6d4' : group.color.includes('purple') ? '#a855f7, #ec4899' : '#f97316, #ef4444'})` }}
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0 bg-primary/10"
                       >
                         {group.avatar}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold truncate">{group.name}</h3>
-                        <p className="text-sm text-gray-400">{group.members} members</p>
+                        <p className="text-sm text-muted-foreground">{group.members} members</p>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold text-emerald-400">{group.balance}</div>
-                        <div className="text-xs text-gray-400">Pool Balance</div>
+                        <div className="font-semibold text-primary">{group.balance}</div>
+                        <div className="text-xs text-muted-foreground">Pool Balance</div>
                       </div>
                     </Link>
                   </motion.div>
@@ -355,12 +330,12 @@ export default function Dashboard() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
               <Link
                 to="/activity"
-                className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                className="text-sm text-primary hover:text-primary flex items-center gap-1"
               >
                 View All
                 <ChevronRight className="w-4 h-4" />
@@ -368,8 +343,8 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               {recentActivity.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-500 space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
                     <TrendingUp className="w-8 h-8 opacity-20" />
                   </div>
                   <p className="text-sm">No recent activity</p>
@@ -381,12 +356,12 @@ export default function Dashboard() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 + index * 0.1 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-secondary"
                   >
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center ${activity.type === "expense"
-                          ? "bg-red-500/20 text-red-400"
-                          : "bg-emerald-500/20 text-emerald-400"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-primary/10 text-primary"
                         }`}
                     >
                       {activity.type === "expense" ? (
@@ -397,19 +372,19 @@ export default function Dashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{activity.title}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {activity.user} • {activity.group}
                       </p>
                     </div>
                     <div className="text-right">
                       <p
-                        className={`font-semibold text-sm ${activity.type === "expense" ? "text-red-400" : "text-emerald-400"
+                        className={`font-semibold text-sm ${activity.type === "expense" ? "text-destructive" : "text-primary"
                           }`}
                       >
                         {activity.type === "expense" ? "-" : "+"}
                         {activity.amount}
                       </p>
-                      <p className="text-xs text-gray-500">{activity.time}</p>
+                      <p className="text-xs text-muted-foreground">{activity.time}</p>
                     </div>
                   </motion.div>
                 ))
@@ -419,43 +394,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Monthly Overview */}
-      {/* <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Card className="glass-card border-white/10">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Monthly Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid sm:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Income</span>
-                  <span className="font-medium text-emerald-400">$4,500</span>
-                </div>
-                <Progress value={75} className="h-2 bg-white/10" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Expenses</span>
-                  <span className="font-medium text-red-400">$2,340</span>
-                </div>
-                <Progress value={52} className="h-2 bg-white/10" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Savings</span>
-                  <span className="font-medium text-blue-400">$2,160</span>
-                </div>
-                <Progress value={48} className="h-2 bg-white/10" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div> */}
+
     </div>
   );
 }

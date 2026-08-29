@@ -31,56 +31,47 @@ export default function Sidebar({ isOpen, onClose }) {
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
       {/* Close button for mobile */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors lg:hidden z-10"
+        className="absolute top-4 right-4 p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors lg:hidden z-10"
       >
-        <X className="w-5 h-5" />
+        <X className="w-5 h-5 text-foreground" />
       </button>
 
       {/* Logo */}
-      <div className="p-6 flex items-center gap-3 border-b border-emerald-500/10">
+      <div className="p-6 flex items-center gap-3 border-b border-sidebar-border">
         <motion.div
-          whileHover={{ scale: 1.1, rotate: 10 }}
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+          whileHover={{ scale: 1.05 }}
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-primary"
         >
-          <Zap className="w-6 h-6 text-black" />
+          <Zap className="w-6 h-6 text-primary-foreground" />
         </motion.div>
-        <span className="text-xl font-bold gradient-text">Cooper</span>
+        <span className="text-xl font-bold text-foreground">Cooper</span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             onClick={onClose}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${isActive
-                ? "text-emerald-400 border border-emerald-500/30"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+              `flex items-center gap-3 px-4 py-3 rounded-full transition-all duration-200 group ${isActive
+                ? "bg-primary text-primary-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`
-            }
-            style={({ isActive }) =>
-              isActive
-                ? { background: "linear-gradient(90deg, rgba(74,222,128,0.2), rgba(34,197,94,0.1))" }
-                : {}
             }
           >
             {({ isActive }) => (
               <div className="flex items-center gap-3 w-full">
                 <item.icon
-                  className={`w-5 h-5 transition-all ${isActive ? "text-emerald-400" : "group-hover:text-emerald-400"
+                  className={`w-5 h-5 transition-all ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
                     }`}
                 />
-                <span className="font-medium">{item.label}</span>
-                {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                )}
+                <span>{item.label}</span>
               </div>
             )}
           </NavLink>
@@ -88,37 +79,31 @@ export default function Sidebar({ isOpen, onClose }) {
       </nav>
 
       {/* AI Assistant Card */}
-      {/* <div className="mx-4 mb-4 p-4 rounded-xl glass-card">
+      <div className="mx-4 mb-4 p-4 rounded-2xl bg-secondary">
         <div className="flex items-center gap-2 mb-2">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #a855f7, #ec4899)" }}
-          >
-            <Zap className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary">
+            <Zap className="w-4 h-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-sm">Cooper AI</span>
+          <span className="font-semibold text-sm text-foreground">Cooper AI</span>
         </div>
-        <p className="text-xs text-gray-400 mb-3">
+        <p className="text-xs text-muted-foreground mb-3">
           Your smart expense assistant
         </p>
-        <button
-          className="w-full py-2 px-3 text-xs font-medium rounded-lg text-white hover:opacity-90 transition-opacity"
-          style={{ background: "linear-gradient(90deg, #a855f7, #ec4899)" }}
-        >
-          Coming Soon
-        </button>
-      </div> */}
+        <a href="/ai-insights" className="block w-full py-2 px-3 text-xs font-semibold rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-center">
+          Explore
+        </a>
+      </div>
 
       {/* Logout Button */}
-      <div className="p-4 border-t border-emerald-500/10">
+      <div className="p-4 border-t border-sidebar-border">
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all"
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-full text-destructive hover:bg-destructive/10 transition-colors font-medium"
         >
           <LogOut className="w-5 h-5" />
-          <span className="font-medium">Logout</span>
+          <span>Logout</span>
         </motion.button>
       </div>
     </div>
@@ -127,13 +112,7 @@ export default function Sidebar({ isOpen, onClose }) {
   return (
     <>
       {/* Desktop Sidebar - Always visible on lg+ */}
-      <aside
-        className="hidden lg:flex fixed left-0 top-0 h-screen w-64 z-30 flex-col"
-        style={{
-          background: "linear-gradient(180deg, rgba(10, 15, 10, 0.98) 0%, rgba(16, 24, 16, 0.95) 100%)",
-          borderRight: "1px solid rgba(74, 222, 128, 0.1)",
-        }}
-      >
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 z-30 flex-col">
         <SidebarContent />
       </aside>
 
@@ -147,7 +126,7 @@ export default function Sidebar({ isOpen, onClose }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 backdrop-blur-sm z-40 lg:hidden"
             />
 
             {/* Mobile Sidebar */}
@@ -157,10 +136,6 @@ export default function Sidebar({ isOpen, onClose }) {
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed left-0 top-0 h-screen w-64 z-50 flex flex-col lg:hidden"
-              style={{
-                background: "linear-gradient(180deg, rgba(10, 15, 10, 0.98) 0%, rgba(16, 24, 16, 0.95) 100%)",
-                borderRight: "1px solid rgba(74, 222, 128, 0.1)",
-              }}
             >
               <SidebarContent />
             </motion.aside>

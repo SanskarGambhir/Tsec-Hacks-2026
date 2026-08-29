@@ -124,12 +124,12 @@ const defaultActivities = [
 ];
 
 const activityIcons = {
-  expense: { icon: Receipt, color: "bg-red-500/20 text-red-400" },
-  payment: { icon: Check, color: "bg-emerald-500/20 text-emerald-400" },
-  member: { icon: Users, color: "bg-blue-500/20 text-blue-400" },
-  pool: { icon: TrendingUp, color: "bg-purple-500/20 text-purple-400" },
-  message: { icon: Clock, color: "bg-yellow-500/20 text-yellow-400" },
-  settlement: { icon: Check, color: "bg-emerald-500/20 text-emerald-400" },
+  expense: { icon: Receipt, color: "bg-destructive/10 text-destructive" },
+  payment: { icon: Check, color: "bg-primary/10 text-primary" },
+  member: { icon: Users, color: "bg-primary/20 text-primary" },
+  pool: { icon: TrendingUp, color: "bg-primary/10 text-primary" },
+  message: { icon: Clock, color: "bg-amber-50 text-amber-600" },
+  settlement: { icon: Check, color: "bg-primary/10 text-primary" },
 };
 
 const filters = ["All", "Expenses", "Payments", "Members", "Pool"];
@@ -268,10 +268,10 @@ export default function ActivityPage() {
 
   // Prepare chart data for activity type distribution
   const typeDistribution = [
-    { name: "Expenses", value: activities.filter((a) => a.type === "expense").length, fill: "#ef4444" },
-    { name: "Payments", value: activities.filter((a) => a.type === "payment").length, fill: "#10b981" },
-    { name: "Messages", value: activities.filter((a) => a.type === "message").length, fill: "#f59e0b" },
-    { name: "Settlement", value: activities.filter((a) => a.type === "settlement").length, fill: "#8b5cf6" },
+    { name: "Expenses", value: activities.filter((a) => a.type === "expense").length, fill: "#cf202f" },
+    { name: "Payments", value: activities.filter((a) => a.type === "payment").length, fill: "#05b169" },
+    { name: "Messages", value: activities.filter((a) => a.type === "message").length, fill: "#f4b000" },
+    { name: "Settlement", value: activities.filter((a) => a.type === "settlement").length, fill: "#0052ff" },
   ].filter((item) => item.value > 0);
 
   // Prepare chart data for activity by type (bar chart)
@@ -289,7 +289,7 @@ export default function ActivityPage() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400"
+          className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive"
         >
           {error}
         </motion.div>
@@ -302,11 +302,11 @@ export default function ActivityPage() {
           animate={{ opacity: 1 }}
           className="text-center py-20"
         >
-          <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center mb-6 animate-pulse">
-            <ActivityIcon className="w-12 h-12 text-emerald-400" />
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-4">
+            <ActivityIcon className="w-10 h-10 text-muted-foreground animate-spin" />
           </div>
-          <h3 className="text-2xl font-bold mb-2">Loading Activities</h3>
-          <p className="text-gray-400">Fetching your recent activity...</p>
+          <h3 className="text-xl font-semibold mb-2">Loading activities</h3>
+          <p className="text-muted-foreground">Please wait...</p>
         </motion.div>
       )}
       <motion.div
@@ -316,11 +316,11 @@ export default function ActivityPage() {
       >
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">Activity</h1>
-          <p className="text-gray-400 mt-1">Track all your group activities</p>
+          <p className="text-muted-foreground mt-1">Track all your group activities</p>
         </div>
         <button
           onClick={() => setShowDateFilter(!showDateFilter)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors w-fit"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary border border-border hover:bg-secondary transition-colors w-fit"
         >
           <Calendar className="w-4 h-4" />
           <span>This Month</span>
@@ -335,56 +335,56 @@ export default function ActivityPage() {
         transition={{ delay: 0.1 }}
         className="grid grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                <ActivityIcon className="w-5 h-5 text-blue-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <ActivityIcon className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Total Activities</p>
+                <p className="text-sm text-muted-foreground">Total Activities</p>
                 <p className="text-xl font-bold">{stats.totalActivities}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                <Receipt className="w-5 h-5 text-red-400" />
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <Receipt className="w-5 h-5 text-destructive" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Expenses</p>
+                <p className="text-sm text-muted-foreground">Expenses</p>
                 <p className="text-xl font-bold">{stats.expenses}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                <Check className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Check className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Settlements</p>
+                <p className="text-sm text-muted-foreground">Settlements</p>
                 <p className="text-xl font-bold">{stats.payments}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-white/10">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-purple-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-400">Pool Updates</p>
+                <p className="text-sm text-muted-foreground">Pool Updates</p>
                 <p className="text-xl font-bold">{stats.poolActivities}</p>
               </div>
             </div>
@@ -401,10 +401,10 @@ export default function ActivityPage() {
           className="grid grid-cols-1 lg:grid-cols-2 gap-6"
         >
           {/* Activity Trend Chart */}
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-400" />
+                <TrendingUp className="w-5 h-5 text-primary" />
                 Activity Trend
               </CardTitle>
             </CardHeader>
@@ -412,16 +412,16 @@ export default function ActivityPage() {
               {trendChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={trendChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="date" stroke="#9ca3af" />
-                    <YAxis stroke="#9ca3af" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" />
+                    <XAxis dataKey="date" stroke="#7c828a" />
+                    <YAxis stroke="#7c828a" />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: "#1f2937", 
-                        border: "1px solid #374151",
-                        borderRadius: "8px"
+                        backgroundColor: "#ffffff", 
+                        border: "1px solid #dee1e6",
+                        borderRadius: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
                       }}
-                      labelStyle={{ color: "#fff" }}
+                      labelStyle={{ color: "#0a0b0d" }}
                     />
                     <Line
                       type="monotone"
@@ -434,7 +434,7 @@ export default function ActivityPage() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-muted-foreground">
                   No trend data available
                 </div>
               )}
@@ -442,10 +442,10 @@ export default function ActivityPage() {
           </Card>
 
           {/* Activity Type Distribution */}
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-green-400" />
+                <Receipt className="w-5 h-5 text-primary" />
                 Activity Distribution
               </CardTitle>
             </CardHeader>
@@ -469,16 +469,16 @@ export default function ActivityPage() {
                     </Pie>
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: "#1f2937", 
-                        border: "1px solid #374151",
-                        borderRadius: "8px",
-                        color: "#fff"
+                        backgroundColor: "#ffffff", 
+                        border: "1px solid #dee1e6",
+                        borderRadius: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        color: "#0a0b0d"
                       }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-muted-foreground">
                   No distribution data available
                 </div>
               )}
@@ -486,10 +486,10 @@ export default function ActivityPage() {
           </Card>
 
           {/* Activity by Type Bar Chart */}
-          <Card className="glass-card border-white/10 lg:col-span-2">
+          <Card className="border-border lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-purple-400" />
+                <Users className="w-5 h-5 text-primary" />
                 Activities by Type
               </CardTitle>
             </CardHeader>
@@ -497,22 +497,22 @@ export default function ActivityPage() {
               {activityByType.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={activityByType}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="type" stroke="#9ca3af" />
-                    <YAxis stroke="#9ca3af" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" />
+                    <XAxis dataKey="type" stroke="#7c828a" />
+                    <YAxis stroke="#7c828a" />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: "#1f2937", 
-                        border: "1px solid #374151",
-                        borderRadius: "8px"
+                        backgroundColor: "#ffffff", 
+                        border: "1px solid #dee1e6",
+                        borderRadius: "12px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
                       }}
-                      labelStyle={{ color: "#fff" }}
+                      labelStyle={{ color: "#0a0b0d" }}
                     />
-                    <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="count" fill="#0052ff" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-muted-foreground">
                   No data available
                 </div>
               )}
@@ -536,8 +536,8 @@ export default function ActivityPage() {
             onClick={() => setActiveFilter(filter)}
             className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
               activeFilter === filter
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-lg shadow-emerald-500/20"
-                : "bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-white/20"
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
             }`}
           >
             {filter}
@@ -555,13 +555,10 @@ export default function ActivityPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 * groupIndex }}
           >
-            <div className="flex items-center gap-3 mb-4">
-              <h3 className="text-base font-semibold text-white">
-                {formatDate(date)}
-              </h3>
-              <div className="flex-1 h-px bg-white/10"></div>
-            </div>
-            <Card className="glass-card border-white/10 overflow-hidden">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3 px-1">
+              {formatDate(date)}
+            </h3>
+            <Card className="border-border">
               <CardContent className="p-2">
                 {dayActivities.map((activity, index) => {
                   const iconData = activityIcons[activity.type] || activityIcons.expense;
@@ -574,7 +571,7 @@ export default function ActivityPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.05 * index }}
-                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 hover:border-l-2 hover:border-emerald-500/50 transition-all cursor-pointer"
+                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-secondary transition-colors"
                     >
                       <div
                         className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${iconColor}`}
@@ -587,8 +584,8 @@ export default function ActivityPage() {
                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user.email}`}
                         />
                         <AvatarFallback 
-                          className="text-black text-sm"
-                          style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+                          className="text-primary-foreground text-sm"
+                          
                         >
                           {activity.user.avatar}
                         </AvatarFallback>
@@ -596,15 +593,15 @@ export default function ActivityPage() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold text-white truncate">{activity.title}</p>
+                          <p className="font-semibold text-foreground truncate">{activity.title}</p>
                           <Badge
                             variant="secondary"
-                            className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs hidden sm:inline-flex"
+                            className="bg-secondary text-muted-foreground border-0 text-xs hidden sm:inline-flex"
                           >
                             {activity.group}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-400 truncate">
+                        <p className="text-sm text-muted-foreground truncate">
                           {activity.description}
                         </p>
                       </div>
@@ -614,15 +611,15 @@ export default function ActivityPage() {
                           <p
                             className={`font-bold text-base ${
                               activity.type === "expense"
-                                ? "text-red-400"
-                                : "text-emerald-400"
+                                ? "text-destructive"
+                                : "text-primary"
                             }`}
                           >
                             {activity.type === "expense" ? "-" : "+"}₹
                             {activity.amount.toFixed(2)}
                           </p>
                         )}
-                        <p className="text-xs text-gray-400 flex items-center justify-end gap-1 mt-1">
+                        <p className="text-xs text-muted-foreground flex items-center justify-end gap-1">
                           <Clock className="w-3 h-3" />
                           {activity.time}
                         </p>
@@ -644,14 +641,12 @@ export default function ActivityPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center py-20"
         >
-          <div className="w-24 h-24 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-6">
-            <ActivityIcon className="w-12 h-12 text-gray-500 opacity-50" />
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-4">
+            <ActivityIcon className="w-10 h-10 text-muted-foreground" />
           </div>
-          <h3 className="text-2xl font-bold mb-3">No Activities Found</h3>
-          <p className="text-gray-400 max-w-md mx-auto">
-            {activeFilter !== "All" 
-              ? `No activities match the "${activeFilter}" filter. Try selecting a different filter.`
-              : "Start adding expenses and making payments to see your activity here."}
+          <h3 className="text-xl font-semibold mb-2">No activities found</h3>
+          <p className="text-muted-foreground">
+            No activities match your current filter
           </p>
         </motion.div>
       )}

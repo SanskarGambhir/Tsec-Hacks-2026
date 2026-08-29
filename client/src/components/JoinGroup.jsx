@@ -43,11 +43,11 @@ const JoinGroup = () => {
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Join Group</h2>
+      <h2 className="text-2xl font-bold mb-6 text-foreground">Join Group</h2>
 
       <form onSubmit={handleJoinGroup}>
         <div className="mb-4">
-          <label htmlFor="groupId" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="groupId" className="block text-sm font-medium text-muted-foreground mb-1">
             Group ID
           </label>
           <input
@@ -56,16 +56,16 @@ const JoinGroup = () => {
             value={groupId}
             onChange={(e) => setGroupId(e.target.value)}
             placeholder="Enter group ID to join"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 px-4 rounded-md text-white font-medium ${loading
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-blue-500 hover:bg-blue-600'
+          className={`w-full py-2 px-4 rounded-md text-foreground font-medium ${loading
+            ? 'bg-secondary cursor-not-allowed'
+            : 'bg-primary hover:bg-primary'
             }`}
         >
           {loading ? 'Joining...' : 'Join Group'}
@@ -73,18 +73,18 @@ const JoinGroup = () => {
       </form>
 
       {message && (
-        <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-md">
+        <div className="mt-4 p-3 bg-primary/10 text-primary rounded-md">
           {message}
         </div>
       )}
 
       {error && (
-        <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
+        <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-md">
           {error}
         </div>
       )}
 
-      <div className="mt-6 text-sm text-gray-600">
+      <div className="mt-6 text-sm text-muted-foreground">
         <p><strong>Note:</strong> You need to have a valid group ID to join a group.</p>
         <p>If you don't have a group ID, ask the group owner to share it with you.</p>
       </div>

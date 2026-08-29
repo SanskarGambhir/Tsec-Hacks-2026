@@ -150,7 +150,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -158,7 +158,7 @@ export default function ProfilePage() {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto p-4">
-        <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg relative" role="alert">
+        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg relative" role="alert">
           <strong className="font-bold">Error! </strong>
           <span className="block sm:inline">{error}</span>
         </div>
@@ -173,43 +173,40 @@ export default function ProfilePage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <Card className="glass-card border-white/10 overflow-hidden relative shadow-2xl">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <Card className="border-border overflow-hidden relative shadow-sm">
+
           
           {/* Cover Image */}
-          <div
-            className="h-40 relative"
-            style={{ background: "linear-gradient(90deg, rgba(74,222,128,0.15), rgba(34,197,94,0.15), rgba(20,184,166,0.15))" }}
-          >
-             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+          <div className="h-40 relative bg-gradient-to-br from-primary via-primary/80 to-primary/60">
+             <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
           </div>
 
           <CardContent className="relative px-8 pb-8">
             {/* Avatar & Info */}
             <div className="flex flex-col md:flex-row md:items-end gap-6 -mt-16">
               <div className="relative mx-auto md:mx-0">
-                <Avatar className="w-32 h-32 border-4 border-[#0a0f0a] shadow-xl">
+                <Avatar className="w-32 h-32 border-4 border-background shadow-xl">
                   <AvatarImage src={userData.avatar} className="object-cover" />
                   <AvatarFallback
-                    className="text-black text-4xl font-bold"
-                    style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}
+                    className="text-primary-foreground text-4xl font-bold"
+                    
                   >
                     {userData.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <button className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center hover:bg-emerald-600 transition-colors shadow-lg border-2 border-[#0a0f0a]">
-                  <Camera className="w-4 h-4 text-black" />
+                <button className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-primary flex items-center justify-center hover:bg-primary transition-colors shadow-lg border-2 border-background">
+                  <Camera className="w-4 h-4 text-primary-foreground" />
                 </button>
               </div>
 
               <div className="flex-1 pb-2 text-center md:text-left space-y-1">
                 <h1 className="text-3xl font-bold tracking-tight">{userData.name}</h1>
-                <div className="flex items-center justify-center md:justify-start gap-2 text-gray-400 text-sm">
+                <div className="flex items-center justify-center md:justify-start gap-2 text-muted-foreground text-sm">
                    <Mail className="w-3 h-3" />
                    {userData.email}
                    {userData.phone && (
                       <>
-                        <span className="w-1 h-1 rounded-full bg-gray-600" />
+                        <span className="w-1 h-1 rounded-full bg-secondary" />
                         <Phone className="w-3 h-3" />
                         {userData.phone}
                       </>
@@ -220,7 +217,7 @@ export default function ProfilePage() {
               <div className="flex justify-center md:justify-end pb-2">
                  <Button
                   onClick={() => setIsEditing(!isEditing)}
-                  className="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20"
+                  className="bg-primary/10 text-primary hover:bg-primary/10 border border-primary/20"
                 >
                   <Edit2 className="w-4 h-4 mr-2" />
                   Edit Profile
@@ -229,28 +226,28 @@ export default function ProfilePage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-6 border-t border-white/10">
-              <div className="text-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                <p className="text-2xl font-bold text-emerald-400">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-6 border-t border-border">
+              <div className="text-center p-3 rounded-2xl bg-secondary border border-border">
+                <p className="text-2xl font-bold text-primary">
                   {userData.stats.groups}
                 </p>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mt-1">Groups</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Groups</p>
               </div>
-              <div className="text-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                <p className="text-2xl font-bold text-white">
+              <div className="text-center p-3 rounded-2xl bg-secondary border border-border">
+                <p className="text-2xl font-bold text-foreground">
                    {userData.stats.withdrawals}
                 </p>
-                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mt-1">Withdrawals</p>
+                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Withdrawals</p>
               </div>
-               <div className="text-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                <p className="text-2xl font-bold text-white">{userData.stats.expenses}</p>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mt-1">Expenses</p>
+               <div className="text-center p-3 rounded-2xl bg-secondary border border-border">
+                <p className="text-2xl font-bold text-foreground">{userData.stats.expenses}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Expenses</p>
               </div>
-              <div className="text-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                <p className="text-2xl font-bold text-emerald-400">
+              <div className="text-center p-3 rounded-2xl bg-secondary border border-border">
+                <p className="text-2xl font-bold text-primary">
                   {userData.stats.settled}
                 </p>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mt-1">Settled</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Settled</p>
               </div>
             </div> 
           </CardContent>
@@ -270,7 +267,7 @@ export default function ProfilePage() {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                 >
-                    <Card className="glass-card border-white/10 mb-6">
+                    <Card className="border-border mb-6">
                     <CardHeader>
                         <CardTitle className="text-lg">Update Information</CardTitle>
                     </CardHeader>
@@ -279,52 +276,52 @@ export default function ProfilePage() {
                         <div className="space-y-2">
                             <Label>Full Name</Label>
                             <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                                 value={formData.name}
                                 onChange={(e) =>
                                 setFormData({ ...formData, name: e.target.value })
                                 }
-                                className="pl-10 h-11 bg-white/5 border-white/10"
+                                className="pl-10 h-11 bg-secondary border-border"
                             />
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label>Email</Label>
                             <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                                 value={formData.email}
                                 onChange={(e) =>
                                 setFormData({ ...formData, email: e.target.value })
                                 }
-                                className="pl-10 h-11 bg-white/5 border-white/10"
+                                className="pl-10 h-11 bg-secondary border-border"
                             />
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label>Phone</Label>
                             <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                                 value={formData.phone}
                                 onChange={(e) =>
                                 setFormData({ ...formData, phone: e.target.value })
                                 }
-                                className="pl-10 h-11 bg-white/5 border-white/10"
+                                className="pl-10 h-11 bg-secondary border-border"
                             />
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label>Location</Label>
                             <div className="relative">
-                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                                 value={formData.location}
                                 onChange={(e) =>
                                 setFormData({ ...formData, location: e.target.value })
                                 }
-                                className="pl-10 h-11 bg-white/5 border-white/10"
+                                className="pl-10 h-11 bg-secondary border-border"
                             />
                             </div>
                         </div>
@@ -333,12 +330,12 @@ export default function ProfilePage() {
                         <Button
                             variant="ghost"
                             onClick={() => setIsEditing(false)}
-                            className="text-gray-400 hover:text-white hover:bg-white/5"
+                            className="text-muted-foreground hover:text-foreground hover:bg-secondary"
                         >
                             Cancel
                         </Button>
                         <Button
-                            className="text-black bg-emerald-500 hover:bg-emerald-600"
+                            className="text-primary-foreground bg-primary hover:bg-primary"
                         >
                             Save Changes
                         </Button>
@@ -355,39 +352,39 @@ export default function ProfilePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
             >
-                <Card className="glass-card border-white/10">
+                <Card className="border-border">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <History className="w-5 h-5 text-emerald-400" />
+                            <History className="w-5 h-5 text-primary" />
                             Recent Withdrawals
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                          {userData.creditWithdrawals && userData.creditWithdrawals.length > 0 ? (
                             userData.creditWithdrawals.map((withdrawal, index) => (
-                                <div key={withdrawal._id || index} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500/20 transition-all">
+                                <div key={withdrawal._id || index} className="flex items-center justify-between p-3 rounded-xl bg-secondary border border-border hover:border-primary/20 transition-all">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-400">
+                                        <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
                                             <TrendingDown className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <p className="font-medium text-sm text-gray-200">{withdrawal.group}</p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="font-medium text-sm text-foreground">{withdrawal.group}</p>
+                                            <p className="text-xs text-muted-foreground">
                                                 {new Date(withdrawal.issuedAt).toLocaleDateString()}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="text-right flex flex-col items-end gap-2">
-                                        <p className="font-bold text-white">-₹{withdrawal.amount}</p>
+                                        <p className="font-bold text-foreground">-₹{withdrawal.amount}</p>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant="secondary" className="text-[10px] h-5 bg-white/5 text-gray-400">
+                                            <Badge variant="secondary" className="text-[10px] h-5 bg-secondary text-muted-foreground">
                                                 {withdrawal.status}
                                             </Badge>
                                             {withdrawal.status === "issued" && (
                                                 <Button 
                                                     size="sm" 
                                                     variant="outline" 
-                                                    className="h-7 px-2 text-[10px] border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                                    className="h-7 px-2 text-[10px] border-primary/20 text-primary hover:bg-primary/10"
                                                     onClick={() => handleSettleWithdrawal(withdrawal._id)}
                                                 >
                                                     Settle
@@ -398,7 +395,7 @@ export default function ProfilePage() {
                                 </div>
                             ))
                          ) : (
-                             <div className="text-center py-6 text-gray-500 text-sm">
+                             <div className="text-center py-6 text-muted-foreground text-sm">
                                  No recent withdrawal history
                              </div>
                          )}
@@ -414,9 +411,9 @@ export default function ProfilePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + (0.1 * sectionIndex) }}
                 >
-                <Card className="glass-card border-white/10">
+                <Card className="border-border">
                     <CardHeader className="pb-2">
-                    <CardTitle className="text-xs uppercase tracking-widest text-gray-500 font-bold">
+                    <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
                         {section.title}
                     </CardTitle>
                     </CardHeader>
@@ -425,12 +422,12 @@ export default function ProfilePage() {
                         <motion.button
                         key={item.action}
                         whileHover={{ x: 4 }}
-                        className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-all group"
+                        className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-secondary transition-all group"
                         >
-                        <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-emerald-500/10 group-hover:text-emerald-400 transition-colors">
-                            <item.icon className="w-4 h-4 text-gray-400 group-hover:text-emerald-400" />
+                        <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                            <item.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
                         </div>
-                        <span className="flex-1 text-left font-medium text-sm text-gray-200">
+                        <span className="flex-1 text-left font-medium text-sm text-foreground">
                             {item.label}
                         </span>
                         {item.toggle ? (
@@ -447,9 +444,9 @@ export default function ProfilePage() {
                             }}
                             />
                         ) : item.value ? (
-                            <span className="text-gray-500 text-xs">{item.value}</span>
+                            <span className="text-muted-foreground text-xs">{item.value}</span>
                         ) : (
-                            <ChevronRight className="w-4 h-4 text-gray-600" />
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         )}
                         </motion.button>
                     ))}
@@ -466,21 +463,21 @@ export default function ProfilePage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
             >
-                <Card className="glass-card border-red-500/20 bg-red-500/5">
+                <Card className="border-red-500/20 bg-destructive/10">
                 <CardHeader className="pb-2">
-                    <CardTitle className="text-xs uppercase tracking-widest text-red-400 font-bold">
+                    <CardTitle className="text-xs uppercase tracking-widest text-destructive font-bold">
                     Danger Zone
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                     <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-500/10 transition-colors text-red-400 border border-transparent hover:border-red-500/20"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-destructive/10 transition-colors text-destructive border border-transparent hover:border-red-500/20"
                     >
                         <LogOut className="w-4 h-4" />
                         <span className="font-medium text-sm">Logout</span>
                     </button>
-                    <button className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-500/10 transition-colors text-red-400 border border-transparent hover:border-red-500/20">
+                    <button className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-destructive/10 transition-colors text-destructive border border-transparent hover:border-red-500/20">
                         <Trash2 className="w-4 h-4" />
                         <span className="font-medium text-sm">Delete Account</span>
                     </button>
@@ -493,18 +490,18 @@ export default function ProfilePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-center p-6 rounded-2xl bg-white/5 border border-white/5"
+                className="text-center p-6 rounded-2xl bg-secondary border border-border"
             >
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
-                     <span className="font-bold text-emerald-500">C</span>
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                     <span className="font-bold text-primary">C</span>
                 </div>
-                <p className="text-sm font-medium text-gray-300">
+                <p className="text-sm font-medium text-foreground">
                 Cooper App
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                 Version 1.0.0
                 </p>
-                <p className="text-xs text-emerald-500/50 mt-4">
+                <p className="text-xs text-primary/50 mt-4">
                 Member since {userData.joinedDate}
                 </p>
             </motion.div>

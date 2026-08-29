@@ -75,21 +75,19 @@ function GroupInvites() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (invites.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center">
-        <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-          <Users className="h-10 w-10 text-gray-500" />
-        </div>
-        <h3 className="text-xl font-semibold mb-2">
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <Users className="h-16 w-16 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold text-muted-foreground mb-2">
           No Pending Invites
         </h3>
-        <p className="text-gray-400">
+        <p className="text-muted-foreground">
           You don't have any group invites at the moment.
         </p>
       </div>
@@ -107,13 +105,13 @@ function GroupInvites() {
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="glass-card border-white/10 hover:border-emerald-500/30 transition-all">
+            <Card className="border-border hover:border-primary/30 transition-all">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   {/* Group Avatar */}
-                  <Avatar className="h-16 w-16 border-2 border-emerald-500/30">
-                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xl font-bold">
-                      {invite.group?.name?.charAt(0).toUpperCase() || "G"}
+                  <Avatar className="h-14 w-14 border-2 border-purple-500">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-foreground text-lg font-bold">
+                      {invite.group?.name?.charAt(0) || "G"}
                     </AvatarFallback>
                   </Avatar>
 
@@ -121,18 +119,18 @@ function GroupInvites() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-xl text-white mb-1 truncate">
+                        <h3 className="font-semibold text-xl text-foreground mb-1 truncate">
                           {invite.group?.name}
                         </h3>
-                        <p className="text-sm text-gray-300">
+                        <p className="text-sm text-foreground">
                           Invited by{" "}
-                          <span className="font-medium text-emerald-400">
+                          <span className="font-medium text-primary">
                             {invite.sender?.username || invite.sender?.email || "Someone"}
                           </span>
                         </p>
                       </div>
                       <Badge
-                        className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 whitespace-nowrap"
+                        className="bg-primary/20 text-primary border-primary/30 whitespace-nowrap"
                       >
                         {invite.inviteType === "friend"
                           ? "Friend Invite"
@@ -141,8 +139,8 @@ function GroupInvites() {
                     </div>
 
                     {/* Group Info */}
-                    <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
                         <span>{invite.group?.members?.length || 0} members</span>
                       </div>
@@ -153,7 +151,7 @@ function GroupInvites() {
                     </div>
 
                     {invite.group?.description && (
-                      <p className="text-sm text-gray-400 mt-2 line-clamp-1">
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
                         {invite.group.description}
                       </p>
                     )}
@@ -163,7 +161,7 @@ function GroupInvites() {
                       <Button
                         onClick={() => handleAccept(invite._id, invite.group._id)}
                         disabled={actionLoading === invite._id}
-                        className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-black font-semibold"
+                        className="flex-1 bg-primary hover:from-emerald-600 hover:to-green-600 text-black font-semibold"
                       >
                         {actionLoading === invite._id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -178,7 +176,7 @@ function GroupInvites() {
                         onClick={() => handleReject(invite._id)}
                         disabled={actionLoading === invite._id}
                         variant="outline"
-                        className="flex-1 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400"
+                        className="flex-1 border-border hover:bg-red-500/10 hover:border-destructive/20 hover:text-red-400"
                       >
                         {actionLoading === invite._id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

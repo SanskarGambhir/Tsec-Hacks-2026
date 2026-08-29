@@ -181,7 +181,7 @@ function FriendsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+            className="border-destructive/20 text-destructive hover:bg-destructive/10"
             onClick={() => handleRemoveFriend(user._id)}
           >
             Remove
@@ -193,7 +193,7 @@ function FriendsPage() {
             variant="outline"
             size="sm"
             disabled
-            className="border-yellow-500/30 text-yellow-400"
+            className="border-amber-200 text-amber-600"
           >
             <Clock className="w-4 h-4 mr-1" />
             Pending
@@ -204,8 +204,8 @@ function FriendsPage() {
           <div className="flex gap-2">
             <Button
               size="sm"
-              className="text-black font-semibold"
-              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+              className="text-primary-foreground font-semibold"
+              
               onClick={() => handleAcceptRequest(user.friendshipId)}
             >
               Accept
@@ -216,8 +216,8 @@ function FriendsPage() {
         return (
           <Button
             size="sm"
-            className="text-black font-semibold"
-            style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+            className="text-primary-foreground font-semibold"
+            
             onClick={() => handleSendRequest(user._id)}
           >
             <UserPlus className="w-4 h-4 mr-1" />
@@ -237,7 +237,7 @@ function FriendsPage() {
       >
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Friends</h1>
-          <p className="text-gray-400">
+          <p className="text-muted-foreground">
             Connect with people and manage your friend list
           </p>
         </div>
@@ -248,24 +248,24 @@ function FriendsPage() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 rounded-xl text-black font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-              style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
+              className="px-6 py-3 rounded-xl text-primary-foreground font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+              
             >
               <UserPlus className="w-5 h-5" />
               <span className="hidden sm:inline">Add Friend</span>
             </motion.button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-lg glass-card border-white/10">
+          <DialogContent className="sm:max-w-lg border-border">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
-                <UserPlus className="w-6 h-6 text-emerald-400" />
+                <UserPlus className="w-6 h-6 text-primary" />
                 Add Friend
               </DialogTitle>
             </DialogHeader>
 
             {/* Method Tabs */}
             <Tabs value={addMethod} onValueChange={setAddMethod} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-white/5">
+              <TabsList className="grid w-full grid-cols-2 bg-secondary">
                 <TabsTrigger value="search">
                   <Search className="w-4 h-4 mr-2" />
                   Search Users
@@ -279,15 +279,15 @@ function FriendsPage() {
               {/* Search Users Tab */}
               <TabsContent value="search" className="space-y-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     placeholder="Search by username, email, or phone..."
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    className="pl-11 h-12 bg-white/5 border-white/10 focus:border-emerald-500/50"
+                    className="pl-11 h-12 bg-secondary border-border focus:border-primary/20"
                   />
                   {loading && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400 animate-spin" />
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin" />
                   )}
                 </div>
 
@@ -300,23 +300,20 @@ function FriendsPage() {
                           key={user._id}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                          className="flex items-center gap-3 p-3 rounded-xl bg-secondary border border-border hover:bg-secondary transition-colors"
                         >
                           <Avatar className="w-12 h-12">
                             <AvatarImage src={user.avatar?.url} />
                             <AvatarFallback
-                              className="text-white"
-                              style={{
-                                background:
-                                  "linear-gradient(135deg, #4ade80, #22c55e)",
-                              }}
+                              className="text-foreground"
+                              
                             >
                               {user.username?.[0]?.toUpperCase() || "U"}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">{user.username}</p>
-                            <p className="text-sm text-gray-400 truncate">
+                            <p className="text-sm text-muted-foreground truncate">
                               {user.email}
                             </p>
                           </div>
@@ -324,12 +321,12 @@ function FriendsPage() {
                         </motion.div>
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-400">
+                      <div className="text-center py-8 text-muted-foreground">
                         {loading ? "Searching..." : "No users found"}
                       </div>
                     )
                   ) : (
-                    <div className="text-center py-12 text-gray-400">
+                    <div className="text-center py-12 text-muted-foreground">
                       <Search className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p>Start typing to search for users</p>
                       <p className="text-xs mt-2">
@@ -348,34 +345,34 @@ function FriendsPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="text-center py-12"
                   >
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                      <Check className="w-8 h-8 text-emerald-400" />
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Check className="w-8 h-8 text-primary" />
                     </div>
                     <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       SMS invite has been sent successfully
                     </p>
                   </motion.div>
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-muted-foreground">
                         Enter a phone number to send an invite via SMS
                       </p>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <Input
                           type="tel"
                           placeholder="+91 1234567890"
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
-                          className="pl-11 h-12 bg-white/5 border-white/10 focus:border-emerald-500/50"
+                          className="pl-11 h-12 bg-secondary border-border focus:border-primary/20"
                         />
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                      <p className="text-sm text-blue-400 flex items-start gap-2">
+                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                      <p className="text-sm text-primary flex items-start gap-2">
                         <Mail className="w-4 h-4 mt-0.5 shrink-0" />
                         <span>
                           Your friend will receive an SMS with a link to join Cooper and automatically be added to your friend list.
@@ -386,10 +383,8 @@ function FriendsPage() {
                     <Button
                       onClick={handleSendPhoneInvite}
                       disabled={phoneLoading || !phoneNumber.trim()}
-                      className="w-full text-black font-semibold"
-                      style={{
-                        background: "linear-gradient(90deg, #4ade80, #22c55e)",
-                      }}
+                      className="w-full text-primary-foreground font-semibold"
+                      
                     >
                       {phoneLoading ? (
                         <>
@@ -413,7 +408,7 @@ function FriendsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 bg-white/5">
+        <TabsList className="grid w-full grid-cols-3 bg-secondary">
           <TabsTrigger value="friends">Friends ({friends.length})</TabsTrigger>
           <TabsTrigger value="pending">
             Requests ({pendingRequests.length})
@@ -423,10 +418,10 @@ function FriendsPage() {
 
         {/* Friends List */}
         <TabsContent value="friends">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-emerald-400" />
+                <Users className="w-5 h-5 text-primary" />
                 My Friends
               </CardTitle>
             </CardHeader>
@@ -437,29 +432,27 @@ function FriendsPage() {
                     key={friend._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10"
+                    className="flex items-center gap-3 p-4 rounded-xl bg-secondary border border-border"
                   >
                     <Avatar className="w-12 h-12">
                       <AvatarImage src={friend.avatar?.url} />
                       <AvatarFallback
-                        className="text-white"
-                        style={{
-                          background: "linear-gradient(135deg, #a855f7, #ec4899)",
-                        }}
+                        className="text-foreground"
+                        
                       >
                         {friend.username?.[0]?.toUpperCase() || "F"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{friend.username}</p>
-                      <p className="text-sm text-gray-400 truncate">
+                      <p className="text-sm text-muted-foreground truncate">
                         {friend.email}
                       </p>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      className="border-destructive/20 text-destructive hover:bg-destructive/10"
                       onClick={() => handleRemoveFriend(friend._id)}
                     >
                       Remove
@@ -467,7 +460,7 @@ function FriendsPage() {
                   </motion.div>
                 ))
               ) : (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No friends yet</p>
                   <p className="text-sm mt-1">
@@ -481,10 +474,10 @@ function FriendsPage() {
 
         {/* Pending Requests */}
         <TabsContent value="pending">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Mail className="w-5 h-5 text-emerald-400" />
+                <Mail className="w-5 h-5 text-primary" />
                 Friend Requests
               </CardTitle>
             </CardHeader>
@@ -495,15 +488,13 @@ function FriendsPage() {
                     key={request._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10"
+                    className="flex items-center gap-3 p-4 rounded-xl bg-secondary border border-border"
                   >
                     <Avatar className="w-12 h-12">
                       <AvatarImage src={request.requester?.avatar?.url} />
                       <AvatarFallback
-                        className="text-white"
-                        style={{
-                          background: "linear-gradient(135deg, #3b82f6, #06b6d4)",
-                        }}
+                        className="text-foreground"
+                        
                       >
                         {request.requester?.username?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
@@ -512,7 +503,7 @@ function FriendsPage() {
                       <p className="font-medium truncate">
                         {request.requester?.username}
                       </p>
-                      <p className="text-sm text-gray-400 truncate">
+                      <p className="text-sm text-muted-foreground truncate">
                         {request.requester?.email}
                       </p>
                     </div>
@@ -521,7 +512,7 @@ function FriendsPage() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleAcceptRequest(request._id)}
-                        className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                        className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/10 transition-colors"
                       >
                         <Check className="w-5 h-5" />
                       </motion.button>
@@ -529,7 +520,7 @@ function FriendsPage() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleRejectRequest(request._id)}
-                        className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                        className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/10 transition-colors"
                       >
                         <X className="w-5 h-5" />
                       </motion.button>
@@ -537,7 +528,7 @@ function FriendsPage() {
                   </motion.div>
                 ))
               ) : (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-muted-foreground">
                   <Mail className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No pending requests</p>
                 </div>
@@ -548,10 +539,10 @@ function FriendsPage() {
 
         {/* Sent Requests */}
         <TabsContent value="sent">
-          <Card className="glass-card border-white/10">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-emerald-400" />
+                <Clock className="w-5 h-5 text-primary" />
                 Sent Requests
               </CardTitle>
             </CardHeader>
@@ -562,15 +553,13 @@ function FriendsPage() {
                     key={request._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10"
+                    className="flex items-center gap-3 p-4 rounded-xl bg-secondary border border-border"
                   >
                     <Avatar className="w-12 h-12">
                       <AvatarImage src={request.recipient?.avatar?.url} />
                       <AvatarFallback
-                        className="text-white"
-                        style={{
-                          background: "linear-gradient(135deg, #f97316, #ef4444)",
-                        }}
+                        className="text-foreground"
+                        
                       >
                         {request.recipient?.username?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
@@ -579,17 +568,17 @@ function FriendsPage() {
                       <p className="font-medium truncate">
                         {request.recipient?.username}
                       </p>
-                      <p className="text-sm text-gray-400 truncate">
+                      <p className="text-sm text-muted-foreground truncate">
                         {request.recipient?.email}
                       </p>
                     </div>
-                    <span className="px-3 py-1 text-xs font-medium rounded-lg bg-yellow-500/20 text-yellow-400">
+                    <span className="px-3 py-1 text-xs font-medium rounded-lg bg-amber-50 text-amber-600">
                       Pending
                     </span>
                   </motion.div>
                 ))
               ) : (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-muted-foreground">
                   <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No sent requests</p>
                 </div>

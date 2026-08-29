@@ -142,9 +142,9 @@ const SocketTestComponent = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Socket Connection Test</h2>
+      <h2 className="text-2xl font-bold mb-4 text-foreground">Socket Connection Test</h2>
 
-      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+      <div className="mb-4 p-4 bg-secondary rounded-lg">
         <div className="flex items-center space-x-4">
           <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
           <span>Status: {isConnected ? 'Connected' : 'Disconnected'}</span>
@@ -159,26 +159,26 @@ const SocketTestComponent = () => {
             value={groupId}
             onChange={(e) => setGroupId(e.target.value)}
             placeholder="Enter group ID to join/leave"
-            className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-[200px] px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={handleJoinGroup}
             disabled={!groupId.trim()}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-primary text-foreground rounded-md hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Join Group
           </button>
           <button
             onClick={handleLeaveGroup}
             disabled={!groupId.trim()}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-red-500 text-foreground rounded-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Leave Group
           </button>
         </div>
 
         {/* Rule Addition Section */}
-        <div className="mb-4 p-4 border border-gray-200 rounded-lg">
+        <div className="mb-4 p-4 border border-border rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Add Rule</h3>
           <div className="flex space-x-2">
             <input
@@ -186,12 +186,12 @@ const SocketTestComponent = () => {
               value={newRule}
               onChange={(e) => setNewRule(e.target.value)}
               placeholder="Enter new rule"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={handleAddRule}
               disabled={!groupId.trim() || !newRule.trim()}
-              className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-purple-500 text-foreground rounded-md hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add Rule
             </button>
@@ -199,7 +199,7 @@ const SocketTestComponent = () => {
         </div>
 
         {/* Member Join Section */}
-        <div className="mb-4 p-4 border border-gray-200 rounded-lg">
+        <div className="mb-4 p-4 border border-border rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Add Member</h3>
           <div className="flex space-x-2">
             <input
@@ -207,12 +207,12 @@ const SocketTestComponent = () => {
               value={newUser}
               onChange={(e) => setNewUser(e.target.value)}
               placeholder="Enter member name"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={handleMemberJoin}
               disabled={!groupId.trim() || !newUser.trim()}
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-green-500 text-foreground rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add Member
             </button>
@@ -220,7 +220,7 @@ const SocketTestComponent = () => {
         </div>
 
         {/* Send Message Section */}
-        <div className="mb-4 p-4 border border-gray-200 rounded-lg">
+        <div className="mb-4 p-4 border border-border rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Send Message</h3>
           <div className="flex space-x-2">
             <input
@@ -228,12 +228,12 @@ const SocketTestComponent = () => {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Enter message"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={handleSendMessage}
               disabled={!groupId.trim() || !newMessage.trim()}
-              className="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-indigo-500 text-foreground rounded-md hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Send Message
             </button>
@@ -243,13 +243,13 @@ const SocketTestComponent = () => {
 
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-2">Messages:</h3>
-        <div className="border border-gray-200 rounded-md p-4 h-64 overflow-y-auto bg-gray-50">
+        <div className="border border-border rounded-md p-4 h-64 overflow-y-auto bg-secondary">
           {messages.length === 0 ? (
-            <p className="text-gray-500 italic">No messages yet...</p>
+            <p className="text-muted-foreground italic">No messages yet...</p>
           ) : (
             messages.map((msg) => (
-              <div key={msg.id} className="py-1 border-b border-gray-100 last:border-b-0">
-                <span className="text-xs text-gray-500 mr-2">[{msg.timestamp}]</span>
+              <div key={msg.id} className="py-1 border-b border-border last:border-b-0">
+                <span className="text-xs text-muted-foreground mr-2">[{msg.timestamp}]</span>
                 <span>{msg.text}</span>
               </div>
             ))
@@ -257,7 +257,7 @@ const SocketTestComponent = () => {
         </div>
       </div>
 
-      <div className="text-sm text-gray-600 mt-4">
+      <div className="text-sm text-muted-foreground mt-4">
         <p><strong>Note:</strong> This component demonstrates socket connection functionality.</p>
         <p>Check browser console and server logs for detailed connection information.</p>
       </div>

@@ -176,19 +176,19 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
   const totalAmount = billData?.items.reduce((sum, item) => sum + parseFloat(item.price || 0), 0) || 0;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <Card className="w-full max-w-4xl bg-gray-900 border-gray-700 my-8">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <Card className="w-full max-w-4xl bg-secondary border-border my-8">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Scan className="w-5 h-5 text-emerald-400" />
+              <Scan className="w-5 h-5 text-primary" />
               <CardTitle>Scan Bill & Split</CardTitle>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-gray-400 hover:text-white"
+              className="text-muted-foreground hover:text-foreground"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -201,7 +201,7 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
           {/* Upload Section */}
           {!billData && (
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-gray-700 rounded-xl p-8 text-center space-y-4">
+              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center space-y-4">
                 {preview ? (
                   <div className="space-y-4">
                     <img
@@ -216,7 +216,7 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
                           setImage(null);
                           setPreview(null);
                         }}
-                        className="border-gray-600"
+                        className="border-border"
                       >
                         <X className="w-4 h-4 mr-2" />
                         Remove
@@ -224,7 +224,7 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
                       <Button
                         onClick={handleScan}
                         disabled={loading}
-                        className="bg-emerald-600 hover:bg-emerald-700"
+                        className="bg-primary hover:bg-primary/90"
                       >
                         {loading ? (
                           <>
@@ -249,12 +249,12 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
                       className="hidden"
                     />
                     <div className="space-y-3">
-                      <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
-                        <Upload className="w-8 h-8 text-emerald-400" />
+                      <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                        <Upload className="w-8 h-8 text-primary" />
                       </div>
                       <div>
                         <p className="text-lg font-medium">Upload Bill Image</p>
-                        <p className="text-sm text-gray-400 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                           Click to browse or drag and drop
                         </p>
                       </div>
@@ -269,9 +269,9 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
           {billData && (
             <div className="space-y-6">
               {/* Bill Header */}
-              <div className="p-4 bg-gray-800/50 rounded-xl">
+              <div className="p-4 bg-secondary rounded-xl">
                 <h3 className="font-semibold text-lg mb-2">{billData.vendor || 'Vendor'}</h3>
-                <p className="text-emerald-400 text-2xl font-bold">
+                <p className="text-primary text-2xl font-bold">
                   Total: ₹{totalAmount.toFixed(2)}
                 </p>
               </div>
@@ -280,17 +280,17 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
               <div className="space-y-3">
                 <Label className="text-base">Assign Items to Members</Label>
                 {billData.items.map((item, index) => (
-                  <div key={index} className="border border-gray-700 p-4 rounded-xl space-y-3 bg-gray-800/30">
+                  <div key={index} className="border border-border p-4 rounded-xl space-y-3 bg-secondary">
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-semibold">{item.name}</p>
-                        <p className="text-emerald-400 font-bold">₹{Number(item.price).toFixed(2)}</p>
+                        <p className="text-primary font-bold">₹{Number(item.price).toFixed(2)}</p>
                       </div>
                       <Button
                         size="sm"
                         variant={item.isShared ? "default" : "outline"}
                         onClick={() => handleShared(index)}
-                        className={item.isShared ? "bg-blue-600 hover:bg-blue-700" : "border-gray-600"}
+                        className={item.isShared ? "bg-primary hover:bg-primary" : "border-border"}
                       >
                         {item.isShared ? (
                           <>
@@ -313,8 +313,8 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
                             onClick={() => handleAssignToMember(index, member._id)}
                             className={
                               item.assignedTo?.includes(member._id)
-                                ? "bg-emerald-600 hover:bg-emerald-700 text-black"
-                                : "border-gray-600"
+                                ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                                : "border-border"
                             }
                           >
                             {member.username || member.email}
@@ -328,7 +328,7 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
 
               {/* Split Summary */}
               {splitBalances && (
-                <div className="p-4 bg-gray-800/50 rounded-xl space-y-3">
+                <div className="p-4 bg-secondary rounded-xl space-y-3">
                   <h4 className="font-semibold flex items-center gap-2">
                     <Divide className="w-4 h-4" />
                     Split Summary
@@ -336,8 +336,8 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
                   <div className="space-y-2">
                     {group.members.map(member => (
                       <div key={member._id} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-300">{member.username || member.email}</span>
-                        <span className="font-semibold text-emerald-400">
+                        <span className="text-foreground">{member.username || member.email}</span>
+                        <span className="font-semibold text-primary">
                           ₹{splitBalances[member._id].toFixed(2)}
                         </span>
                       </div>
@@ -347,7 +347,7 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
               )}
 
               {error && (
-                <div className="p-3 bg-red-500/20 text-red-300 rounded-lg text-sm">
+                <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
                   {error}
                 </div>
               )}
@@ -361,7 +361,7 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
                     setPreview(null);
                     setImage(null);
                   }}
-                  className="flex-1 border-gray-600"
+                  className="flex-1 border-border"
                   disabled={processing}
                 >
                   Scan New Bill
@@ -369,7 +369,7 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
                 <Button
                   onClick={handleProcessPayment}
                   disabled={processing}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                  className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   {processing ? (
                     <>
@@ -385,7 +385,7 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
           )}
 
           {error && !billData && (
-            <div className="p-3 bg-red-500/20 text-red-300 rounded-lg text-sm">
+            <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
               {error}
             </div>
           )}
@@ -395,7 +395,7 @@ const BillScannerModal = ({ group, onClose, onSuccess }) => {
               <Button
                 variant="outline"
                 onClick={onClose}
-                className="border-gray-600"
+                className="border-border"
               >
                 Cancel
               </Button>

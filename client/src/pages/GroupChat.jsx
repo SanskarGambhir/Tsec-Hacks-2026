@@ -102,13 +102,13 @@ const GroupChat = () => {
   };
 
   const handleGoBack = () => {
-    navigate('/homepage');
+    navigate('/groups');
   };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -127,23 +127,19 @@ const GroupChat = () => {
   if (!group) {
     return (
       <div className="max-w-4xl mx-auto p-4">
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg relative" role="alert">
+        <div className="bg-amber-50 border border-amber-300 text-amber-700 px-4 py-3 rounded-lg relative" role="alert">
           <span className="block sm:inline">Group not found</span>
         </div>
       </div>
     );
   }
-
-  console.log(messages);
-  console.log(currentUserId);
-
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}
       <header className="bg-primary text-primary-foreground p-4 shadow-md">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-xl font-bold">{group.name}</h1>
-          <Button onClick={handleGoBack} variant="secondary" className="text-white">
+          <Button onClick={handleGoBack} variant="secondary" className="text-foreground">
             Back to Groups
           </Button>
         </div>

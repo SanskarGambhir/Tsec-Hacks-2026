@@ -75,190 +75,127 @@ const MemberActionsModal = ({ member, balance, groupId, onClose, onAction }) => 
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="glass-card border-white/10 max-w-md p-0 overflow-hidden">
-        <div className="p-6">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="flex items-center gap-3 text-xl font-bold">
-              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <Wallet className="w-5 h-5 text-emerald-400" />
-              </div>
-              Member Actions
-            </DialogTitle>
-          </DialogHeader>
+      <DialogContent className="border-border max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Wallet className="w-5 h-5 text-primary" />
+            Actions for {member.username || member.email}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-4">
+          <div className="p-4 bg-secondary rounded-lg">
+            <p className="text-sm text-foreground mb-1">Current Balance</p>
+            <p className="text-xl font-bold text-primary">₹{balance.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Available for withdrawal</p>
+          </div>
 
           <AnimatePresence mode="wait">
             {!showTerms ? (
               <motion.div
-                key="main-form"
+                key="form"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="space-y-6"
+                className="space-y-4"
               >
-                {/* Member Info Card */}
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-black font-bold text-lg shadow-lg">
-                    {(member.username || member.email)[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-white truncate">{member.username || member.email}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-emerald-500/10 border-emerald-500/20 text-emerald-400 font-bold uppercase tracking-wider">
-                        Balance: ₹{balance.toLocaleString()}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Action Type Selection */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Action Type</Label>
+                  <Label className="text-sm font-bold text-muted-foreground uppercase tracking-widest px-1">Action Type</Label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setActionType('takeCredits')}
                       className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group ${
                         actionType === 'takeCredits' 
-                        ? 'bg-emerald-500/20 border-emerald-500/50 shadow-lg shadow-emerald-500/10' 
-                        : 'bg-white/5 border-white/10 hover:border-emerald-500/30'
+                        ? 'bg-primary/20 border-primary/50 shadow-lg shadow-emerald-500/10' 
+                        : 'bg-secondary border-border hover:border-primary/30'
                       }`}
                     >
-                      <CreditCard className={`w-6 h-6 mb-2 transition-colors ${actionType === 'takeCredits' ? 'text-emerald-400' : 'text-gray-500 group-hover:text-emerald-400'}`} />
-                      <span className={`text-sm font-bold ${actionType === 'takeCredits' ? 'text-white' : 'text-gray-400'}`}>Take Credits</span>
+                      <CreditCard className={`w-6 h-6 mb-2 transition-colors ${actionType === 'takeCredits' ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
+                      <span className={`text-sm font-bold ${actionType === 'takeCredits' ? 'text-foreground' : 'text-muted-foreground'}`}>Take Credits</span>
                     </button>
                     
                     <button
                       onClick={() => setActionType('addFunds')}
                       className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group ${
                         actionType === 'addFunds' 
-                        ? 'bg-blue-500/20 border-blue-500/50 shadow-lg shadow-blue-500/10' 
-                        : 'bg-white/5 border-white/10 hover:border-blue-500/30'
+                        ? 'bg-primary/20 border-primary/50 shadow-lg shadow-blue-500/10' 
+                        : 'bg-secondary border-border hover:border-primary/30'
                       }`}
                     >
-                      <ArrowDownUp className={`w-6 h-6 mb-2 transition-colors ${actionType === 'addFunds' ? 'text-blue-400' : 'text-gray-500 group-hover:text-blue-400'}`} />
-                      <span className={`text-sm font-bold ${actionType === 'addFunds' ? 'text-white' : 'text-gray-400'}`}>Add Funds</span>
+                      <ArrowDownUp className={`w-6 h-6 mb-2 transition-colors ${actionType === 'addFunds' ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
+                      <span className={`text-sm font-bold ${actionType === 'addFunds' ? 'text-foreground' : 'text-muted-foreground'}`}>Add Funds</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Amount Input */}
-                <div className="space-y-3">
-                  <Label htmlFor="amount" className="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Amount</Label>
-                  <div className="relative group">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-emerald-400 font-bold border-r border-white/10 pr-3 mr-3">
-                      ₹
+                {actionType && (
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Amount (₹)</Label>
+                    <div className="relative">
+                      <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="amount"
+                        type="number"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="Enter amount"
+                        className="pl-10 h-12 bg-secondary border-border"
+                        min="0.01"
+                        step="0.01"
+                      />
                     </div>
-                    <Input
-                      id="amount"
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="pl-14 h-14 bg-white/5 border-white/10 text-xl font-bold tracking-tight rounded-2xl focus:border-emerald-500/50 focus:ring-emerald-500/20 transition-all"
-                    />
                   </div>
-                </div>
-
-                {error && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs"
-                  >
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    {error}
-                  </motion.div>
                 )}
 
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    variant="ghost"
-                    onClick={onClose}
-                    className="flex-1 h-12 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 border border-transparent"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleInitialConfirm}
-                    className="flex-1 h-12 rounded-xl text-black font-bold shadow-lg"
-                    style={{ background: "linear-gradient(90deg, #4ade80, #22c55e)" }}
-                  >
-                    Continue
-                  </Button>
-                </div>
+                {error && (
+                  <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleInitialConfirm}
+                  disabled={loading}
+                  className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90"
+                >
+                  Continue
+                </Button>
               </motion.div>
             ) : (
               <motion.div
-                key="terms-form"
+                key="terms"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                className="space-y-4"
               >
-                <div className="p-5 rounded-2xl bg-yellow-500/5 border border-yellow-500/20 space-y-4">
-                  <div className="flex items-center gap-2 text-yellow-500 font-bold text-sm uppercase tracking-widest">
-                    <ShieldAlert className="w-4 h-4" />
-                    Credit Terms & Conditions
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 w-5 h-5 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-3 h-3 text-yellow-500" />
-                      </div>
-                      <p className="text-xs text-gray-300 leading-relaxed">
-                        The user is solely responsible for <span className="text-white font-bold">full repayment</span> of the credits withdrawn.
-                      </p>
-                    </div>
-                    
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 w-5 h-5 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
-                        <CalendarClock className="w-3 h-3 text-yellow-500" />
-                      </div>
-                      <p className="text-xs text-gray-300 leading-relaxed">
-                        Repayment is due within <span className="text-white font-bold">10 days</span> from the date of withdrawal.
-                      </p>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 w-5 h-5 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
-                        <Percent className="w-3 h-3 text-yellow-500" />
-                      </div>
-                      <p className="text-xs text-gray-300 leading-relaxed">
-                        An interest rate of <span className="text-white font-bold">6%</span> will be applied to the principal amount.
+                <div className="p-4 bg-yellow-500/10 border border-amber-200 rounded-xl space-y-3">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-amber-600">Terms & Conditions</h4>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        By withdrawing credits, you agree that this action cannot be undone. 
+                        The selected amount will be transferred.
                       </p>
                     </div>
                   </div>
-
-                  <div className="pt-2 border-t border-yellow-500/10 mt-4">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className="relative flex items-center">
-                        <input 
-                          type="checkbox" 
-                          checked={agreed}
-                          onChange={(e) => setAgreed(e.target.checked)}
-                          className="peer appearance-none w-5 h-5 rounded-md border-2 border-yellow-500/30 bg-white/5 checked:bg-yellow-500 checked:border-yellow-500 transition-all cursor-pointer"
-                        />
-                        <Check className="absolute w-3.5 h-3.5 text-black left-[3px] opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
-                      </div>
-                      <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors select-none">
-                        I understand and agree to the repayment terms and interest policy.
-                      </span>
-                    </label>
-                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer mt-4">
+                    <input 
+                      type="checkbox" 
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      className="w-4 h-4 rounded border-border bg-secondary text-amber-600 focus:ring-yellow-500"
+                    />
+                    <span className="text-sm text-foreground">I agree to the terms and conditions</span>
+                  </label>
                 </div>
-
-                {error && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    {error}
-                  </div>
-                )}
 
                 <div className="flex gap-3">
                   <Button
                     variant="ghost"
                     onClick={() => setShowTerms(false)}
-                    className="flex-1 h-12 rounded-xl text-gray-400 hover:text-white"
+                    className="flex-1 h-12 rounded-xl text-muted-foreground hover:text-foreground"
                     disabled={loading}
                   >
                     Back

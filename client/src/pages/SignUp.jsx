@@ -3,7 +3,19 @@ import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../api/auth.js";
 import axios from "axios";
 import { useState, useEffect } from "react";
+import { Zap, User, Mail, Phone, CreditCard, Lock, Shield, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.06, duration: 0.4, ease: "easeOut" },
+  }),
+};
 
 export default function SignUp() {
   const [username, setUsername] = useState("");
@@ -89,127 +101,176 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-background via-background to-secondary/30">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full max-w-md"
       >
-        <Card className="glass-card border-white/10">
+        <Card className="border-border shadow-lg">
           <CardContent className="p-8 space-y-6">
 
-            <div className="text-center">
-              <h2 className="text-2xl font-bold">
-                Create <span className="text-emerald-400">Account</span>
-              </h2>
-              <p className="text-gray-400 text-sm mt-1">
-                Join and start managing group expenses
-              </p>
-            </div>
+            {/* Branding */}
+            <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible" className="text-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto shadow-md">
+                <Zap className="w-7 h-7 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Create account</h1>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Join Cooper and start managing group expenses
+                </p>
+              </div>
+            </motion.div>
 
             {!showOTP && (
-              <div className="space-y-4">
-                <input
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
+              <div className="space-y-3">
+                <motion.div custom={1} variants={fadeUp} initial="hidden" animate="visible" className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="h-12 pl-10 bg-secondary border-border"
+                  />
+                </motion.div>
 
-                <input
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+                <motion.div custom={2} variants={fadeUp} initial="hidden" animate="visible" className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-12 pl-10 bg-secondary border-border"
+                  />
+                </motion.div>
 
-                <input
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3"
-                  placeholder="Phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
+                <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Phone number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="h-12 pl-10 bg-secondary border-border"
+                  />
+                </motion.div>
 
-                <input
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3"
-                  placeholder="PAN Card"
-                  value={panCard}
-                  onChange={(e) => setPanCard(e.target.value.toUpperCase())}
-                />
+                <motion.div custom={4} variants={fadeUp} initial="hidden" animate="visible" className="relative">
+                  <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="PAN Card number"
+                    value={panCard}
+                    onChange={(e) => setPanCard(e.target.value.toUpperCase())}
+                    className="h-12 pl-10 bg-secondary border-border"
+                  />
+                </motion.div>
 
-                <input
-                  type="file"
-                  onChange={handlePanFileChange}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3"
-                />
+                <motion.div custom={5} variants={fadeUp} initial="hidden" animate="visible">
+                  <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary border border-border cursor-pointer hover:border-primary/30 transition-colors">
+                    <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm text-muted-foreground truncate">
+                      {panFile ? panFile.name : "Upload PAN card image (optional)"}
+                    </span>
+                    <input
+                      type="file"
+                      onChange={handlePanFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                </motion.div>
 
                 {panFile && (
-                  <div className="bg-white/5 p-3 rounded-xl">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl overflow-hidden border border-border">
                     {panFile.type.includes("image") && (
-                      <img src={panPreview} className="rounded-lg max-h-48" />
+                      <img src={panPreview} className="w-full max-h-48 object-cover" />
                     )}
                     {panFile.type === "application/pdf" && (
-                      <iframe src={panPreview} className="w-full h-48 rounded-lg" />
+                      <iframe src={panPreview} className="w-full h-48" />
                     )}
-                  </div>
+                  </motion.div>
                 )}
 
-                <input
-                  type="password"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <motion.div custom={6} variants={fadeUp} initial="hidden" animate="visible" className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="password"
+                    placeholder="Create password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 pl-10 bg-secondary border-border"
+                  />
+                </motion.div>
 
-                <button
-                  onClick={handleSignup}
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl font-semibold text-black"
-                  style={{ background: "linear-gradient(90deg,#4ade80,#22c55e)" }}
-                >
-                  {loading ? "Creating..." : "Create Account"}
-                </button>
+                <motion.div custom={7} variants={fadeUp} initial="hidden" animate="visible">
+                  <Button
+                    onClick={handleSignup}
+                    disabled={loading}
+                    className="w-full h-12 text-base font-semibold"
+                  >
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                        Creating account...
+                      </span>
+                    ) : (
+                      "Create account"
+                    )}
+                  </Button>
+                </motion.div>
               </div>
             )}
 
             {showOTP && (
-              <div className="space-y-4">
-                <input
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3"
-                  placeholder="Enter OTP"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                />
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/10">
+                  <Shield className="w-4 h-4 text-primary shrink-0" />
+                  <p className="text-xs text-muted-foreground">A verification code has been sent to your phone</p>
+                </div>
 
-                <button
+                <div className="relative">
+                  <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Enter OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    className="h-12 pl-10 bg-secondary border-border"
+                  />
+                </div>
+
+                <Button
                   onClick={handleVerifyOTP}
-                  className="w-full py-3 rounded-xl bg-emerald-600 font-semibold"
+                  className="w-full h-12 font-semibold"
                 >
                   Verify OTP
-                </button>
+                </Button>
 
                 {countdown > 0 ? (
-                  <p className="text-center text-gray-400 text-sm">
+                  <p className="text-center text-muted-foreground text-sm">
                     Resend OTP in {countdown}s
                   </p>
                 ) : (
                   <button
                     onClick={handleResendOTP}
-                    className="text-emerald-400 text-sm w-full text-center"
+                    className="text-primary text-sm w-full text-center hover:underline"
                   >
                     Resend OTP
                   </button>
                 )}
-              </div>
+              </motion.div>
             )}
 
-            <p className="text-center text-gray-400 text-sm">
+            <motion.p custom={8} variants={fadeUp} initial="hidden" animate="visible" className="text-center text-muted-foreground text-sm">
               Already have an account?{" "}
-              <Link to="/login" className="text-emerald-400">
-                Sign In
+              <Link to="/login" className="text-primary font-medium hover:underline">
+                Sign in
               </Link>
-            </p>
+            </motion.p>
 
           </CardContent>
         </Card>
